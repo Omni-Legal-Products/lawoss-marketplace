@@ -25,8 +25,10 @@ HOSTNAME_CANDIDATE = re.compile(
 DEPLOYMENT_ID = re.compile(
     r"(?ix)(?:"
     r"(?:--|\b)(?:compose|project|application|deployment|container)Id"
+    r"(?:\s+|\s*=\s*|\s*:\s*)"
     r"|[\"']?DOKPLOY_(?:PROJECT|APPLICATION|COMPOSE|DEPLOYMENT|CONTAINER)_ID[\"']?"
-    r")(?:\s+|\s*=\s*|\s*:\s*)[\"']?"
+    r"(?:\s*=\s*|\s*:\s*)"
+    r")[\"']?"
     r"(?!<|\$\{|example\b|placeholder\b)[A-Za-z0-9_-]{8,}"
 )
 MACOS_USER_PATH = re.compile("/" + r"Users/[^/\s]+/")

@@ -164,6 +164,8 @@ class MarketplaceValidationTest(unittest.TestCase):
         safe_examples = "\n".join(
             (
                 "Set DOKPLOY_" + "PROJECT_ID to your authorized deployment ID.",
+                "The DOKPLOY_" + "PROJECT_ID environment variable is optional.",
+                "DOKPLOY_" + "PROJECT_ID identifies the selected project.",
                 "DOKPLOY_" + "PROJECT_ID=<replace-with-project-id>",
                 '"DOKPLOY_' + 'PROJECT_ID": "${DOKPLOY_PROJECT_ID}"',
                 "DOKPLOY_" + "PROJECT_ID: placeholder-project-id",
