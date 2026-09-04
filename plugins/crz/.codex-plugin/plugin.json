@@ -1,0 +1,29 @@
+{
+  "name": "crz",
+  "version": "1.3.1",
+  "description": "LAWOSS connector guidance for a self-operated MCP server over Slovakia's Central Register of Contracts.",
+  "author": {
+    "name": "LAWOSS",
+    "url": "https://github.com/Omni-Legal-Products"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-crz",
+  "repository": "https://github.com/Omni-Legal-Products/mcp-crz",
+  "license": "MIT",
+  "keywords": ["mcp", "slovakia", "legal", "contracts", "crz"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CRZ",
+    "shortDescription": "Search and inspect Slovak public contracts",
+    "longDescription": "Guidance for operating your own CRZ MCP instance locally or behind authenticated HTTPS, then using its read-only research tools safely.",
+    "developerName": "LAWOSS",
+    "category": "Legal",
+    "capabilities": ["Read", "Research"],
+    "websiteURL": "https://github.com/Omni-Legal-Products/mcp-crz",
+    "brandColor": "#9A7627",
+    "defaultPrompt": [
+      "Find comparable public contracts in CRZ.",
+      "Extract clauses from a selected CRZ contract.",
+      "Show contracts added since my last CRZ check."
+    ]
+  }
+}

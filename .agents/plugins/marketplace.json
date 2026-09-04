@@ -1,0 +1,20 @@
+{
+  "name": "lawoss",
+  "interface": {
+    "displayName": "LAWOSS Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "crz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/crz"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
