@@ -20,12 +20,14 @@ file as publishable even when the repository currently has no remote.
 
 ## Required mirrors and checks
 
-- `.agents/plugins/marketplace.json` is canonical; keep
-  `.claude-plugin/marketplace.json` semantically aligned.
+- `.agents/plugins/marketplace.json` is canonical. Keep the Claude catalog
+  aligned through the validated semantic projection; do not copy Codex-only
+  fields into Claude's different schema.
 - Keep `AGENTS.md` and `CLAUDE.md` byte-for-byte identical.
 - Run `python3 -m unittest discover -s tests -v`,
-  `python3 scripts/validate.py`, the plugin-creator validator, and the mirror
-  comparison before committing.
+  `python3 scripts/validate.py`, `claude plugin validate --strict`, the
+  plugin-creator validator, and the instruction mirror comparison before
+  committing.
 - Review the staged file list and sanitization output. Do not publish, push,
   deploy, register an MCP endpoint, or change repository visibility without
   explicit authorization.

@@ -13,13 +13,11 @@ called.
 
 ## Set up your own CRZ server
 
-- [Local stdio installation](https://github.com/Omni-Legal-Products/mcp-crz/blob/main/INSTALL.md#1-lok%C3%A1lny-stdio-server)
-- [Authenticated self-hosting](https://github.com/Omni-Legal-Products/mcp-crz/blob/main/INSTALL.md#3-docker-compose-s-oauth)
-- [CRZ MCP project documentation](https://github.com/Omni-Legal-Products/mcp-crz#readme)
+[Manual local and self-hosted setup](docs/SETUP.md) is included in this wrapper.
+It identifies the separate authorized server-source prerequisite, the exact
+directory in which server commands run, local client registration, and the
+authenticated remote deployment boundary.
 
-Use an absolute path when registering a local build. For a remote deployment,
-use only your own HTTPS domain and require authentication. The example domain in
-the source documentation is a placeholder, not an operated service.
-
-The plugin manifest and skill were copied from the approved LAWOSS CRZ revision
-`b46c3b62a59ef1d502db612dfa7b6511d6c3ff40`.
+The plugin metadata and skill are adapted only from the approved LAWOSS CRZ
+revision `b46c3b62a59ef1d502db612dfa7b6511d6c3ff40`. Repository links that are not
+anonymously available in the current pilot are deliberately omitted.

@@ -1,6 +1,9 @@
 import json
+import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,39 +11,145 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CODEX_CATALOG = ROOT / ".agents" / "plugins" / "marketplace.json"
 CLAUDE_CATALOG = ROOT / ".claude-plugin" / "marketplace.json"
+MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
 class MarketplaceValidationTest(unittest.TestCase):
-    def test_catalogs_publish_only_safe_contained_wrappers(self) -> None:
-        """Catch path escape, metadata drift, or automatic MCP registration."""
+    def _copy_repository(self, directory: str) -> Path:
+        destination = Path(directory) / "marketplace"
+        shutil.copytree(
+            ROOT,
+            destination,
+            ignore=shutil.ignore_patterns(".git", "__pycache__"),
+        )
+        return destination
+
+    def _run_validator(self, root: Path) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "validate.py"), "--root", str(root)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def test_catalogs_share_an_explicit_semantic_projection(self) -> None:
+        """Catch Claude/Codex schema drift without conflating their formats."""
         codex = json.loads(CODEX_CATALOG.read_text(encoding="utf-8"))
         claude = json.loads(CLAUDE_CATALOG.read_text(encoding="utf-8"))
+        manifest = json.loads(
+            (ROOT / "plugins" / "crz" / ".codex-plugin" / "plugin.json").read_text(
+                encoding="utf-8"
+            )
+        )
 
-        self.assertEqual(codex, claude)
         self.assertEqual(codex["name"], "lawoss")
         self.assertEqual(codex["interface"], {"displayName": "LAWOSS Marketplace"})
         self.assertEqual([plugin["name"] for plugin in codex["plugins"]], ["crz"])
+        self.assertEqual(claude["name"], "lawoss")
+        self.assertEqual(claude.get("owner"), {"name": "LAWOSS"})
+        self.assertEqual(
+            set(claude), {"name", "owner", "description", "plugins"}
+        )
+        self.assertEqual([plugin["name"] for plugin in claude["plugins"]], ["crz"])
 
-        for plugin in codex["plugins"]:
-            source = plugin["source"]
-            self.assertEqual(source["source"], "local")
-            self.assertTrue(source["path"].startswith("./plugins/"))
-            self.assertEqual(
-                plugin["policy"],
-                {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
-            )
-            self.assertEqual(plugin["category"], "Productivity")
+        codex_plugin = codex["plugins"][0]
+        claude_plugin = claude["plugins"][0]
+        self.assertEqual(codex_plugin["source"], {"source": "local", "path": "./plugins/crz"})
+        self.assertEqual(
+            codex_plugin["policy"],
+            {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+        )
+        self.assertEqual(
+            set(claude_plugin),
+            {"name", "source", "description", "version", "category"},
+        )
+        self.assertEqual(claude_plugin["source"], "./plugins/crz")
 
-            plugin_root = (ROOT / source["path"]).resolve()
-            plugin_root.relative_to(ROOT.resolve())
-            manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            self.assertEqual(manifest["name"], plugin["name"])
-            self.assertNotIn("mcpServers", manifest)
-            self.assertFalse(
-                (plugin_root / ".mcp.json").exists(),
-                "A skill-only marketplace wrapper must not auto-register an MCP server",
-            )
+        codex_projection = {
+            "marketplace": codex["name"],
+            "owner": manifest["author"]["name"],
+            "plugin": codex_plugin["name"],
+            "description": manifest["description"],
+            "category": codex_plugin["category"],
+            "version": manifest["version"],
+            "source": codex_plugin["source"]["path"],
+        }
+        claude_projection = {
+            "marketplace": claude["name"],
+            "owner": claude["owner"]["name"],
+            "plugin": claude_plugin["name"],
+            "description": claude_plugin["description"],
+            "category": claude_plugin["category"],
+            "version": claude_plugin["version"],
+            "source": claude_plugin["source"],
+        }
+        self.assertEqual(codex_projection, claude_projection)
+
+        plugin_root = (ROOT / codex_projection["source"]).resolve()
+        plugin_root.relative_to(ROOT.resolve())
+        self.assertNotIn("mcpServers", manifest)
+        self.assertFalse(
+            (plugin_root / ".mcp.json").exists(),
+            "A skill-only marketplace wrapper must not auto-register an MCP server",
+        )
+
+    def test_every_readme_link_resolves_inside_the_marketplace(self) -> None:
+        """Catch setup links that require an unavailable external repository."""
+        for readme in ROOT.rglob("README.md"):
+            for target in MARKDOWN_LINK.findall(readme.read_text(encoding="utf-8")):
+                self.assertFalse(
+                    target.startswith(("http://", "https://")),
+                    msg=f"external README link is not self-contained: {readme}: {target}",
+                )
+                local_target = target.split("#", 1)[0]
+                resolved = (readme.parent / local_target).resolve()
+                resolved.relative_to(ROOT.resolve())
+                self.assertTrue(resolved.exists(), msg=f"broken README link: {readme}: {target}")
+
+    def test_validator_rejects_private_infrastructure_and_secret_mutations(self) -> None:
+        """Catch publication leaks even when they are not written as URLs."""
+        mutations = (
+            ("RFC1918", "host=" + ".".join(("10", "23", "45", "67")), "private network address"),
+            ("CGNAT", "host=" + ".".join(("100", "100", "10", "20")), "private network address"),
+            ("Tailscale host", "host=private-node.example." + "ts.net", "private infrastructure hostname"),
+            ("private deployment host", "host=service.private." + "internal", "private infrastructure hostname"),
+            ("Dokploy ID", "--compose" + "Id dp_" + "a" * 24, "deployment identifier"),
+            ("secret", "to" + "ken=" + "ghp_" + "A" * 24, "secret signature"),
+        )
+
+        for name, payload, expected_error in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                (copied_root / "probe.txt").write_text(payload + "\n", encoding="utf-8")
+                result = self._run_validator(copied_root)
+
+                self.assertNotEqual(result.returncode, 0, msg=name)
+                self.assertIn(expected_error, result.stderr)
+
+    def test_validator_rejects_path_traversal_and_claude_schema_mutations(self) -> None:
+        """Catch source escape and regression to Codex-shaped Claude JSON."""
+        with tempfile.TemporaryDirectory() as directory:
+            copied_root = self._copy_repository(directory)
+            catalog_path = copied_root / ".agents" / "plugins" / "marketplace.json"
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            catalog["plugins"][0]["source"]["path"] = "./plugins/../../outside"
+            catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
+            result = self._run_validator(copied_root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("source escapes marketplace root", result.stderr)
+
+        with tempfile.TemporaryDirectory() as directory:
+            copied_root = self._copy_repository(directory)
+            catalog_path = copied_root / ".claude-plugin" / "marketplace.json"
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            catalog["plugins"][0]["source"] = {"path": "./plugins/crz"}
+            catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
+            result = self._run_validator(copied_root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Claude plugin source must be a relative path string", result.stderr)
 
     def test_repository_validator_accepts_its_own_public_safe_rules(self) -> None:
         """Catch a sanitization rule that rejects its own validator source."""

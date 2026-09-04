@@ -12,13 +12,15 @@ codex plugin list
 ```
 
 The CRZ wrapper installs guidance for choosing and safely using CRZ tools. It
-does not install or configure an MCP server. Follow the wrapper's linked setup
-documentation to run your own local or authenticated self-hosted instance.
+does not install or configure an MCP server. Follow the local
+[CRZ wrapper and setup guidance](plugins/crz/README.md) for the separate source
+prerequisite and the manual local or authenticated self-hosted procedure.
 
 ## Distribution boundary
 
 - `.agents/plugins/marketplace.json` is the canonical Codex catalog.
-- `.claude-plugin/marketplace.json` carries the aligned compatibility catalog.
+- `.claude-plugin/marketplace.json` carries the semantically aligned Claude
+  catalog in Claude's intentionally different schema.
 - Installable wrappers live under `plugins/<name>` and resolve inside this repo.
 - A wrapper becomes available only after its organization source passes the
   public release gate.
