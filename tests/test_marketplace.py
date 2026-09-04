@@ -113,7 +113,11 @@ class MarketplaceValidationTest(unittest.TestCase):
             ("RFC1918", "host=" + ".".join(("10", "23", "45", "67")), "private network address"),
             ("CGNAT", "host=" + ".".join(("100", "100", "10", "20")), "private network address"),
             ("Tailscale host", "host=private-node.example." + "ts.net", "private infrastructure hostname"),
-            ("private deployment host", "host=service.private." + "internal", "private infrastructure hostname"),
+            (
+                "private deployment host",
+                "host=service." + "private." + "internal",
+                "private infrastructure hostname",
+            ),
             ("Dokploy ID", "--compose" + "Id dp_" + "a" * 24, "deployment identifier"),
             ("secret", "to" + "ken=" + "ghp_" + "A" * 24, "secret signature"),
         )
@@ -126,6 +130,53 @@ class MarketplaceValidationTest(unittest.TestCase):
 
                 self.assertNotEqual(result.returncode, 0, msg=name)
                 self.assertIn(expected_error, result.stderr)
+
+    def test_validator_rejects_private_dns_and_environment_deployment_ids(self) -> None:
+        """Catch two-label private DNS and deployment IDs in config assignments."""
+        mutations = (
+            ("two-label private DNS", "host=db." + "internal", "private infrastructure hostname"),
+            (
+                "environment assignment",
+                "DOKPLOY_" + "PROJECT_ID=dp_" + "b" * 24,
+                "deployment identifier",
+            ),
+            (
+                "JSON assignment",
+                '"DOKPLOY_' + 'PROJECT_ID": "dp_' + "c" * 24 + '"',
+                "deployment identifier",
+            ),
+            (
+                "YAML assignment",
+                "DOKPLOY_" + "PROJECT_ID: dp_" + "d" * 24,
+                "deployment identifier",
+            ),
+        )
+
+        for name, payload, expected_error in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                (copied_root / "probe.txt").write_text(payload + "\n", encoding="utf-8")
+                result = self._run_validator(copied_root)
+
+                self.assertNotEqual(result.returncode, 0, msg=name)
+                self.assertIn(expected_error, result.stderr)
+
+        safe_examples = "\n".join(
+            (
+                "Set DOKPLOY_" + "PROJECT_ID to your authorized deployment ID.",
+                "DOKPLOY_" + "PROJECT_ID=<replace-with-project-id>",
+                '"DOKPLOY_' + 'PROJECT_ID": "${DOKPLOY_PROJECT_ID}"',
+                "DOKPLOY_" + "PROJECT_ID: placeholder-project-id",
+            )
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            copied_root = self._copy_repository(directory)
+            (copied_root / "safe-placeholders.txt").write_text(
+                safe_examples + "\n", encoding="utf-8"
+            )
+            result = self._run_validator(copied_root)
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
 
     def test_validator_rejects_path_traversal_and_claude_schema_mutations(self) -> None:
         """Catch source escape and regression to Codex-shaped Claude JSON."""

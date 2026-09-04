@@ -20,11 +20,14 @@ SEMVER = re.compile(
 URL = re.compile(r"https?://[^\s`\]\[(){}<>\"']+")
 IPV4_CANDIDATE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 HOSTNAME_CANDIDATE = re.compile(
-    r"\b(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62})\.){2,}[A-Za-z]{2,63}\b"
+    r"\b(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62})\.)+[A-Za-z]{2,63}\b"
 )
 DEPLOYMENT_ID = re.compile(
-    r"(?i)(?:--|\b)(?:compose|project|application|deployment|container)Id"
-    r"(?:\s+|=|:\s*)[\"']?(?!<|example\b|placeholder\b)[A-Za-z0-9_-]{8,}"
+    r"(?ix)(?:"
+    r"(?:--|\b)(?:compose|project|application|deployment|container)Id"
+    r"|[\"']?DOKPLOY_(?:PROJECT|APPLICATION|COMPOSE|DEPLOYMENT|CONTAINER)_ID[\"']?"
+    r")(?:\s+|\s*=\s*|\s*:\s*)[\"']?"
+    r"(?!<|\$\{|example\b|placeholder\b)[A-Za-z0-9_-]{8,}"
 )
 MACOS_USER_PATH = re.compile("/" + r"Users/[^/\s]+/")
 WINDOWS_USER_PATH = re.compile(r"[A-Za-z]:\\" + r"Users\\[^\\\s]+\\")
