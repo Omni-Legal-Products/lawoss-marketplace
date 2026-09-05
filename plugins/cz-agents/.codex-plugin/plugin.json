@@ -1,0 +1,23 @@
+{
+  "name": "cz-agents",
+  "version": "1.0.0",
+  "description": "LAWOSS cz-agents: manual setup guidance for your own MCP deployment.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "interface": {
+    "displayName": "CZ Agents",
+    "shortDescription": "Own deployment · local or authenticated HTTP",
+    "longDescription": "Installs guidance only. Server source, dependencies, registration, credentials and deployment remain operator-managed.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Configure"
+    ],
+    "brandColor": "#9A7627",
+    "defaultPrompt": [
+      "Help me set up this MCP on my own machine."
+    ]
+  }
+}

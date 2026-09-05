@@ -45,13 +45,14 @@ class MarketplaceValidationTest(unittest.TestCase):
 
         self.assertEqual(codex["name"], "lawoss")
         self.assertEqual(codex["interface"], {"displayName": "LAWOSS Marketplace"})
-        self.assertEqual([plugin["name"] for plugin in codex["plugins"]], ["crz"])
+        self.assertEqual(len(codex["plugins"]), 15)
+        self.assertEqual(set(plugin["name"] for plugin in codex["plugins"]), set(record["name"] for record in json.loads((ROOT / "releases.json").read_text())["releases"]))
         self.assertEqual(claude["name"], "lawoss")
         self.assertEqual(claude.get("owner"), {"name": "LAWOSS"})
         self.assertEqual(
             set(claude), {"name", "owner", "description", "plugins"}
         )
-        self.assertEqual([plugin["name"] for plugin in claude["plugins"]], ["crz"])
+        self.assertEqual([plugin["name"] for plugin in claude["plugins"]], [plugin["name"] for plugin in codex["plugins"]])
 
         codex_plugin = codex["plugins"][0]
         claude_plugin = claude["plugins"][0]
@@ -98,10 +99,10 @@ class MarketplaceValidationTest(unittest.TestCase):
         """Catch setup links that require an unavailable external repository."""
         for readme in ROOT.rglob("README.md"):
             for target in MARKDOWN_LINK.findall(readme.read_text(encoding="utf-8")):
-                self.assertFalse(
-                    target.startswith(("http://", "https://")),
-                    msg=f"external README link is not self-contained: {readme}: {target}",
-                )
+                if target.startswith("https://github.com/Omni-Legal-Products/"):
+                    self.assertRegex(target, r"/tree/[0-9a-f]{40}$")
+                    continue
+                self.assertFalse(target.startswith(("http://", "https://")), msg=f"unapproved external README link: {readme}: {target}")
                 local_target = target.split("#", 1)[0]
                 resolved = (readme.parent / local_target).resolve()
                 resolved.relative_to(ROOT.resolve())

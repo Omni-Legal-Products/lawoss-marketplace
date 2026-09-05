@@ -1,0 +1,10 @@
+{
+  "name": "orsr",
+  "version": "1.0.0",
+  "description": "LAWOSS orsr: usage skills and setup guidance for your own MCP deployment.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

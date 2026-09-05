@@ -1,0 +1,10 @@
+{
+  "name": "fs-opendata-mcp",
+  "version": "1.0.0",
+  "description": "LAWOSS fs-opendata-mcp: usage skills and setup guidance for your own MCP deployment.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

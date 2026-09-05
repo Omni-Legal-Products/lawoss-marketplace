@@ -1,0 +1,9 @@
+{
+  "name": "cz-agents",
+  "version": "1.0.0",
+  "description": "LAWOSS cz-agents: manual setup guidance for your own MCP deployment.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,111 @@
+{
+  "reviewDate": "2026-09-05",
+  "visibility": "private",
+  "releases": [
+    {
+      "name": "crz",
+      "repository": "Omni-Legal-Products/mcp-crz",
+      "commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "cz-agents",
+      "repository": "Omni-Legal-Products/mcp-cz-agents",
+      "commit": "fea07bf6076e8b548da2d715b082fa04556abde9",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "manual-setup-only"
+    },
+    {
+      "name": "disq",
+      "repository": "Omni-Legal-Products/mcp-diskvalifikacie",
+      "commit": "3f941db176277ed2ae178ea8d43d6dda28679f64",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "eurlex-celex",
+      "repository": "Omni-Legal-Products/mcp-eurlex",
+      "commit": "607120840be59afb89d73f8e0d565228f8d89f74",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "fs-opendata-mcp",
+      "repository": "Omni-Legal-Products/mcp-financna-sprava",
+      "commit": "435a0846e98c1d7ea5a77fb1c58325e772d8d25b",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "judikaty",
+      "repository": "Omni-Legal-Products/mcp-judikaty-sk",
+      "commit": "116c7f50a6557a96008893aa2e8d2ca94504ad75",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "kalkulacky",
+      "repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
+      "commit": "ab057d70eb788ea2e4e0e6dadbe8e553a0ef579e",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "orsr",
+      "repository": "Omni-Legal-Products/mcp-orsr",
+      "commit": "e2901bea9baaf574d5a834256d918604717a7dca",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "ov",
+      "repository": "Omni-Legal-Products/mcp-obchodny-vestnik",
+      "commit": "8574d8dfb6cfa60b31a65ded2590d2819a96f8b3",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "rpo",
+      "repository": "Omni-Legal-Products/mcp-rpo",
+      "commit": "c33e1e46ffa2091dd4e1e4d451d068cdfbb65ba3",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "rpvs",
+      "repository": "Omni-Legal-Products/mcp-rpvs",
+      "commit": "baaae3d0c980991f945687bdfa203b4b5b74c382",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "ru",
+      "repository": "Omni-Legal-Products/mcp-register-upadcov",
+      "commit": "86b91f53bc52f82b82afa59ceff07630ea4ea8c4",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "ruz",
+      "repository": "Omni-Legal-Products/mcp-ruz",
+      "commit": "661d929851a10821f9c20f0b950fd67d02913a99",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "slovlex",
+      "repository": "Omni-Legal-Products/mcp-slovlex",
+      "commit": "3d0915feb5ce14f2459bcdfc85837d183f07fb6a",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    },
+    {
+      "name": "uvo",
+      "repository": "Omni-Legal-Products/mcp-uvo",
+      "commit": "6219716c9d149067360627486aa1f0cdf4d92878",
+      "branch": "codex/lawoss-release-2026-09-05",
+      "distribution": "skills-and-manual-setup"
+    }
+  ]
+}

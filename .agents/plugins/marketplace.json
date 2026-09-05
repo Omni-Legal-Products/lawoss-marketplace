@@ -15,6 +15,174 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "cz-agents",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cz-agents"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "disq",
+      "source": {
+        "source": "local",
+        "path": "./plugins/disq"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "eurlex-celex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/eurlex-celex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "fs-opendata-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fs-opendata-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "judikaty",
+      "source": {
+        "source": "local",
+        "path": "./plugins/judikaty"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "kalkulacky",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kalkulacky"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "orsr",
+      "source": {
+        "source": "local",
+        "path": "./plugins/orsr"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "ov",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ov"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "rpo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rpo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "rpvs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rpvs"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "ru",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ru"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "ruz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ruz"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "slovlex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/slovlex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "uvo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/uvo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }

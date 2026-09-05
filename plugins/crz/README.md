@@ -1,23 +1,13 @@
-# CRZ marketplace wrapper
+# crz · LAWOSS
 
-Installing `crz@lawoss` provides:
+Installs usage skills and setup guidance. It does not install the server program, register an MCP, or connect to any hosted service.
 
-- public LAWOSS plugin metadata;
-- the `crz-register-zmluv` usage skill for CRZ research workflows; and
-- this installation boundary and setup guidance.
+## Your own instance
 
-It does **not** include the CRZ MCP server program, create `.mcp.json`, change a
-client's MCP registrations, or connect to a hosted endpoint. The user must run
-and register an instance they control before the tools named by the skill can be
-called.
+Obtain the [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-crz/tree/f4cc8bf0c4560f3ee50205dd9f7452b415197ffa) (GitHub access is required while the repository is private). Checkout revision `f4cc8bf0c4560f3ee50205dd9f7452b415197ffa`, then follow the [local and remote setup guide](docs/SETUP.md) **in that server checkout**, not in this wrapper directory.
 
-## Set up your own CRZ server
+You supply your own machine, secrets and HTTPS domain. Plugin updates do not deploy or restart the server. Never reuse another operator's credentials or state.
 
-[Manual local and self-hosted setup](docs/SETUP.md) is included in this wrapper.
-It identifies the separate authorized server-source prerequisite, the exact
-directory in which server commands run, local client registration, and the
-authenticated remote deployment boundary.
+## Provenance
 
-The plugin metadata and skill are adapted only from the approved LAWOSS CRZ
-revision `b46c3b62a59ef1d502db612dfa7b6511d6c3ff40`. Repository links that are not
-anonymously available in the current pilot are deliberately omitted.
+Organization source: `Omni-Legal-Products/mcp-crz` at `f4cc8bf0c4560f3ee50205dd9f7452b415197ffa`. [License and attribution](LICENSE) are preserved. Offline tests do not establish live data freshness or legal correctness.

@@ -1,0 +1,25 @@
+{
+  "name": "rpvs",
+  "version": "1.0.0",
+  "description": "LAWOSS rpvs: usage skills and setup guidance for your own MCP deployment.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "interface": {
+    "displayName": "LAWOSS RPVS",
+    "shortDescription": "Own deployment · local or authenticated HTTP",
+    "longDescription": "Installs guidance only. Server source, dependencies, registration, credentials and deployment remain operator-managed.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "brandColor": "#9A7627",
+    "defaultPrompt": [
+      "Help me set up this MCP on my own machine."
+    ]
+  },
+  "skills": "./skills/"
+}

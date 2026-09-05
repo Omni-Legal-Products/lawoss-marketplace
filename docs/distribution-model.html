@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LAWOSS — distribution and runtime</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Instrument+Serif&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px; background: #f4f1ea; color: #0a0e14; font-family: 'IBM Plex Sans', sans-serif; }
+    main { max-width: 960px; margin: auto; }
+    .eyebrow { font: 12px 'IBM Plex Mono', monospace; letter-spacing: .12em; color: #42586e; }
+    h1 { font: 40px 'Instrument Serif', serif; margin: 16px 0; }
+    p { line-height: 1.6; max-width: 760px; }
+    .diagram { overflow-x: auto; }
+    svg { display: block; width: 100%; min-width: 720px; }
+    .note { border-top: 1px solid rgba(10,14,20,.26); padding-top: 16px; }
+    @media (max-width: 640px) { body { padding: 16px; } h1 { font-size: 32px; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">LAWOSS / DISTRIBUTION MODEL</p>
+  <h1>Your tools. Your deployment.</h1>
+  <p>The Marketplace distributes reviewed plugins. A runtime remains a separate, operator-owned installation — on your computer or on your server.</p>
+  <div class="diagram">
+  <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="distribution-model-title distribution-model-desc">
+    <title id="distribution-model-title">LAWOSS distribution and runtime</title>
+    <desc id="distribution-model-desc">Reviewed organization releases supply the Marketplace and a user's harness; the user separately configures local stdio or a supported authenticated remote server.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#42586e"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#9a7627"/></marker>
+      <marker id="arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#2a6099"/></marker>
+    </defs>
+    <style>
+      .node { font: 600 16px 'IBM Plex Sans', sans-serif; fill: #0a0e14; }
+      .sub { font: 12px 'IBM Plex Mono', monospace; fill: #42586e; }
+      .edge { font: 8px 'IBM Plex Mono', monospace; fill: #42586e; letter-spacing: .08em; }
+    </style>
+    <rect width="960" height="600" fill="#f4f1ea"/>
+    <path d="M288 200 H376" stroke="#42586e" fill="none" marker-end="url(#arrow)"/>
+    <path d="M616 200 H688" stroke="#42586e" fill="none" marker-end="url(#arrow)"/>
+    <path d="M736 252 V328 Q736 336 728 336 H512 Q504 336 504 344 V392" stroke="#42586e" fill="none" marker-end="url(#arrow)"/>
+    <path d="M832 252 V392" stroke="#2a6099" fill="none" marker-end="url(#arrow-link)"/>
+    <rect x="296" y="172" width="72" height="16" fill="#f4f1ea"/><text class="edge" x="332" y="184" text-anchor="middle">REVIEWED</text>
+    <rect x="624" y="172" width="56" height="16" fill="#f4f1ea"/><text class="edge" x="652" y="184" text-anchor="middle">INSTALL</text>
+    <rect x="544" y="308" width="120" height="16" fill="#f4f1ea"/><text class="edge" x="604" y="320" text-anchor="middle">LOCAL SETUP</text>
+    <rect x="844" y="324" width="64" height="16" fill="#f4f1ea"/><text class="edge" x="876" y="336" text-anchor="middle">HTTPS</text>
+    <rect x="48" y="148" width="240" height="104" rx="8" fill="#ffffff" stroke="#0a0e14"/>
+    <text class="node" x="72" y="184">Organization release</text><text class="sub" x="72" y="216">Source + docs + license</text>
+    <rect x="376" y="148" width="240" height="104" rx="8" fill="#f4f1ea"/>
+    <rect x="376" y="148" width="240" height="104" rx="8" fill="rgba(154,118,39,.10)" stroke="#9a7627"/>
+    <text class="node" x="400" y="184">LAWOSS Marketplace</text><text class="sub" x="400" y="216">Versioned plugin catalog</text>
+    <rect x="688" y="148" width="224" height="104" rx="8" fill="#ffffff" stroke="#0a0e14"/>
+    <text class="node" x="712" y="184">Your harness</text><text class="sub" x="712" y="216">Manual server setup</text>
+    <rect x="392" y="392" width="224" height="96" rx="8" fill="#ffffff" stroke="#0a0e14"/>
+    <text class="node" x="416" y="428">Your computer</text><text class="sub" x="416" y="460">Local stdio process</text>
+    <rect x="688" y="392" width="224" height="96" rx="8" fill="#ffffff" stroke="#0a0e14"/>
+    <text class="node" x="712" y="428">Your server</text><text class="sub" x="712" y="460">Supported HTTP + auth</text>
+    <line x1="48" y1="540" x2="912" y2="540" stroke="rgba(10,14,20,.26)"/>
+    <text class="sub" x="48" y="568">Gray: distribution / local setup</text><text class="sub" x="488" y="568">Blue: authenticated network access</text>
+  </svg>
+  </div>
+  <p class="note"><strong>Updates are not deployments.</strong> Updating a plugin does not rebuild or restart your MCP server, change OAuth grants or migrate runtime state. CZ Agents' eight HTTP listeners passed offline token checks; each operator must still verify their own public TLS proxy and source data before deployment.</p>
+  <p>Catalog model, not a claim that every candidate is released. Fonts use public Google Fonts; offline viewers fall back to local sans-serif, serif and monospace faces.</p>
+</main>
+</body>
+</html>

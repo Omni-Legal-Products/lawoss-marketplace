@@ -1,122 +1,59 @@
-# Manual CRZ MCP server setup
+# mcp-crz · operator setup
 
-This marketplace wrapper contains a usage skill and documentation only. The CRZ
-MCP server source, runtime dependencies, and built files are **not** part of the
-plugin installation.
+This organization edition is source software, not access to a hosted LAWOSS service. Each operator owns the machine, secrets, authentication and data produced by their deployment.
 
-## Source prerequisite and current release boundary
+## Local stdio
 
-You need a separately authorized checkout of the LAWOSS CRZ server source. The
-checkout root must contain at least `package.json`, `package-lock.json`, `src/`,
-`.env.example`, and `docker-compose.dokploy.yml`.
-
-The current pilot does not publish that server repository for anonymous use and
-does not create a public download location. Public distribution of the server
-source remains blocked until a separately authorized release makes it
-accessible. If you do not already have authorized source access, stop here; the
-plugin alone cannot create a working CRZ connection.
-
-In the commands below, set `CRZ_SERVER_ROOT` to the absolute root of your
-authorized checkout. Run all `npm`, Node.js, and Docker Compose commands from
-that directory—not from this marketplace repo or a plugin cache:
+Use Node.js 22 and npm. From a checkout of a reviewed organization release:
 
 ```bash
-export CRZ_SERVER_ROOT="/absolute/path/to/authorized/mcp-crz"
-cd "$CRZ_SERVER_ROOT"
-test -f package.json
-```
-
-## Local stdio server
-
-The server requires Node.js 20 or newer; its CI uses Node.js 22.
-
-```bash
-cd "$CRZ_SERVER_ROOT"
-node --version
 npm ci
 npm run build
-npm test
-test -f dist/index.js
 ```
 
-`dist/index.js` is the stdio entrypoint. Register its absolute path manually in
-the client. For Codex, add this to `~/.codex/config.toml`, substituting the real
-checkout path:
+The repository's `.mcp.json` declares these local commands:
 
-```toml
-[mcp_servers.crz]
-command = "node"
-args = ["/absolute/path/to/authorized/mcp-crz/dist/index.js"]
-```
+- `crz`: `node ./dist/server.js`
 
-Then run `codex mcp list` and start a new Codex task. Plugin installation itself
-does not perform this registration.
+Set each command's working directory to the absolute checkout path in your MCP client. If your client does not support `cwd`, replace relative script arguments with absolute paths. Do not paste this machine-specific configuration into the repository. Plugin installation alone does not install Node dependencies or build these files.
 
-For a controlled loopback-only HTTP smoke test, run from the same server root:
+Local stdio does not require a public port. Supply any upstream data-provider credentials separately through the local environment; server documentation lists features that require them.
+
+## Independent remote deployment
+
+Verified build entrypoint: `node dist/http-server.js`.
+
+1. Build the same reviewed revision as above. Keep the application port inaccessible from the public network; allow only your reverse proxy to reach it.
+2. Copy `.env.example` to an untracked `.env`, fill it with your own supported values and restrict its permissions (`chmod 600 .env`). Node does not load this file implicitly.
+3. Use only the variable names in this repository's environment and deployment reference. If OAuth is supported, use your own issuer URL, authorization password, durable state path and exact client redirect URIs. Do not confuse an upstream register API key with the MCP server's authentication credentials.
+4. Configure your own HTTPS hostname and TLS reverse proxy. Set the server's public URL / issuer and host/origin allowlists to this hostname, using the names supported by this server. Trust only the actual proxy; never use a wildcard proxy trust setting.
+5. Start the built HTTP process with explicit environment loading:
 
 ```bash
-cd "$CRZ_SERVER_ROOT"
-npm run build
-HOST=127.0.0.1 PORT=3000 MCP_AUTH_TOKEN="<replace-with-random-token>" npm run start:http
-curl -sf http://127.0.0.1:3000/healthz
+node --env-file=.env dist/http-server.js
 ```
 
-Do not expose this legacy bearer-mode smoke test to a network.
+Use your process supervisor for restart and log retention. For Docker/Dokploy, use the repository's deployment guide and Compose file instead: compose interpolation alone does not inject a variable unless the service declares it. Review the rendered configuration privately; it may contain secrets.
 
-## Self-hosted HTTPS with OAuth
+Persist OAuth state and required caches/exports in operator-owned volumes with restrictive permissions. Do not commit, package or share them. Follow the server's documented replica limit; file-backed OAuth stores must not be shared by concurrent replicas.
 
-This procedure requires Docker Compose, persistent storage, a reverse proxy, a
-domain you control, and TLS. Continue from the authorized server root:
+## Authentication acceptance check
 
-```bash
-cd "$CRZ_SERVER_ROOT"
-cp .env.example .env
-```
+Before allowing public access, send a valid MCP initialization request without credentials and check that it cannot create an authenticated session or expose tools/data. A generic 400, 404 or 405 is **not** evidence that authorization works.
 
-Replace placeholders in `.env` or, preferably, set production values in the
-deployment platform's secret/config store:
+Then authenticate using your own harness and verify initialization, `tools/list`, one read-only call, token expiry and revocation. If OAuth is enabled, also verify issuer/resource metadata and exact redirect matching. Public health or discovery routes may intentionally be unauthenticated; that must not grant MCP access.
 
-```dotenv
-MCP_DOMAIN=mcp.example.com
-OAUTH_AUTHORIZATION_PASSWORD=<at-least-16-random-characters>
-```
+Complete OAuth in the harness yourself. Never publish callback URLs containing authorization codes or reuse another deployment's client secrets/grants.
 
-`mcp.example.com` is only a placeholder. Use your own HTTPS domain. Keep one
-replica, persist `/data`, and allow only verified proxy IP/CIDR entries through
-`MCP_TRUST_PROXY`; never use `true`, `*`, or `all`.
+## Updates and rollback
 
-From the server root, build and start the supplied OAuth-first Compose profile:
+1. Record the currently running organization revision and back up operator-owned state privately.
+2. Review the next release, build it in a separate checkout/image and run its tests.
+3. Verify your own authentication configuration still matches the release; never overwrite secrets with example values.
+4. Switch your own deployment only after its acceptance checks pass. Keep the previous revision and a compatible state backup available for rollback.
 
-```bash
-cd "$CRZ_SERVER_ROOT"
-docker compose -f docker-compose.dokploy.yml up -d --build
-```
+A Marketplace update changes plugin instructions/metadata. It does not update a separately cloned source checkout, restart a process, deploy an image or migrate OAuth state.
 
-After the reverse proxy, domain, and TLS are configured, replace the placeholder
-below with your own domain and verify:
+## Release status
 
-```bash
-curl -sf https://mcp.example.com/healthz
-curl -sf https://mcp.example.com/.well-known/oauth-authorization-server
-curl -sf https://mcp.example.com/.well-known/oauth-protected-resource/mcp
-```
-
-An anonymous MCP request must return `401` with `WWW-Authenticate`. Configure a
-remote Codex client manually with your own URL:
-
-```toml
-[mcp_servers.crz]
-url = "https://mcp.example.com/mcp"
-```
-
-Then run `codex mcp login crz` and complete OAuth. Never place real passwords,
-tokens, or OAuth state in this marketplace, shell history, or shared files.
-
-## Operational limits
-
-- CRZ is an external HTML source; green offline tests do not establish current
-  register freshness.
-- OCR is optional, requires `MISTRAL_API_KEY`, and sends documents to an
-  external provider when enabled.
-- Active Streamable HTTP sessions are in memory and restart with the process.
-- Heuristic clause extraction is a research aid, not legal advice.
+These commands are derived from this edition's package metadata and built entrypoints. Remote TLS/proxy and authenticated end-to-end deployment acceptance are operator tasks; they have not been proven merely by the offline build/tests.

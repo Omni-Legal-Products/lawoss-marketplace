@@ -3,13 +3,111 @@
   "owner": {
     "name": "LAWOSS"
   },
-  "description": "Public-safe LAWOSS plugin wrappers for approved self-operated MCP projects.",
+  "description": "LAWOSS usage skills and operator-owned MCP setup guides.",
   "plugins": [
     {
       "name": "crz",
       "source": "./plugins/crz",
-      "description": "LAWOSS connector guidance for a self-operated MCP server over Slovakia's Central Register of Contracts.",
-      "version": "1.3.1+codex.20260904151144",
+      "description": "LAWOSS crz: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.4.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "cz-agents",
+      "source": "./plugins/cz-agents",
+      "description": "LAWOSS cz-agents: manual setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "disq",
+      "source": "./plugins/disq",
+      "description": "LAWOSS disq: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "eurlex-celex",
+      "source": "./plugins/eurlex-celex",
+      "description": "LAWOSS eurlex-celex: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "fs-opendata-mcp",
+      "source": "./plugins/fs-opendata-mcp",
+      "description": "LAWOSS fs-opendata-mcp: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "judikaty",
+      "source": "./plugins/judikaty",
+      "description": "LAWOSS judikaty: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "kalkulacky",
+      "source": "./plugins/kalkulacky",
+      "description": "LAWOSS kalkulacky: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "orsr",
+      "source": "./plugins/orsr",
+      "description": "LAWOSS orsr: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "ov",
+      "source": "./plugins/ov",
+      "description": "LAWOSS ov: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "rpo",
+      "source": "./plugins/rpo",
+      "description": "LAWOSS rpo: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "rpvs",
+      "source": "./plugins/rpvs",
+      "description": "LAWOSS rpvs: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "ru",
+      "source": "./plugins/ru",
+      "description": "LAWOSS ru: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "ruz",
+      "source": "./plugins/ruz",
+      "description": "LAWOSS ruz: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "slovlex",
+      "source": "./plugins/slovlex",
+      "description": "LAWOSS slovlex: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
+      "category": "Productivity"
+    },
+    {
+      "name": "uvo",
+      "source": "./plugins/uvo",
+      "description": "LAWOSS uvo: usage skills and setup guidance for your own MCP deployment.",
+      "version": "1.0.0",
       "category": "Productivity"
     }
   ]
