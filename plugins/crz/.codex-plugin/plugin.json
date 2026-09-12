@@ -1,13 +1,13 @@
 {
   "name": "crz",
-  "version": "1.4.0+codex.20260912092504",
+  "version": "1.4.1",
   "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
   "author": {
     "name": "LAWOSS"
   },
   "license": "MIT",
   "interface": {
-    "displayName": "CRZ \u2013 Centr\u00e1lny register zml\u00fav",
+    "displayName": "CRZ – Centrálny register zmlúv",
     "shortDescription": "Local MCP + skill + CLI",
     "longDescription": "Runs locally with Node 22.13+ and npm. Installs locked dependencies on first use. No hosted MCP or shared credentials.",
     "developerName": "LAWOSS",
@@ -18,7 +18,7 @@
     ],
     "brandColor": "#9A7627",
     "defaultPrompt": [
-      "Vyh\u013eadaj zverejnen\u00fa zmluvu v CRZ."
+      "Vyhľadaj zverejnenú zmluvu v CRZ."
     ]
   },
   "skills": "./skills/",

@@ -1,0 +1,8 @@
+{
+  "plugin": "crz",
+  "plugin_version": "1.4.1",
+  "catalog_commit": "6afd30b9ce2b88b7c332370f6a7c99e2f3400e8f",
+  "source_repository": "Omni-Legal-Products/mcp-crz",
+  "source_commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
+  "runtime_manifest_sha256": "13a9293c0f15e6e6f54d2ca46b7961e752d9b696a1bccb1a57d3aa67a416232b"
+}

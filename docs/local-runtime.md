@@ -37,3 +37,11 @@ The first startup may take up to the configured 300-second startup timeout while
 ## Further rollout
 
 For each remaining entry, identify reviewed runtime and entrypoint, package only reviewed files, preserve licenses, implement its CLI adapter, run a real clean-install read and Git update/rollback test, and only then add local transport. CZ alpha services retain their data limitations even when transport works.
+
+## Release 1.4.1 rehearsal
+
+The candidate builder exported the same reviewed source commit and passed its source tests and TypeScript build. The runtime manifest SHA-256 remained unchanged. Candidate 1.4.1 passed all 21 catalog, launcher, release and updater tests, both catalog validators and the Codex plugin validator.
+
+An actual isolated Codex Git installation then exercised version 1.4.1, a distinct fixture update and rollback to 1.4.1. All three stages exposed ten tools, returned a real CRZ contract and started from a warm cache without npm. Update and rollback used the new one-command updater. The fixture uses a deliberately different version string; it tests version replacement rather than semantic-version ordering.
+
+The updater does not enable disabled plugins: it rejects that case before changes because current Codex reinstall would enable them. GitHub workflow syntax and shell blocks were checked locally. Hosted execution and source-repository credentials remain a separate activation step.
