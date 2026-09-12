@@ -1,15 +1,15 @@
 {
   "name": "crz",
-  "version": "1.4.0",
-  "description": "LAWOSS crz: usage skills and setup guidance for your own MCP deployment.",
+  "version": "1.4.0+codex.20260912092504",
+  "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
   "author": {
     "name": "LAWOSS"
   },
   "license": "MIT",
   "interface": {
-    "displayName": "CRZ",
-    "shortDescription": "Own deployment · local or authenticated HTTP",
-    "longDescription": "Installs guidance only. Server source, dependencies, registration, credentials and deployment remain operator-managed.",
+    "displayName": "CRZ \u2013 Centr\u00e1lny register zml\u00fav",
+    "shortDescription": "Local MCP + skill + CLI",
+    "longDescription": "Runs locally with Node 22.13+ and npm. Installs locked dependencies on first use. No hosted MCP or shared credentials.",
     "developerName": "LAWOSS",
     "category": "Productivity",
     "capabilities": [
@@ -18,8 +18,9 @@
     ],
     "brandColor": "#9A7627",
     "defaultPrompt": [
-      "Help me set up this MCP on my own machine."
+      "Vyh\u013eadaj zverejnen\u00fa zmluvu v CRZ."
     ]
   },
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
 }

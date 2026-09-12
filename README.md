@@ -1,11 +1,12 @@
 # LAWOSS Marketplace
 
 LAWOSS Marketplace distributes public-safe plugin wrappers for approved LAWOSS
-MCP projects. The catalog contains 15 reviewed organization editions; 14 include
-usage skills and CZ Agents currently includes setup guidance only.
+MCP projects. The catalog contains 15 reviewed organization editions. CRZ includes a local
+MCP runtime, skill and CLI. The other 14 remain guidance-only pending their
+individual portable-runtime verification.
 
-Read the [distribution and runtime diagram](docs/distribution-model.html) for
-the difference between a plugin update and an operator-managed deployment.
+Read the [local runtime acceptance record](docs/local-runtime.md) for the CRZ
+pilot and the remaining rollout.
 
 ## Install the local catalog
 
@@ -15,10 +16,10 @@ codex plugin add crz@lawoss --json
 codex plugin list
 ```
 
-The wrappers install guidance for choosing and safely using MCP tools. They
-do not install or configure an MCP server. For example, follow the local
+The CRZ plugin installs and registers a local stdio MCP with a bundled CLI.
+The other wrappers currently install guidance only. For example, follow the local
 [CRZ wrapper and setup guidance](plugins/crz/README.md) for the separate source
-prerequisite and the manual local or authenticated self-hosted procedure.
+prerequisite and the local installation procedure.
 
 ## Distribution boundary
 
