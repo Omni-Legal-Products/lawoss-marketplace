@@ -1,7 +1,7 @@
 {
   "name": "eurlex-celex",
-  "version": "1.0.0",
-  "description": "LAWOSS eurlex-celex: usage skills and setup guidance for your own MCP deployment.",
+  "version": "1.1.0",
+  "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
   },

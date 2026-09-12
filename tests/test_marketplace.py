@@ -205,6 +205,19 @@ class MarketplaceValidationTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Claude plugin source must be a relative path string", result.stderr)
 
+    def test_denylist_exemption_rejects_changed_runtime_bytes(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('validator', ROOT / 'scripts/validate.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as directory:
+            copied = self._copy_repository(directory)
+            path = copied / 'plugins/ru/runtime/dist/ru-client.js'
+            with path.open('a') as stream:
+                stream.write('\nconst leakedHost = "' + '.'.join(('10','23','45','67')) + '";\n')
+            with self.assertRaisesRegex(module.ValidationFailure, 'private network address'):
+                module.validate_public_tree(copied)
+
     def test_repository_validator_accepts_its_own_public_safe_rules(self) -> None:
         """Catch a sanitization rule that rejects its own validator source."""
         result = subprocess.run(

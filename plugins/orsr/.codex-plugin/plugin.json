@@ -1,15 +1,15 @@
 {
   "name": "orsr",
-  "version": "1.0.0",
-  "description": "LAWOSS orsr: usage skills and setup guidance for your own MCP deployment.",
+  "version": "1.1.0",
+  "description": "Obchodný register SR: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
   },
   "license": "MIT",
   "interface": {
-    "displayName": "LAWOSS ORSR",
-    "shortDescription": "Own deployment · local or authenticated HTTP",
-    "longDescription": "Installs guidance only. Server source, dependencies, registration, credentials and deployment remain operator-managed.",
+    "displayName": "Obchodný register SR",
+    "shortDescription": "Local MCP · skills · CLI",
+    "longDescription": "Runs locally over stdio using the bundled reviewed runtime. Requires Node.js 22.14+ and npm. Provider-specific data or keys are documented in the plugin.",
     "developerName": "LAWOSS",
     "category": "Productivity",
     "capabilities": [
@@ -18,8 +18,9 @@
     ],
     "brandColor": "#9A7627",
     "defaultPrompt": [
-      "Help me set up this MCP on my own machine."
+      "Použi tento register a uveď zdroj, dátum údajov a obmedzenia výsledku."
     ]
   },
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
 }

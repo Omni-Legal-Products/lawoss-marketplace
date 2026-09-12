@@ -1,0 +1,203 @@
+name: Prepare plugin release
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: LAWOSS runtime plugin
+        required: true
+        type: choice
+        options:
+          - crz
+          - cz-agents
+          - disq
+          - eurlex-celex
+          - fs-opendata-mcp
+          - judikaty
+          - kalkulacky
+          - orsr
+          - ov
+          - rpo
+          - rpvs
+          - ru
+          - ruz
+          - slovlex
+          - uvo
+      version:
+        description: New plugin version (reviewed source commit comes from releases.json)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-${{ inputs.plugin }}-release
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: catalog
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.2'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      - name: Resolve allowlisted reviewed source
+        id: source
+        working-directory: catalog
+        env:
+          PLUGIN: ${{ inputs.plugin }}
+          SOURCE_READ_TOKEN: ${{ secrets.LAWOSS_SOURCE_READ_TOKEN }}
+        run: |
+          test -n "$SOURCE_READ_TOKEN" || { echo 'Configure LAWOSS_SOURCE_READ_TOKEN with read-only access to reviewed source repositories.'; exit 1; }
+          python3 - <<'PY'
+          import json, os, re
+          repositories = {
+              'crz': 'Omni-Legal-Products/mcp-crz',
+              'cz-agents': 'Omni-Legal-Products/mcp-cz-agents',
+              'disq': 'Omni-Legal-Products/mcp-diskvalifikacie',
+              'eurlex-celex': 'Omni-Legal-Products/mcp-eurlex',
+              'fs-opendata-mcp': 'Omni-Legal-Products/mcp-financna-sprava',
+              'judikaty': 'Omni-Legal-Products/mcp-judikaty-sk',
+              'kalkulacky': 'Omni-Legal-Products/mcp-kalkulacky-sk',
+              'orsr': 'Omni-Legal-Products/mcp-orsr',
+              'ov': 'Omni-Legal-Products/mcp-obchodny-vestnik',
+              'rpo': 'Omni-Legal-Products/mcp-rpo',
+              'rpvs': 'Omni-Legal-Products/mcp-rpvs',
+              'ru': 'Omni-Legal-Products/mcp-register-upadcov',
+              'ruz': 'Omni-Legal-Products/mcp-ruz',
+              'slovlex': 'Omni-Legal-Products/mcp-slovlex',
+              'uvo': 'Omni-Legal-Products/mcp-uvo',
+          }
+          plugin = os.environ['PLUGIN']
+          records = [r for r in json.load(open('releases.json'))['releases'] if r['name'] == plugin]
+          if len(records) != 1:
+              raise SystemExit('Missing reviewed source record')
+          record = records[0]
+          if record['repository'] != repositories.get(plugin) or not re.fullmatch('[0-9a-f]{40}', record['commit']):
+              raise SystemExit('Invalid reviewed source record')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('repository=' + record['repository'] + '\n')
+              output.write('commit=' + record['commit'] + '\n')
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ steps.source.outputs.repository }}
+          ref: ${{ steps.source.outputs.commit }}
+          token: ${{ secrets.LAWOSS_SOURCE_READ_TOKEN }}
+          path: reviewed-source
+          persist-credentials: false
+      - name: Build reviewed candidate without source credentials
+        env:
+          PLUGIN: ${{ inputs.plugin }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 catalog/scripts/release_plugin.py --plugin "$PLUGIN" --source reviewed-source --version "$RELEASE_VERSION" --output candidate
+      - name: Apply candidate to release branch checkout
+        env:
+          PLUGIN: ${{ inputs.plugin }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, shutil
+          plugin = os.environ['PLUGIN']
+          for relative in [f'plugins/{plugin}', '.claude-plugin/marketplace.json', 'releases.json', 'release-candidate.json']:
+              source, target = Path('candidate') / relative, Path('catalog') / relative
+              if source.is_dir():
+                  shutil.rmtree(target)
+                  shutil.copytree(source, target)
+              else:
+                  shutil.copyfile(source, target)
+          PY
+      - name: Validate catalog and selected portable launcher
+        working-directory: catalog
+        env:
+          PLUGIN: ${{ inputs.plugin }}
+        run: |
+          python3 -m unittest discover -s tests -v
+          node --test tests/test_runtime_policy.mjs
+          python3 scripts/validate.py
+          cmp AGENTS.md CLAUDE.md
+          node "plugins/$PLUGIN/scripts/run.mjs" doctor
+          node "plugins/$PLUGIN/scripts/run.mjs" tools > ../tools.json
+          python3 - <<'PY'
+          import json
+          tools = json.load(open('../tools.json'))
+          if not tools.get('tools'):
+              raise SystemExit('Selected plugin exposed no MCP tools')
+          PY
+          if [ "$PLUGIN" = crz ]; then
+            node "plugins/$PLUGIN/scripts/run.mjs" call crz_recent '{"limit":1}' > ../crz-read.json
+            python3 - <<'PY'
+          import json
+          result = json.load(open('../crz-read.json'))
+          if result.get('isError'):
+              raise SystemExit('CRZ live read failed')
+          payload = json.loads(next(item['text'] for item in result['content'] if item['type'] == 'text'))
+          if not payload.get('results'):
+              raise SystemExit('CRZ live read returned no contracts')
+          PY
+          fi
+          if [ "$PLUGIN" = cz-agents ]; then
+            while IFS= read -r server; do
+              node "plugins/$PLUGIN/scripts/run.mjs" --server "$server" doctor > "../cz-$server-doctor.json"
+              node "plugins/$PLUGIN/scripts/run.mjs" --server "$server" tools > "../cz-$server-tools.json"
+              SERVER="$server" python3 - <<'PY'
+          import json, os, sqlite3
+          from pathlib import Path
+          server = os.environ['SERVER']
+          tools = json.load(open(f'../cz-{server}-tools.json'))
+          if not tools.get('tools'):
+              raise SystemExit(f'Czech server {server} exposed no MCP tools')
+          if server == 'sanctions':
+              doctor = json.load(open(f'../cz-{server}-doctor.json'))
+              database = Path(doctor['statePath']) / 'sanctions.db'
+              if not database.is_file() or sqlite3.connect(database).execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                  raise SystemExit('Czech sanctions server did not load its native SQLite runtime')
+          PY
+            done < <(python3 - <<'PY'
+          import json
+          for server in json.load(open('plugins/cz-agents/runtime-config.json'))['servers']:
+              print(server)
+          PY
+          )
+            if node "plugins/$PLUGIN/scripts/run.mjs" --server eu-registry call search_company '{"name":"LAWOSS"}' > ../cz-policy.json; then
+              echo 'Unscoped Czech EU Registry search unexpectedly passed its coverage guard.' >&2
+              exit 1
+            fi
+            python3 - <<'PY'
+          import json
+          result = json.load(open('../cz-policy.json'))
+          if not result.get('isError') or 'explicit country' not in result['content'][0]['text']:
+              raise SystemExit('Czech EU Registry coverage guard returned an unexpected result')
+          PY
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ inputs.plugin }}-catalog-candidate
+          path: candidate/
+          include-hidden-files: true
+          retention-days: 14
+      - name: Prepare release branch and comparison for review
+        working-directory: catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+          PLUGIN: ${{ inputs.plugin }}
+        run: |
+          branch="release/${PLUGIN}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch -c "$branch"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "plugins/$PLUGIN" .claude-plugin/marketplace.json releases.json release-candidate.json
+          git commit -m "release: update verified $PLUGIN plugin"
+          gh auth setup-git
+          git push origin "$branch"
+          printf '## %s release ready for review\n\nBranch: `%s`\n\n[Open release comparison](https://github.com/%s/compare/%s...%s?expand=1)\n\nNo pull request was created automatically. Review the comparison and acceptance evidence before opening one.\n' "$PLUGIN" "$branch" "$GITHUB_REPOSITORY" "$BASE_BRANCH" "$branch" >> "$GITHUB_STEP_SUMMARY"

@@ -71,3 +71,7 @@ pripája iba manuálne na `https://<your-ru-mcp-host>/mcp`; inštalácia ho
 nekonfiguruje. Také nasadenie vyžaduje TLS, OAuth, jeden worker a durable store.
 Pri prvom pripojení môže klient otvoriť OAuth prihlásenie a jednorazový súhlas.
 Heslá ani tokeny nevkladaj do promptu alebo konfigurácie skillu.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

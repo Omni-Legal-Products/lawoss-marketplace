@@ -1,0 +1,45 @@
+{
+  "name": "orsr-mcp",
+  "version": "1.0.0",
+  "description": "Read-only MCP server for ORSR data",
+  "type": "module",
+  "main": "dist/server.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "start:http": "tsx src/server-http.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start:prod": "node dist/server-http.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests --exclude='**/*.live.test.ts'",
+    "test:live": "vitest run tests/orsr-client.live.test.ts --reporter=verbose",
+    "test:mcp-live": "vitest run tests/mcp.live.test.ts --reporter=verbose",
+    "demo:scrape": "tsx src/demo-scrape.ts",
+    "demo:company": "tsx src/demo-company.ts",
+    "test:capabilities": "tsx src/test-capabilities.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "esbuild": "^0.28.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omni-Legal-Products/mcp-orsr.git"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-orsr#readme"
+}

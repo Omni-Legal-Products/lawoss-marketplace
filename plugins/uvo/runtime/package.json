@@ -1,0 +1,32 @@
+{
+  "name": "uvo-mcp",
+  "license": "MIT",
+  "version": "0.1.0",
+  "description": "Read-only MCP server for public procurement notices from the Slovak Public Procurement Office (ÚVO)",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "start:http": "tsx src/server-http.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start:prod": "node dist/server-http.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests",
+    "check:docs": "vitest run tests/documentation-contract.test.ts tests/diagram-contract.test.ts tests/svg-export.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omni-Legal-Products/mcp-uvo.git"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-uvo#readme"
+}

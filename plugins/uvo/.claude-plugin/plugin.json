@@ -1,7 +1,7 @@
 {
   "name": "uvo",
-  "version": "1.0.0",
-  "description": "LAWOSS uvo: usage skills and setup guidance for your own MCP deployment.",
+  "version": "1.1.0",
+  "description": "Verejné obstarávanie – ÚVO: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
   },

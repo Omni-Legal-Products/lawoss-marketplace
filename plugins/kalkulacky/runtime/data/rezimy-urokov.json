@@ -1,0 +1,151 @@
+{
+  "version": "2026-08-06",
+  "fetchedAt": "2026-08-06",
+  "source": "slov-lex MCP (get_paragraph / get_version, casove znenia), pozri docs/PRAVNE_ZDROJE.md",
+  "coverageFrom": "2009-01-01",
+  "_comment": "Interval 'from'/'to' NIE je interval dna omeskania, ale interval, do ktoreho patri rozhodujuca skutocnost pre urcenie rezimu. Pre hranicu 1. 2. 2013 je rozhodujucou skutocnostou VZNIK ZAVAZKOVEHO VZTAHU, nie prvy den omeskania: § 10c nar. vl. 87/1995 Z. z. a § 3 nar. vl. 21/2013 Z. z. - ak zavazkovy vztah vznikol pred 1. 2. 2013, vyska urokov z omeskania sa riadi predpismi ucinnymi k 31. 1. 2013 aj za dobu omeskania po 31. 1. 2013. Pre hranicu 1. 1. 2009 je rozhodujuci vznik omeskania (§ 10a nar. vl. 87/1995 Z. z.).",
+  "rozhodujucaSkutocnost": {
+    "2009-01-01": "vznikOmeskania (§ 10a nar. vl. 87/1995 Z. z.)",
+    "2013-02-01": "vznikZavazkovehoVztahu (§ 10c nar. vl. 87/1995 Z. z.; § 3 nar. vl. 21/2013 Z. z.)",
+    "2015-01-01": "vznikOmeskania (§ 3a nar. vl. 21/2013 Z. z., len pre obchodne zavazkove vztahy)"
+  },
+  "dennyZakladVypoctu": {
+    "konvencia": "ACT/365",
+    "urokPlynieOd": "denNasledujuciPoSplatnosti",
+    "_comment": "Konvencia projektu (zakon konvenciu vypoctu dni neustanovuje). Zaokruhluje sa az finalna suma, na centy, half-up."
+  },
+  "obcianske": [
+    {
+      "from": "2009-01-01",
+      "to": "2013-01-31",
+      "kriterium": {
+        "from": "vznikOmeskania",
+        "to": "vznikZavazku"
+      },
+      "rozhodujucaSkutocnost": "vznikZavazku",
+      "sposoby": {
+        "fixny": {
+          "spread": 8,
+          "fixacia": "prvyDenOmeskania",
+          "zaklad": "§ 3 ods. 1 nar. vl. 87/1995 Z. z. v zneni ucinnom 1. 1. 2009 - 31. 1. 2013 (novela 586/2008 Z. z.)"
+        },
+        "variabilny": {
+          "spread": 7,
+          "fixacia": "polrok",
+          "podmienka": "len ak sa pocas trvania omeskania zmenila zakladna urokova sadzba ECB A ak je to pre veritela vyhodnejsie",
+          "zaklad": "§ 3 ods. 2 nar. vl. 87/1995 Z. z. v zneni ucinnom 1. 1. 2009 - 31. 1. 2013"
+        }
+      },
+      "zaklad": "§ 517 ods. 2 Obcianskeho zakonnika; § 3 nar. vl. 87/1995 Z. z. v zneni nar. vl. 586/2008 Z. z.",
+      "_comment": "OPRAVA DRAFTU: draft mal len jednu moznost (spread 8, fixacia prvyDenOmeskania). Znenie § 3 ucinne 1. 1. 2009 - 31. 1. 2013 malo DVA odseky: ods. 1 = ECB k prvemu dnu omeskania + 8 p. b. (fix na celu dobu), ods. 2 = alternativa ECB k prvemu dnu prislusneho kalendarneho polroka + 7 p. b., ktoru mozno pouzit, ak sa sadzba ECB pocas omeskania zmenila a je to pre veritela vyhodnejsie.",
+      "kriteriumZaklad": "from: § 10a nar. vl. 87/1995 Z. z. (omeskanie pred 1. 1. 2009 -> stare predpisy); to: § 10c nar. vl. 87/1995 Z. z. (zavazkovy vztah vznikol pred 1. 2. 2013 -> predpisy k 31. 1. 2013 aj za dobu omeskania po 31. 1. 2013)"
+    },
+    {
+      "from": "2013-02-01",
+      "to": null,
+      "kriterium": {
+        "from": "vznikZavazku",
+        "to": null
+      },
+      "rozhodujucaSkutocnost": "vznikZavazku",
+      "sposoby": {
+        "fixny": {
+          "spread": 5,
+          "fixacia": "prvyDenOmeskania",
+          "zaklad": "§ 3 nar. vl. 87/1995 Z. z. v zneni ucinnom od 1. 2. 2013 (novela 20/2013 Z. z.)"
+        }
+      },
+      "zaklad": "§ 517 ods. 2 Obcianskeho zakonnika; § 3 nar. vl. 87/1995 Z. z. v zneni nar. vl. 20/2013 Z. z.",
+      "_comment": "Od 1. 2. 2013 ma § 3 jediny odsek - polrocna alternativa bola zrusena. Znenie je nezmenene aj v aktualnom zneni ucinnom od 15. 2. 2025.",
+      "kriteriumZaklad": "from: § 10c nar. vl. 87/1995 Z. z. - tento rezim plati, len ak zavazkovy vztah vznikol 1. 2. 2013 alebo neskor"
+    }
+  ],
+  "obchodne": [
+    {
+      "from": "2009-01-01",
+      "to": "2013-01-31",
+      "kriterium": {
+        "from": "vznikOmeskania",
+        "to": "vznikZavazku"
+      },
+      "rozhodujucaSkutocnost": "vznikZavazku",
+      "sposoby": {
+        "fixny": {
+          "spread": 8,
+          "fixacia": "prvyDenOmeskania",
+          "zaklad": "§ 369 ods. 1 ObZ (odkaz na predpisy obcianskeho prava) -> § 3 ods. 1 nar. vl. 87/1995 Z. z."
+        },
+        "variabilny": {
+          "spread": 7,
+          "fixacia": "polrok",
+          "podmienka": "len ak sa pocas trvania omeskania zmenila zakladna urokova sadzba ECB A ak je to pre veritela vyhodnejsie",
+          "zaklad": "§ 369 ods. 1 ObZ -> § 3 ods. 2 nar. vl. 87/1995 Z. z."
+        }
+      },
+      "zaklad": "§ 369 ods. 1 ObZ v zneni do 31. 1. 2013: 'Ak uroky z omeskania neboli dohodnute, dlznik je povinny platit uroky z omeskania podla predpisov obcianskeho prava.'",
+      "_comment": "OVERENY MECHANIZMUS: znenie § 369 ods. 1 ObZ do 31. 1. 2013 NEURCOVALO vlastnu sadzbu, iba odkazovalo na predpisy obcianskeho prava, teda na § 3 nar. vl. 87/1995 Z. z. vratane jeho polrocnej alternativy podla ods. 2. Draft ('OVER presny mechanizmus') je tym potvrdeny aj doplneny variabilnym sposobom.",
+      "kriteriumZaklad": "from: § 10a nar. vl. 87/1995 Z. z.; to: § 3 nar. vl. 21/2013 Z. z. a § 10c nar. vl. 87/1995 Z. z. (zavazkovy vztah pred 1. 2. 2013)"
+    },
+    {
+      "from": "2013-02-01",
+      "to": "2014-12-31",
+      "kriterium": {
+        "from": "vznikZavazku",
+        "to": "vznikOmeskania"
+      },
+      "rozhodujucaSkutocnost": "vznikOmeskania",
+      "sposoby": {
+        "fixny": {
+          "spread": 9,
+          "fixacia": "prvyDenOmeskania",
+          "zaklad": "§ 1 ods. 1 nar. vl. 21/2013 Z. z. v zneni ucinnom 1. 2. 2013 - 31. 12. 2014 (zakonny zaklad)"
+        },
+        "variabilny": {
+          "spread": 8,
+          "fixacia": "polrok",
+          "zaklad": "§ 1 ods. 2 nar. vl. 21/2013 Z. z. v zneni ucinnom 1. 2. 2013 - 31. 12. 2014 (volba veritela)"
+        }
+      },
+      "zaklad": "§ 369 ods. 2 ObZ; § 1 nar. vl. 21/2013 Z. z. v zneni ucinnom 1. 2. 2013 - 31. 12. 2014",
+      "_comment": "V tomto zneni bol ZAKONNYM (default) sposobom FIXNY sposob s 9 p. b. (ods. 1) a variabilny s 8 p. b. bol volbou veritela (ods. 2). Od 1. 1. 2015 sa tieto dva odseky VYMENILI. § 3a nar. vl. 21/2013 Z. z.: ak doslo k omeskaniu pred 1. 1. 2015, vyska urokov sa riadi predpismi ucinnymi do 31. 12. 2014. Rozhodujuca skutocnost pre tuto hranicu je vznik omeskania.",
+      "kriteriumZaklad": "from: § 3 nar. vl. 21/2013 Z. z. (zavazkovy vztah vznikol 1. 2. 2013 alebo neskor); to: § 3a nar. vl. 21/2013 Z. z. (ak doslo k OMESKANIU pred 1. 1. 2015, platia predpisy ucinne do 31. 12. 2014)"
+    },
+    {
+      "from": "2015-01-01",
+      "to": null,
+      "kriterium": {
+        "from": "vznikOmeskania",
+        "to": null
+      },
+      "rozhodujucaSkutocnost": "vznikOmeskania",
+      "sposoby": {
+        "variabilny": {
+          "spread": 8,
+          "fixacia": "polrok",
+          "zaklad": "§ 1 ods. 1 nar. vl. 21/2013 Z. z. v zneni ucinnom od 1. 1. 2015 (zakonny zaklad)"
+        },
+        "fixny": {
+          "spread": 9,
+          "fixacia": "prvyDenOmeskania",
+          "zaklad": "§ 1 ods. 2 nar. vl. 21/2013 Z. z. v zneni ucinnom od 1. 1. 2015 (volba veritela)"
+        }
+      },
+      "zaklad": "§ 369 ods. 2 ObZ; § 1 nar. vl. 21/2013 Z. z. v zneni ucinnom od 1. 1. 2015",
+      "_comment": "Od 1. 1. 2015 je zakonnym (default) sposobom VARIABILNY sposob: ECB k prvemu dnu prislusneho kalendarneho polroka omeskania + 8 p. b., pouzity na cely tento polrok (§ 1 ods. 1). Veritel moze namiesto toho poziadovat FIXNY sposob: ECB k prvemu dnu omeskania + 9 p. b. na celu dobu omeskania (§ 1 ods. 2). Podla § 1 ods. 3 sa raz zvoleny variabilny sposob pouzije na celu dobu omeskania. Draft mal spready spravne (fixny 9, variabilny 8), ale neuvadzal, ktory je default, ani hranicu 1. 1. 2015.",
+      "kriteriumZaklad": "from: § 3a nar. vl. 21/2013 Z. z. - tento rezim plati, len ak k omeskaniu doslo 1. 1. 2015 alebo neskor (a zavazkovy vztah vznikol 1. 2. 2013 alebo neskor)"
+    }
+  ],
+  "pausalnaNahradaNakladov": {
+    "suma": 40,
+    "jednorazovo": true,
+    "zaklad": "§ 2 ods. 1 nar. vl. 21/2013 Z. z. k § 369c ods. 1 ObZ",
+    "_comment": "Vyska pausalnej nahrady nakladov spojenych s uplatnenim pohladavky je 40 eur jednorazovo bez ohladu na dlzku omeskania. Plati len pre obchodne zavazkove vztahy."
+  },
+  "poplatokZOmeskania": {
+    "dennaSadzba": 0.0005,
+    "minZaMesiac": 0.83,
+    "zaklad": "§ 4 nar. vl. 87/1995 Z. z.",
+    "_comment": "Poplatok z omeskania (nie urok) je za kazdy den omeskania 0,5 promile dlznej sumy, najmenej 0,83 eura za kazdy i zacaty mesiac omeskania. Uplatnuje sa tam, kde zakon ukladá platit poplatok z omeskania namiesto urokov (§ 517 ods. 2 OZ)."
+  },
+  "vyberZaznamu": "Zaznam sa NESMIE vyberat naivnym porovnanim jedneho datumu s intervalom from/to. Kazdy zaznam ma pole 'kriterium', ktore pre svoju DOLNU (from) a HORNU (to) hranicu urcuje, KTORU skutocnost ma implementacia porovnavat: 'vznikZavazku' = den vzniku zavazkoveho vztahu, 'vznikOmeskania' = prvy den omeskania. Zaznam vyhovuje, len ak obe hranice obstoja pri svojej vlastnej skutocnosti. Pole 'rozhodujucaSkutocnost' uvadza tu skutocnost, ktora odlisuje dany zaznam od nasledujuceho zaznamu v tom istom rezime."
+}

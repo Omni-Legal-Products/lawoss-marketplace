@@ -1,0 +1,200 @@
+{
+  "version": "2026-08-06",
+  "fetchedAt": "2026-08-06",
+  "source": "zak. 71/1992 Zb. o sudnych poplatkoch, znenie ucinne od 12. 6. 2026 (§ 6, § 7, § 7a, § 11c) - slov-lex MCP; Sadzobnik sudnych poplatkov (Priloha) - https://www.zakonypreludi.sk/zz/1992-71",
+  "_comment": "Sadzobnik (Priloha zakona) nie je dostupny cez slov-lex MCP get_version (vracia iba paragrafy), preto bol overeny doslovnou citaciou z www.zakonypreludi.sk a hranicnym testom starsieho znenia (znenie-20230701 vs znenie-20240401). Hodnoty su AKTUALNE k 2026-08-06; historicke znenia nie su v tomto subore modelovane.",
+  "zaklad": {
+    "zaokruhlenie": "naCeleEuroNadol",
+    "zaklad": "§ 7 ods. 11 zak. 71/1992 Zb.: 'Zaklad poplatku sa zaokruhluje na cele euro nadol.'"
+  },
+  "zaokruhleniePoplatku": {
+    "pravidlo": "podla § 7a: ak suma prevysujuca cele cislo je a) mensia ako 50 centov -> zaokruhli sa na cele euro nadol, b) rovna 50 centov -> nezaokruhli sa, c) vacsia ako 50 centov -> zaokruhli sa na pol eura nadol",
+    "zaklad": "§ 7a zak. 71/1992 Zb.",
+    "_comment": "Draft toto pravidlo neobsahoval. Prakticky: vypocitany poplatok sa vzdy zaokruhluje NADOL na cele euro alebo na pol eura."
+  },
+  "epodanie": {
+    "zlava": 0.5,
+    "maxZlava": 50,
+    "zaklad": "§ 6 ods. 3 zak. 71/1992 Zb.: 'sadzba poplatku je 50 % zo sadzby poplatku ustanovenej v sadzobniku, znizena najviac o 50 eur'",
+    "vypocet": "poplatok = max(0,5 x sadzba, sadzba - 50)",
+    "podmienky": [
+      "podanie elektronickymi prostriedkami do elektronickej schranky organu podla § 3, prostrednictvom jednotneho kontaktneho miesta alebo osvedcujucej osoby",
+      "ak su sucastou podania prilohy, musia byt v elektronickej podobe"
+    ],
+    "neuplatniSa": [
+      "poplatky vyberane v exekucnom konani (§ 6 ods. 5)",
+      "poplatky vo veciach obchodneho registra (§ 6 ods. 5)",
+      "poplatky urcene za pocet zacatych stran, ak sa ukon vykonava v elektronickej podobe (§ 6 ods. 4)",
+      "poplatok za navrh na vydanie platobneho rozkazu v upominacom konani (§ 11c ods. 1)"
+    ],
+    "_comment": "OPRAVA DRAFTU: draft mal maxZlava 70. Strop 70 eur platil do 31. 3. 2024; od 1. 4. 2024 je strop 50 eur (overene znenim § 6 ods. 3 k 2024-01-01 = 70 eur a k 2024-06-01 = 50 eur). Do 30. 9. 2020 sa navyse zlava neuplatnila na sieste a kazde dalsie podanie toho isteho navrhovatela na jeden sud v kalendarnom roku - toto obmedzenie uz v aktualnom zneni nie je."
+  },
+  "instancie": {
+    "odvolanieVoVeciSamej": { "nasobok": 1, "zaklad": "§ 6 ods. 2 druha veta zak. 71/1992 Zb." },
+    "dovolanie": { "nasobok": 2, "zaklad": "§ 6 ods. 2 tretia veta zak. 71/1992 Zb." },
+    "kasacnaStaznost": { "nasobok": 2, "zaklad": "§ 6 ods. 2 tretia veta zak. 71/1992 Zb." },
+    "upominacieKonanie": {
+      "nasobok": 0.5,
+      "zaklad": "§ 11c ods. 1 zak. 71/1992 Zb.: 'Sudny poplatok splatny podanim navrhu na vydanie platobneho rozkazu v upominacom konani je 50 % z percentnej sadzby ustanovenej v sadzobniku; ustanovenie § 6 ods. 3 sa nepouzije.'",
+      "_comment": "NEJEDNOZNACNE: zakon hovori o '50 % z percentnej sadzby', nie '50 % z poplatku'. Nie je vyslovne riesene, ci sa minimum 25 eur a maximum podla polozky 1 pism. a) aplikuju pred alebo po halveni. Golden fixtures pouzivaju vyklad: najprv sa urci poplatok podla polozky 1a vratane min/max, potom sa halvi."
+    }
+  },
+  "polozky": [
+    {
+      "id": "1a",
+      "nazov": "Zo zaloby alebo z navrhu na zacatie konania - z ceny (z uhrady) predmetu konania alebo z hodnoty predmetu sporu",
+      "vypocet": { "typ": "percento", "sadzba": 0.06, "min": 25, "max": 25000, "maxObchodne": 50000 },
+      "citacia": "polozka 1 pism. a) sadzobnika: '6 %, najmenej 25 eur, najviac 25 000 eur v obchodnych veciach najviac 50 000 eur'",
+      "_comment": "OPRAVA DRAFTU: draft mal min 16,5 / max 16 596,5 / maxObchodne 33 193,5. To su hodnoty platne DO 31. 3. 2024 (overene na zneni-20230701). Od 1. 4. 2024 plati 25 / 25 000 / 50 000 (overene na zneni-20240401 a na aktualnom zneni). Poznamka 5 k polozke 1: podla pism. a) sa plati poplatok aj vtedy, ak ma sud o zalobe rozhodnut vydanim platobneho rozkazu alebo europskeho platobneho rozkazu."
+    },
+    {
+      "id": "1b",
+      "nazov": "Zo zaloby alebo z navrhu na zacatie konania - ak nemozno predmet konania ocenit peniazmi",
+      "vypocet": { "typ": "pevnaSuma", "suma": 140 },
+      "citacia": "polozka 1 pism. b) sadzobnika: '140 eur'",
+      "_comment": "Poznamka 1 k polozke 1: podla pism. b) sa poplatok vyberie aj zo zaloby na urcenie, ci tu pravo je alebo nie je, a zo zaloby na vypratanie nehnutelnosti, bytu a nebytovych priestorov alebo na vydanie veci."
+    },
+    {
+      "id": "1c",
+      "nazov": "Z navrhu na nariadenie alebo zrusenie neodkladneho opatrenia",
+      "vypocet": { "typ": "pevnaSuma", "suma": 50 },
+      "citacia": "polozka 1 pism. c) sadzobnika: '50 eur'"
+    },
+    {
+      "id": "1d1",
+      "nazov": "Z navrhu na nariadenie neodkladneho opatrenia podla osobitneho predpisu, ktore sa ma vykonat co i len scasti v SR",
+      "vypocet": { "typ": "pevnaSuma", "suma": 70 },
+      "citacia": "polozka 1 pism. d) bod 1 sadzobnika: '70 eur'"
+    },
+    {
+      "id": "1d2",
+      "nazov": "Z navrhu na nariadenie neodkladneho opatrenia podla osobitneho predpisu, ktore sa ma vykonat v inom clenskom state EU",
+      "vypocet": { "typ": "pevnaSuma", "suma": 50 },
+      "citacia": "polozka 1 pism. d) bod 2 sadzobnika: '50 eur'"
+    },
+    {
+      "id": "1e",
+      "nazov": "Z navrhu na zrusenie alebo zmenu neodkladneho opatrenia podla osobitneho predpisu",
+      "vypocet": { "typ": "pevnaSuma", "suma": 50 },
+      "citacia": "polozka 1 pism. e) sadzobnika: '50 eur'"
+    },
+    {
+      "id": "6a",
+      "nazov": "Zo zaloby na vyporiadanie bezpodieloveho spoluvlastnictva manzelov",
+      "vypocet": { "typ": "pevnaSuma", "suma": 100 },
+      "citacia": "polozka 6 pism. a) sadzobnika: '100 eur'",
+      "_comment": "OPRAVA DRAFTU: draft odkazoval na polozku '7a (BSM)'. BSM je v polozke 6 sadzobnika. Polozka 7a sadzobnika je 'zo zaloby na nahradu skody sposobenej nezakonnym rozhodnutim organu verejnej moci alebo jeho nespravnym uradnym postupom - 28 eur'."
+    },
+    {
+      "id": "6b",
+      "nazov": "Za vyporiadanie BSM z predmetu konania",
+      "vypocet": { "typ": "percento", "sadzba": 0.03, "sadzbaZmier": 0.01, "min": 100, "max": 25000 },
+      "citacia": "polozka 6 pism. b) sadzobnika: '3 % a ak sa konanie skoncilo sudnym zmierom, 1 %, najmenej 100 eur, najviac 25 000 eur'",
+      "_comment": "Zaklad poplatku podla § 7 ods. 8: cena vsetkych veci patriacich do BSM a ostatnych hodnot, ktore sa vyporiadavaju."
+    },
+    {
+      "id": "6c",
+      "nazov": "Zaloba na zrusenie bezpodieloveho spoluvlastnictva manzelov",
+      "vypocet": { "typ": "pevnaSuma", "suma": 250 },
+      "citacia": "polozka 6 pism. c) sadzobnika: '250 eur'"
+    },
+    {
+      "id": "7a",
+      "nazov": "Zo zaloby na nahradu skody sposobenej nezakonnym rozhodnutim organu verejnej moci alebo jeho nespravnym uradnym postupom",
+      "vypocet": { "typ": "pevnaSuma", "suma": 28 },
+      "citacia": "polozka 7a sadzobnika: '28 eur'"
+    },
+    {
+      "id": "13a",
+      "nazov": "Z navrhu na vykonanie exekucie",
+      "vypocet": { "typ": "pevnaSuma", "suma": 25 },
+      "citacia": "polozka 13 pism. a) sadzobnika: '25 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie podla § 6 ods. 3 sa v exekucnom konani NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "13b",
+      "nazov": "Za rozhodnutie v exekucnom konani o zmene opravneneho alebo za vydanie dodatku k povereniu na vykonanie exekucie",
+      "vypocet": { "typ": "pevnaSuma", "suma": 25 },
+      "citacia": "polozka 13 pism. b) sadzobnika: '25 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa NEUPLATNI - poplatok vyberany v exekucnom konani (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "13c",
+      "nazov": "Za rozhodnutie o navrhu opravneneho na zmenu sudneho exekutora",
+      "vypocet": { "typ": "pevnaSuma", "suma": 25 },
+      "citacia": "polozka 13 pism. c) sadzobnika: '25 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa NEUPLATNI - poplatok vyberany v exekucnom konani (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17a1",
+      "nazov": "Obchodny register - z navrhu na prvy zapis akciovej spolocnosti",
+      "vypocet": { "typ": "pevnaSuma", "suma": 550 },
+      "citacia": "polozka 17 pism. a) bod 1 sadzobnika: '550 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17a2",
+      "nazov": "Obchodny register - z navrhu na prvy zapis inych pravnickych osob",
+      "vypocet": { "typ": "pevnaSuma", "suma": 220 },
+      "citacia": "polozka 17 pism. a) bod 2 sadzobnika: '220 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17a3",
+      "nazov": "Obchodny register - z navrhu na prvy zapis organizacnej zlozky podniku pravnickej osoby",
+      "vypocet": { "typ": "pevnaSuma", "suma": 220 },
+      "citacia": "polozka 17 pism. a) bod 3 sadzobnika: '220 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17a4",
+      "nazov": "Obchodny register - z navrhu na prvy zapis podniku alebo organizacnej zlozky podniku zahranicnej osoby",
+      "vypocet": { "typ": "pevnaSuma", "suma": 220 },
+      "citacia": "polozka 17 pism. a) bod 4 sadzobnika: '220 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17b",
+      "nazov": "Obchodny register - z navrhu na zmenu pravnej formy obchodnej spolocnosti (druzstva)",
+      "vypocet": { "typ": "pevnaSuma", "suma": 220 },
+      "citacia": "polozka 17 pism. b) sadzobnika: '220 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17c",
+      "nazov": "Obchodny register - z navrhu na zapis zmeny alebo na doplnenie akehokolvek poctu udajov tykajucich sa jednej zapisanej osoby",
+      "vypocet": { "typ": "pevnaSuma", "suma": 50 },
+      "citacia": "polozka 17 pism. c) sadzobnika: '50 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.). Poznamka 1 k polozke 17: v jednom poplatku je zahrnuty akykolvek pocet navrhov na zapis zmeny alebo doplnenie udajov tykajucich sa jednej zapisanej osoby obsiahnutych v jednom navrhu. Poznamky 4-7: poplatok sa neplati napr. pri doplneni/zmene udajov o konecnom uzivatelovi vyhod alebo pri zmene priezviska po uzavreti manzelstva."
+    },
+    {
+      "id": "17d",
+      "nazov": "Obchodny register - z navrhu akcionara na poverenie na zvolanie valneho zhromazdenia",
+      "vypocet": { "typ": "pevnaSuma", "suma": 140 },
+      "citacia": "polozka 17 pism. d) sadzobnika: '140 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    },
+    {
+      "id": "17e",
+      "nazov": "Obchodny register - z navrhu na predlzenie lehoty pred vymazom obchodnej spolocnosti alebo druzstva",
+      "vypocet": { "typ": "pevnaSuma", "suma": 140 },
+      "citacia": "polozka 17 pism. e) sadzobnika: '140 eur'",
+      "epodanieVylucene": true,
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
+    }
+  ],
+  "neoverene": [
+    "Historicke znenia sadzobnika (pred 1. 4. 2024) - v tomto subore nie su modelovane; overena bola len hranica 1. 4. 2024 pre polozku 1 pism. a) a 6 pism. b).",
+    "Polozka 2 sadzobnika v aktualnom zneni NEEXISTUJE (overene) - draft ju uvadzal medzi polozkami na overenie."
+  ]
+}

@@ -41,3 +41,7 @@ remote endpoint ani automatické prihlasovanie.
 Technické testy neoverujú aktuálnu dostupnosť EUR-Lex, právny význam konkrétneho
 aktu ani správnosť budúcej konsolidácie. Live testy spúšťaj iba vedome a s
 vlastnými credentials.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

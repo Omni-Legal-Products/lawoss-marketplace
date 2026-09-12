@@ -1,0 +1,17 @@
+{
+  "repository": "Omni-Legal-Products/mcp-uvo",
+  "commit": "1f64371888d3d27f384b3faae61e37af732092bb",
+  "configSha256": "7ca44aa74b5706f2ef51243e3ce3036133f15e404a517e439f51f41c9b404a64",
+  "files": {
+    "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
+    "dist/mcp-server.js": "08e3fea8e973acca5a7e14ddccb70be90c4629ea6b6fb72ea714676b1e3fb927",
+    "dist/rate-limiter.js": "e94724a48316e8a56cfde001007c34f3d4554f4e3ccef7f2fb4fc52e18bba9ff",
+    "dist/redaction.js": "f6a688ad6bc76c9c3e11158bbd0d01edb0b2d1beffb05c23e904bb33f7dbf67f",
+    "dist/scalars.js": "2ce213e7ff94163ebbfd9fc1c6ce54369e3f6ab6d6bd2c8508232a3054564d70",
+    "dist/server.js": "665171d53e09001a787b080217efcc350b2fcee410bcfbf90f1163c2d54b116a",
+    "dist/types.js": "e9e5f1f63f92ae518596365a4158539ab5a37867b0be681aa7324ec114f771d9",
+    "dist/uvo-client.js": "82073a84a7f06a481a0d4c5e54038f242b945bb50c0c477010dedc33ffc74253",
+    "package-lock.json": "5738836d6e8dde4ff504da19c2afd27fd7c3b1edb44f82df867a6162a614db7b",
+    "package.json": "36b8169cf2dc5948cdffe544c20fe4c63c44d253d9779b65a071db622d4216c0"
+  }
+}

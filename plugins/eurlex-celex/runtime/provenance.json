@@ -1,0 +1,18 @@
+{
+  "repository": "Omni-Legal-Products/mcp-eurlex",
+  "commit": "607120840be59afb89d73f8e0d565228f8d89f74",
+  "configSha256": "3e53c460727fda17b358aceb5f26ea6d73b46c6e47139eb8c2ade323a2ab9c29",
+  "files": {
+    "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
+    "dist/cache.js": "9b2eb0241910f1b326ef64af7a9d28768cedc114688b88f17d7d0549a0dd7622",
+    "dist/celex-parser.js": "99ef9a848dc59fe2db415220bd663d5ec5cf1b72429a06c0f25dedae4fc19439",
+    "dist/citation-tools.js": "f9a940762ef1fe90250433e2089478e2eeb7cf5af4fae5888935a23cb7c6f3c2",
+    "dist/constants.js": "930769b21d6212653b89c54b1c0a50f8a4343486341fa0ae17134da1541f3b75",
+    "dist/document-tools.js": "bcf505de70293f9ae675e252ad22e8cb4c16e6021f9b0441d33c57180dfd7c97",
+    "dist/eurlex-client.js": "c0ed2dd61ff7ae6f1de2b22b1a051e45e05c7b9c7c12d393811a98e80a13675c",
+    "dist/search-tools.js": "08006661ccb6dc56ee3a659f0cc77ceec01dc62aba3467ce64d057045dbb20b5",
+    "dist/server.js": "20d0e62bc071238c902cc042bec1bf758c4747b6f8d25053db3b559d8dc981bc",
+    "package-lock.json": "c7f8435b864843d6e4a63d2812ef9af98a659cfddb0856e46f971edf4dfafb7c",
+    "package.json": "b3d9db5c04d4706101efab71d2440e12956a3b96188a50394e6182fc3dae2bb7"
+  }
+}

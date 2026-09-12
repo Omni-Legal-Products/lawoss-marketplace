@@ -137,6 +137,41 @@ def validate_plugin(entry: dict, plugin_root: Path, root: Path) -> dict:
             path = (runtime / name).resolve()
             require(path.is_relative_to(runtime.resolve()), 'runtime path escapes plugin')
             require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'runtime digest mismatch')
+    elif 'mcpServers' in manifest:
+        specs = load_json(root / 'runtime-packages.json', root)
+        name = entry['name']
+        require(name in specs, 'unreviewed runtime specification')
+        spec = specs[name]
+        record = next(r for r in load_json(root / 'releases.json', root)['releases'] if r['name'] == name)
+        require(record['distribution'] == 'local-mcp-skill-cli', 'runtime has not passed activation')
+        require(manifest['mcpServers'] == './.mcp.json', 'local transport path required')
+        expected_config = {'name': name, 'entrypoint': spec['entrypoint'], 'minimumNode': '22.14.0'}
+        if 'servers' in spec:
+            expected_config.update(servers=spec['servers'], defaultServer=spec['defaultServer'])
+        if spec.get('nativeBuilds'):
+            expected_config['nativeBuilds'] = spec['nativeBuilds']
+        require(load_json(plugin_root / 'runtime-config.json', root) == expected_config, 'unreviewed runtime configuration')
+        servers = spec.get('servers', {})
+        expected_servers = {('cz_' + key): {'command':'node', 'args':['scripts/run.mjs','--server',key,'mcp'], 'cwd':'.', 'startup_timeout_sec':300} for key in servers} if servers else {name.replace('-', '_'): {'command':'node', 'args':['scripts/run.mjs','mcp'], 'cwd':'.', 'startup_timeout_sec':300}}
+        require(load_json(plugin_root / '.mcp.json', root) == {'mcpServers': expected_servers}, 'only reviewed local stdio transports allowed')
+        runtime = plugin_root / 'runtime'
+        provenance = load_json(runtime / 'provenance.json', root)
+        require(provenance.get('commit') == record['commit'] and provenance.get('repository') == record['repository'], 'runtime provenance differs from reviewed source')
+        require(provenance.get('configSha256') == hashlib.sha256((plugin_root / 'runtime-config.json').read_bytes()).hexdigest(), 'runtime config digest mismatch')
+        actual = set()
+        for path in runtime.rglob('*'):
+            require(not path.is_symlink(), 'runtime symlinks forbidden')
+            if path.is_file():
+                actual.add(path.relative_to(runtime).as_posix())
+        files = provenance.get('files', {})
+        require(set(files) | {'provenance.json'} == actual and {'package.json','package-lock.json','LICENSE',spec['entrypoint']} <= set(files), 'runtime file inventory mismatch')
+        for name, digest in files.items():
+            path = (runtime / name).resolve()
+            require(path.is_relative_to(runtime.resolve()), 'runtime path escapes plugin')
+            require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'runtime digest mismatch')
+        if entry['name'] == 'cz-agents':
+            require((plugin_root / 'scripts/runtime-policy.mjs').read_bytes() == (root / 'scripts/runtime-policy.mjs').read_bytes(), 'Czech coverage guard differs from reviewed implementation')
+        require((plugin_root / 'scripts/run.mjs').read_bytes() == (root / 'scripts/runtime-launcher.mjs').read_bytes(), 'launcher differs from reviewed shared implementation')
     else:
         require('mcpServers' not in manifest and not (plugin_root / '.mcp.json').exists(), 'unverified wrapper must not declare an MCP transport')
 
@@ -228,7 +263,11 @@ def validate_public_tree(root: Path) -> None:
             f"deployment identifier found in {relative}",
         )
 
-        for candidate in IPV4_CANDIDATE.findall(text):
+        # Reviewed RU SSRF denylist contains blocked network ranges, not endpoints.
+        # The exemption applies only to these exact reviewed bytes; edits are scanned.
+        reviewed_denylist = (relative.as_posix() == 'plugins/ru/runtime/dist/ru-client.js'
+                            and hashlib.sha256(path.read_bytes()).hexdigest() == 'd9743f413df1381b6d9ebb8ae5f2cf6e80b1bceb130f6812b846c5611737db6c')
+        for candidate in IPV4_CANDIDATE.findall('' if reviewed_denylist else text):
             try:
                 address = ipaddress.ip_address(candidate)
             except ValueError:
@@ -245,13 +284,18 @@ def validate_public_tree(root: Path) -> None:
             hostname = (urlparse(match.group(0)).hostname or "").lower()
             require(
                 hostname in ALLOWED_PUBLIC_HOSTS or hostname in ALLOWED_LOOPBACK_HOSTS
-                or (relative.parts[:3] == ('plugins', 'crz', 'runtime') and hostname in RUNTIME_PUBLIC_HOSTS),
+                or (relative.parts[:3] == ('plugins', 'crz', 'runtime') and hostname in RUNTIME_PUBLIC_HOSTS)
+                or (len(relative.parts) > 3 and relative.parts[0] == 'plugins' and relative.parts[2] == 'runtime' and hostname in load_json(root / 'runtime-packages.json', root).get(relative.parts[1], {}).get('publicHosts', [])),
                 f"unapproved URL hostname found in {relative}",
             )
 
-        for hostname in HOSTNAME_CANDIDATE.findall(text):
+        # Exact reviewed JS uses local/internal as variable names. Continue to scan
+        # URLs above and all hostname-shaped strings after any source modification.
+        reviewed_js_identifiers = {'plugins/rpvs/runtime/dist/redaction.js': '9bf14fda16633fdd4aecb90027d7b293c0449d15e9ace4c9b3170107e80774ca', 'plugins/judikaty/runtime/dist/src/tools/search-decisions/enrichment.js': '9f78f127508cf00756274866fc3165bde023685a8e1baa2cb0350b115d88e6c4', 'plugins/ov/runtime/dist/mcp-server.js': 'eb031eedaceaa6145733c13378919fe60a6fc1d6bee88d1eaf7c4b5dc4f25025'}
+        identifier_only = reviewed_js_identifiers.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
+        for hostname in HOSTNAME_CANDIDATE.findall('' if identifier_only else text):
             require(
-                not is_private_hostname(hostname),
+                hostname == "home.treasury.gov" or not is_private_hostname(hostname),
                 f"private infrastructure hostname found in {relative}",
             )
 

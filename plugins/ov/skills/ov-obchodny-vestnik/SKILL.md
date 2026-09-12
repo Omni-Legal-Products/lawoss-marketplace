@@ -38,3 +38,7 @@ PDF extrakcia je best-effort a nerobí OCR. `retrievedAt` vyjadruje aktuálnosť
 ## English summary
 
 Use `ov_search` for a bounded public query, `ov_get_by_ico` for exact eight-digit IČO pagination, and `ov_get_notice` for the selected PDF detail. Always report source time, truncation, warnings, and the canonical source link. HTML/PDF payloads are capped at 512 KiB and IČO traversal at 20 pages / 2,000 rows. Stdio, OAuth and bearer are transport choices; they do not establish freshness or legal meaning. This tool is not legal advice.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

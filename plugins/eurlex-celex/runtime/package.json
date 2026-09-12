@@ -1,0 +1,44 @@
+{
+  "name": "eurlex-celex-mcp-server",
+  "license": "MIT",
+  "version": "1.0.0",
+  "description": "MCP server for EUR-Lex/CELEX EU legislation database",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "start:http": "tsx src/server-http.ts",
+    "build": "tsc",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/celex-parser.test.ts tests/eurlex-client.test.ts tests/catalog-contract.test.ts",
+    "test:live": "vitest run tests/eurlex-client.live.test.ts --reporter=verbose",
+    "test:tools": "vitest run tests/tools.live.test.ts --reporter=verbose",
+    "audit:production": "npm audit --omit=dev",
+    "audit:development": "npm audit",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "lru-cache": "^11.0.2",
+    "soap": "^1.1.4",
+    "turndown": "^7.2.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omni-Legal-Products/mcp-eurlex.git"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-eurlex#readme"
+}

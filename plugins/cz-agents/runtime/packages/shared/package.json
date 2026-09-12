@@ -1,0 +1,52 @@
+{
+  "name": "@czagents/shared",
+  "version": "0.1.9",
+  "description": "Shared utilities for cz-agents MCP servers — IČO/DIČ validation, HTTP helpers, rate limiter, billing primitives",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "czagents",
+    "czech",
+    "internal",
+    "shared"
+  ],
+  "license": "MIT",
+  "author": "Martin Havel <martin.havel@gmail.com>",
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-cz-agents#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/martinhavel/cz-agents-mcp.git",
+    "directory": "packages/shared"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@vitest/coverage-v8": "^4.1.4",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.4"
+  },
+  "private": true
+}

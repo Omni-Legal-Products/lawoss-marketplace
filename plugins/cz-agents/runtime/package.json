@@ -1,0 +1,66 @@
+{
+  "name": "cz-agents-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol servers for Czech government & business data",
+  "private": true,
+  "license": "MIT",
+  "author": "Martin Havel <martin.havel@gmail.com>",
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-cz-agents#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omni-Legal-Products/mcp-cz-agents.git"
+  },
+  "engines": {
+    "node": "20.x || 22.x"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "czech",
+    "ceska-republika",
+    "kyc",
+    "aml",
+    "due-diligence",
+    "compliance",
+    "ares",
+    "ico",
+    "isir",
+    "insolvency",
+    "sanctions",
+    "ofac",
+    "eu-fsf",
+    "cnb",
+    "fx-rates",
+    "vat",
+    "adis",
+    "claude",
+    "anthropic"
+  ],
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@czagents/shared && npm run build --workspace=@czagents/ares && npm run build --workspace=@czagents/cnb && npm run build --workspace=@czagents/sanctions && npm run build --workspace=@czagents/isir && npm run build --workspace=@czagents/adis && npm run build --workspace=@czagents/dd && npm run build --workspace=@czagents/realestate && npm run build --workspace=@czagents/eu-registry",
+    "prepare": "npm run build",
+    "prepack": "npm run build && npm run test:catalog && npm run diagrams:check",
+    "dev:ares": "npm run dev --workspace=@czagents/ares",
+    "pretest": "npm run build --workspace=@czagents/shared",
+    "test": "npm run test --workspaces --if-present",
+    "test:catalog": "node --test tests/catalog-contract.test.mjs",
+    "diagrams:export": "node scripts/export-diagrams.mjs",
+    "diagrams:check": "node scripts/export-diagrams.mjs --check",
+    "smoke:local": "node scripts/smoke-local-servers.mjs",
+    "lint": "eslint packages/*/src --ext .ts"
+  },
+  "overrides": {
+    "esbuild": "0.28.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.11.0",
+    "eslint": "^10.8.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.67.0"
+  }
+}

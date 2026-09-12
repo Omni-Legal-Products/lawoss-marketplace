@@ -74,6 +74,8 @@ podnikateľoch a orgánoch verejnej moci naprieč viacerými zdrojovými registr
 
 ## Autorizácia
 
-Server beží ako vzdialený MCP cez HTTPS a je chránený OAuth. Pri prvom pripojení
-otvorí prehliadač a vyžiada si autorizačné heslo, potom potvrdenie súhlasu.
-Heslo je v Dokploy v env premennej `OAUTH_AUTHORIZATION_PASSWORD` daného compose.
+Tento LAWOSS plugin spúšťa pribalený MCP lokálne cez stdio. Nepotrebuje prihlasovanie do LAWOSS služby. Pri chybe štartu použi `node scripts/run.mjs doctor` z adresára pluginu.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

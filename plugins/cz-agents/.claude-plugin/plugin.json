@@ -1,7 +1,7 @@
 {
   "name": "cz-agents",
-  "version": "1.0.0",
-  "description": "LAWOSS cz-agents: manual setup guidance for your own MCP deployment.",
+  "version": "1.1.0",
+  "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
   },

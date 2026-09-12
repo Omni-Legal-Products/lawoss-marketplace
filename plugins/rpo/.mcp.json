@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "rpo": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    }
+  }
+}

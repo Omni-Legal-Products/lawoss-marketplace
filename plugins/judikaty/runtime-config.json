@@ -1,0 +1,5 @@
+{
+  "name": "judikaty",
+  "entrypoint": "dist/src/server/index.js",
+  "minimumNode": "22.14.0"
+}

@@ -1,0 +1,89 @@
+{
+  "name": "slovak-judiciary-mcp",
+  "license": "MIT",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server scaffold for Slovak judicial research.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Omni-Legal-Products/mcp-judikaty-sk.git"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-judikaty-sk#readme",
+  "bugs": {
+    "url": "https://github.com/Omni-Legal-Products/mcp-judikaty-sk/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx src/server/index.ts",
+    "dev:http": "tsx src/server/http.ts",
+    "smoke:http": "tsx scripts/smoke/http-client.ts",
+    "smoke:http:prod": "node dist/scripts/smoke/http-client.js",
+    "smoke:http:fulltext": "tsx scripts/smoke/fulltext-http.ts",
+    "smoke:http:fulltext:prod": "node dist/scripts/smoke/fulltext-http.js",
+    "smoke:http:nsud-index": "tsx scripts/smoke/nsud-index-http.ts",
+    "smoke:http:nsud-index:prod": "node dist/scripts/smoke/nsud-index-http.js",
+    "smoke:services": "tsx scripts/smoke/all-services.ts",
+    "smoke:services:prod": "node dist/scripts/smoke/all-services.js",
+    "index:nsud-law": "node dist/scripts/index-nsud-law.js",
+    "index:nsud-law:dev": "tsx scripts/index-nsud-law.ts",
+    "index:nsud-relations:backfill": "node dist/scripts/backfill-nsud-relations.js",
+    "index:nsud-relations:backfill:dev": "tsx scripts/backfill-nsud-relations.ts",
+    "index:nsud-text:backfill": "node dist/scripts/backfill-nsud-text.js",
+    "index:nsud-text:backfill:dev": "tsx scripts/backfill-nsud-text.ts",
+    "index:ustavny-relations": "node dist/scripts/index-ustavny-relations.js",
+    "index:ustavny-relations:dev": "tsx scripts/index-ustavny-relations.ts",
+    "index:justice-relations": "node dist/scripts/index-justice-relations.js",
+    "index:justice-relations:dev": "tsx scripts/index-justice-relations.ts",
+    "enrich:justice-dispositions": "node dist/scripts/enrich-justice-dispositions.js",
+    "enrich:justice-dispositions:dev": "tsx scripts/enrich-justice-dispositions.ts",
+    "backfill:ustavny-texts": "node dist/scripts/backfill-ustavny-texts.js",
+    "backfill:ustavny-texts:dev": "tsx scripts/backfill-ustavny-texts.ts",
+    "index:nsud-law:smoke": "NSUD_INDEX_BATCH_SIZE=1 NSUD_INDEX_THROTTLE_MS=0 NSUD_INDEX_MAX_BATCHES=3 node dist/scripts/index-nsud-law.js",
+    "index:nsud-law:stats": "node dist/scripts/nsud-law-stats.js",
+    "index:nsud-law:stats:dev": "tsx scripts/nsud-law-stats.ts",
+    "report:weekly-email": "node dist/scripts/weekly-status-email.js",
+    "report:weekly-email:dev": "tsx scripts/weekly-status-email.ts",
+    "start:stdio": "node dist/src/server/index.js",
+    "start:http": "node dist/src/server/http.js",
+    "smoke:providers": "tsx scripts/smoke/providers.ts",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "test:live": "LIVE_INTEGRATION=1 node --import tsx --test tests/**/*.test.ts",
+    "diagnose:fts": "node dist/scripts/diagnose-fts-cost.js",
+    "diagnose:fts:dev": "tsx scripts/diagnose-fts-cost.ts",
+    "diagnose:missing-refs": "node dist/scripts/diagnose-missing-refs.js",
+    "diagnose:missing-refs:dev": "tsx scripts/diagnose-missing-refs.ts",
+    "diagnose:abstracts": "node dist/scripts/diagnose-abstracts.js",
+    "index:abstracts": "node dist/scripts/backfill-abstracts.js",
+    "index:abstracts:dev": "tsx scripts/backfill-abstracts.ts",
+    "index:fts-normalize": "node dist/scripts/renormalize-text-fts.js",
+    "diagnose:dispositions": "node dist/scripts/diagnose-dispositions.js",
+    "diagnose:disk": "node dist/scripts/diagnose-disk.js",
+    "maintain:prune-pdfs": "node dist/scripts/prune-cached-pdfs.js",
+    "diagnose:embeddings": "node dist/scripts/diagnose-embeddings.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "undici": "6.28.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "25.4.0",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "@hono/node-server": "2.1.1",
+    "body-parser": "2.3.0",
+    "express-rate-limit": "8.6.2",
+    "fast-uri": "3.1.7",
+    "hono": "4.13.2",
+    "ip-address": "10.5.0",
+    "path-to-regexp": "8.4.2",
+    "qs": "6.16.0"
+  }
+}

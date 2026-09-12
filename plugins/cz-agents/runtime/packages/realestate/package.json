@@ -1,0 +1,57 @@
+{
+  "name": "@czagents/realestate",
+  "version": "0.3.0",
+  "description": "BREAKING(0.2.0): Paid tools moved to hosted https://mcp.example.com. Free tier package — district aggregates + market trends only. See https://mcp.example.com",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "cz-agents-realestate": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "real-estate",
+    "distress",
+    "insolvency",
+    "auctions",
+    "drazby",
+    "czech",
+    "isir",
+    "claude"
+  ],
+  "license": "MIT",
+  "author": "Martin Havel <martin.havel@gmail.com>",
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-cz-agents#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/martinhavel/cz-agents-mcp.git",
+    "directory": "packages/realestate"
+  },
+  "mcpName": "dev.cz-agents/realestate",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@czagents/shared": "^0.1.8",
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "better-sqlite3": "^12.9.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "tsx": "^4.7.0",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.4"
+  },
+  "private": true
+}

@@ -1,0 +1,92 @@
+{
+  "mcpServers": {
+    "cz_ares": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "ares",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_cnb": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "cnb",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_sanctions": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "sanctions",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_isir": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "isir",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_adis": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "adis",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_dd": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "dd",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_realestate": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "realestate",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    },
+    "cz_eu-registry": {
+      "command": "node",
+      "args": [
+        "scripts/run.mjs",
+        "--server",
+        "eu-registry",
+        "mcp"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 300
+    }
+  }
+}

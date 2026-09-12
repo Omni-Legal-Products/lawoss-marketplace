@@ -33,3 +33,7 @@ findings even when another mandatory section is incomplete.
 These are public-source checks, not tax or legal advice. Use ORSR for corporate
 identity and authority, RÚZ for financial statements, and the relevant
 insolvency source for insolvency proceedings.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

@@ -1,0 +1,15 @@
+{
+  "repository": "Omni-Legal-Products/mcp-ruz",
+  "commit": "661d929851a10821f9c20f0b950fd67d02913a99",
+  "configSha256": "1491a71bae352571abba4644bc5a11c026248df5a6c405a089ac0fce629276f8",
+  "files": {
+    "LICENSE": "23b4190bffe915190350e98723ab3fb71d88fdfbafc9863c818b710ab72840e8",
+    "dist/financials.js": "04bf611f59dfc1001ce330b7c4a529ceee6024293ed4e8a01d11102ea6ede84c",
+    "dist/mcp-server.js": "67e4a8e6fbb97c6318b54183c9ae5482ad6888c12b3def95dbd9cfb03429ed49",
+    "dist/ruz-client.js": "b5938c0faff47512529b6cdc4af31651055c37bbfdddfedab7697f1234fd0da0",
+    "dist/scalars.js": "5479ba45b3530c93ab150d1df2f80c2876a131c4970d82514a401300f1de4079",
+    "dist/server.js": "bceadfb8c7a8ab36bdad7197444d7935fa45eabbe65def753320a9b70829c9ae",
+    "package-lock.json": "0262804d1d8eb38ee36ad177bcffdb4ac3e4a627e51e6a9068da66cbf184c2db",
+    "package.json": "1f632786026b8c2c70fb59aa070636453110e0bca2c9e076b5ff75f35bc77fc3"
+  }
+}

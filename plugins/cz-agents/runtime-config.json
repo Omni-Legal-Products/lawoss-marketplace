@@ -1,0 +1,19 @@
+{
+  "name": "cz-agents",
+  "entrypoint": "packages/ares/dist/index.js",
+  "minimumNode": "22.14.0",
+  "servers": {
+    "ares": "packages/ares/dist/index.js",
+    "cnb": "packages/cnb/dist/index.js",
+    "sanctions": "packages/sanctions/dist/index.js",
+    "isir": "packages/isir/dist/index.js",
+    "adis": "packages/adis/dist/index.js",
+    "dd": "packages/dd/dist/index.js",
+    "realestate": "packages/realestate/dist/index.js",
+    "eu-registry": "packages/eu-registry/dist/index.js"
+  },
+  "defaultServer": "ares",
+  "nativeBuilds": [
+    "better-sqlite3"
+  ]
+}

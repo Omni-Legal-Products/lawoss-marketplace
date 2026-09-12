@@ -59,3 +59,7 @@ HTTPS režim podporuje OAuth 2.1 s PKCE; pri prvom pripojení môže klient otvo
 prehliadač, vyžiadať autorizačné heslo a následne jednorazový súhlas viazaný na danú
 požiadavku. Operátor musí uložiť `OAUTH_AUTHORIZATION_PASSWORD` mimo Gitu a overiť
 celý flow so skutočným klientom.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.
