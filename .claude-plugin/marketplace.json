@@ -9,7 +9,7 @@
       "name": "crz",
       "source": "./plugins/crz",
       "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
-      "version": "1.4.2",
+      "version": "1.4.3",
       "category": "Productivity"
     },
     {
