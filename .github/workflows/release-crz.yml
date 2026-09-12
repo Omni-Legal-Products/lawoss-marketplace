@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: prepare-crz-release
@@ -96,7 +95,7 @@ jobs:
           path: candidate/
           include-hidden-files: true
           retention-days: 14
-      - name: Open draft release PR
+      - name: Prepare release branch for review
         working-directory: catalog
         env:
           GH_TOKEN: ${{ github.token }}
@@ -116,4 +115,4 @@ jobs:
           report = json.load(open('release-candidate.json'))
           Path('../release-body.md').write_text('Update the local CRZ MCP, skill and CLI bundle to plugin version ' + report['plugin_version'] + '.\n\nReviewed source: `' + report['source_commit'] + '`.\n\nSource tests, build, catalog checks and a live CLI read passed. macOS Codex install/update/rollback acceptance must be checked before merging. Private gateway deployment is separate and retains user grants.\n')
           PY
-          gh pr create --draft --base "$BASE_BRANCH" --head "$branch" --title 'release: update verified CRZ plugin' --body-file ../release-body.md
+          printf '## CRZ release ready for review\n\nBranch: `%s`\n\n[Open release comparison](https://github.com/%s/compare/%s...%s?expand=1)\n' "$branch" "$GITHUB_REPOSITORY" "$BASE_BRANCH" "$branch" >> "$GITHUB_STEP_SUMMARY"

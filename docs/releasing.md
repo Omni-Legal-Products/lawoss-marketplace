@@ -18,9 +18,9 @@ The usage skill and launcher come from the reviewed catalog commit. A skill chan
 
 ## GitHub Actions
 
-The **Prepare CRZ release** workflow accepts the new plugin version. It checks out the recorded source, builds and validates the candidate, exercises its CLI, uploads the candidate and opens a draft release PR. It never merges the PR or deploys a hosted server.
+The **Prepare CRZ release** workflow accepts the new plugin version. It checks out the recorded source, builds and validates the candidate, exercises its CLI, uploads the candidate and pushes a dedicated release branch with a comparison link in the run summary. The maintainer opens the release PR from that comparison link or with GitHub CLI. This works when organization policy prevents Actions from creating pull requests. The workflow never merges changes or deploys a hosted server.
 
-Activation requires the workflow on the catalog default branch, Actions allowed to create pull requests, and a repository secret named `LAWOSS_SOURCE_READ_TOKEN` with **contents read only** access to the CRZ source repository. The default catalog token cannot read a different private repository. Use a narrowly scoped token or replace that checkout token with a short-lived GitHub App token. The source token is not persisted in Git configuration, passed to source tests, or included in artifacts. Do not enable this credential on workflows triggered by untrusted pull requests.
+Activation requires the workflow on the catalog default branch, and a repository secret named `LAWOSS_SOURCE_READ_TOKEN` with **contents read only** access to the CRZ source repository. The default catalog token cannot read a different private repository. Use a narrowly scoped token or replace that checkout token with a short-lived GitHub App token. The source token is not persisted in Git configuration, passed to source tests, or included in artifacts. Do not enable this credential on workflows triggered by untrusted pull requests.
 
 The same candidate can be handed to an authorized private service operator. Hosted deployment is independent of public plugin publication; a marketplace update alone does not deploy a server.
 
