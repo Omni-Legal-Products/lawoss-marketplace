@@ -26,4 +26,6 @@ Refresh the marketplace with `codex plugin marketplace upgrade lawoss`, then rei
 
 ## Provenance
 
-Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-cz-agents/tree/fea07bf6076e8b548da2d715b082fa04556abde9), revision `fea07bf6076e8b548da2d715b082fa04556abde9`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.
+Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-cz-agents/tree/294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b), revision `294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.
+
+For a query-only mount of an existing sanctions database, set `SANCTIONS_READ_ONLY=1` alongside `SANCTIONS_DB`. This skips database creation, migration and WAL setup. The refresh job needs its own writable connection.

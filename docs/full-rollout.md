@@ -5,7 +5,7 @@ All 15 plugins include reviewed local runtimes, usage skills and CLI access. A c
 ## Coverage
 
 - CRZ: ten tools; live contract retrieval verified.
-- FS: upstream now requires an operator's `FS_API_KEY`. Initialization alone is not an authorized data read.
+- FS: requires an operator's `FS_API_KEY`. Version 1.1.1 supports the current metadata array and VAT search formats; 95 source tests, an authorized metadata read and a VAT status query passed. Other dataset paths still need query-specific source validation.
 - OV, RU and ÚVO: source compatibility repairs passed 163, 196 and 172 source tests respectively, plus live result queries. OV reports an unknown total explicitly when the source omits it; unknown pagination on a full page is treated conservatively.
 - Judikáty: includes Justice, NS SR and ÚS SR providers. Some ÚS DMS paths require separate provider credentials; PDF text requires Poppler. Local indexes do not imply complete court coverage.
 - Czech ARES and ČNB: live data verified without keys. ADIS always runs live SOAP.

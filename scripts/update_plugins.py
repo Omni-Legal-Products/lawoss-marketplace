@@ -3,6 +3,8 @@
 import argparse
 import json
 import re
+import selectors
+import time
 import subprocess
 import sys
 
@@ -33,6 +35,55 @@ def run_json(args, operation):
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:
         raise UpdateError(f"{operation} returned invalid JSON") from error
+
+
+def restore_disabled(plugin_id):
+    """Use Codex's structured writer; preserve unrelated settings and comments."""
+    try:
+        process = subprocess.Popen(["codex", "app-server", "--stdio"],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.DEVNULL, text=True, bufsize=1)
+    except OSError as error:
+        raise UpdateError("could not start Codex config writer") from error
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ)
+    def request(request_id, method, params):
+        process.stdin.write(json.dumps({"id": request_id, "method": method, "params": params}) + "\n")
+        process.stdin.flush()
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            if not selector.select(max(0, deadline - time.monotonic())):
+                break
+            line = process.stdout.readline()
+            if not line:
+                break
+            try:
+                response = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if response.get("id") == request_id:
+                if "error" in response:
+                    raise UpdateError(f"could not preserve disabled state for {plugin_id}")
+                return response.get("result")
+        raise UpdateError(f"config writer timed out for {plugin_id}")
+    try:
+        request(1, "initialize", {"clientInfo": {"name": "lawoss-updater", "version": "1"}})
+        process.stdin.write(json.dumps({"method": "initialized"}) + "\n")
+        process.stdin.flush()
+        request(2, "config/value/write", {
+            "keyPath": 'plugins.' + json.dumps(plugin_id) + '.enabled',
+            "value": False, "mergeStrategy": "replace",
+        })
+    finally:
+        selector.close()
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+        process.stdin.close()
+        process.stdout.close()
 
 
 def require_name(value, label):
@@ -68,6 +119,8 @@ def load_state(marketplace):
         if not isinstance(name, str):
             raise UpdateError("installed plugin has no valid name")
         require_name(name, "plugin name")
+        if not isinstance(plugin.get("enabled"), bool):
+            raise UpdateError(f"installed plugin {name!r} has no valid enabled state")
     return selected, installed
 
 
@@ -96,26 +149,27 @@ def main(argv=None):
                     f"marketplace {args.marketplace!r} uses a {source_type} source; "
                     "only Git marketplaces can be refreshed"
                 )
-            disabled = [plugin["name"] for plugin in installed if plugin.get("enabled") is not True]
-            if disabled:
-                joined = ", ".join(f"{name}@{args.marketplace}" for name in disabled)
-                raise UpdateError(
-                    "update cancelled before changes: Codex reinstall enables disabled plugins; "
-                    f"disabled: {joined}"
-                )
+            # Verify the writer before reinstall can temporarily enable a plugin.
+            for plugin in installed:
+                if plugin.get("enabled") is not True:
+                    restore_disabled(f"{plugin['name']}@{args.marketplace}")
             run_json(
                 ["codex", "plugin", "marketplace", "upgrade", args.marketplace, "--json"],
                 f"marketplace refresh for {args.marketplace}",
             )
             print("Marketplace refresh: complete")
             for plugin in installed:
-                result = run_json(
-                    [
-                        "codex", "plugin", "add", plugin["name"],
-                        "--marketplace", args.marketplace, "--json",
-                    ],
-                    f"install for {plugin['name']}@{args.marketplace}",
-                )
+                try:
+                    result = run_json(
+                        [
+                            "codex", "plugin", "add", plugin["name"],
+                            "--marketplace", args.marketplace, "--json",
+                        ],
+                        f"install for {plugin['name']}@{args.marketplace}",
+                    )
+                finally:
+                    if plugin.get("enabled") is not True:
+                        restore_disabled(f"{plugin['name']}@{args.marketplace}")
                 new_version = result.get("version")
                 if not isinstance(new_version, str):
                     raise UpdateError(

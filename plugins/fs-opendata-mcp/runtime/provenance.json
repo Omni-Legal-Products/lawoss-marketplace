@@ -1,11 +1,11 @@
 {
   "repository": "Omni-Legal-Products/mcp-financna-sprava",
-  "commit": "435a0846e98c1d7ea5a77fb1c58325e772d8d25b",
+  "commit": "928095d315ef9d460eb83b8649e463cf8294fef5",
   "configSha256": "99782e1878e48a130120323a59a47529c254cfa6d1af97c5e0ca596c4b6b84b6",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
     "dist/due-diligence.js": "bc62e38f512b1428c63318c803afc78c1460000e342b70f9a6bb652a1e02cf7f",
-    "dist/fs-client.js": "3080865d2edf9994ab90b173637eae96857bd2165798600e8d66c9e0d97b6bb4",
+    "dist/fs-client.js": "5510f78d62cc7831f6eec58b86e0036f5be4472758a64cccbfa95b22b5068aa4",
     "dist/mcp-server.js": "d1c4beb36b47f458963b94bbc81a2640e7f299a3b0a3915ed611845f2ce2dcb8",
     "dist/rate-limiter.js": "6519f7ff7f9d6a4f5aaa2d8a82ceef9120f842a629129872f611e591793ee54b",
     "dist/redaction.js": "0fc33f84d35dc1c82bd8e6598fa8957dbd355994e5bfd5ca39e23d6eb787d767",

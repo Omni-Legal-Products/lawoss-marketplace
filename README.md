@@ -9,10 +9,10 @@ pilot and the remaining rollout.
 Maintainers can [prepare any plugin release](docs/RELEASES.md); users can
 [update their installed plugins with one command](docs/updating.md).
 
-## Install the local catalog
+## Install the Git catalog
 
 ```bash
-codex plugin marketplace add /path/to/lawoss-marketplace
+codex plugin marketplace add https://github.com/Omni-Legal-Products/lawoss-marketplace.git --ref main
 codex plugin add crz@lawoss --json
 codex plugin list
 ```

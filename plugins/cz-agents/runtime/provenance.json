@@ -1,6 +1,6 @@
 {
   "repository": "Omni-Legal-Products/mcp-cz-agents",
-  "commit": "fea07bf6076e8b548da2d715b082fa04556abde9",
+  "commit": "294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b",
   "configSha256": "52b047cbc0fb13d85b0d7d6e479824d9ed14fc02fd6b749059c3072ada4776e4",
   "files": {
     "LICENSE": "8259f535053d8035495a805b5f280aeac546b361a303a65b00b681eb6348dba5",
@@ -50,11 +50,11 @@
     "packages/realestate/dist/tools/get_district_aggregate.js": "110337010b7e463fc7cc6bd2157463d52cebb74090d343d8b66c1405f0e3a5bf",
     "packages/realestate/package.json": "20fdd78220e14230073ac8e2c0579a866bf7cf3db39d78484e3d2b847e46475e",
     "packages/realestate-ingest/package.json": "51c1dab310a549ff4b5ffb47a0965a316fb5467ad478f63274db0399c8101f0a",
-    "packages/sanctions/dist/db.js": "20338a55d7b57946fe427293aaa0f8f39e0bd344970471480c4cf8d7936fd720",
+    "packages/sanctions/dist/db.js": "822d263e3198ba9c0bfcd092ac6287337a8c0ecef894b8e012223c7291c7d338",
     "packages/sanctions/dist/fetchers/eu.js": "bc77442d8109ad86a287d9fc1b707248c553c339d606e1412f74cf104ee84a9e",
     "packages/sanctions/dist/fetchers/index.js": "66a6cc5d7f3f2ff94414dd358240d5ce65dfcc99f5954a515d2bcab0f6838731",
     "packages/sanctions/dist/fetchers/ofac.js": "3d9837115419b9e30b541fed1e8ac1e2772442ef1c951853972b9d3d3c0b2bbe",
-    "packages/sanctions/dist/index.js": "db4c31867b88c03f814192e93213ee3818e9d3c44e4823af75428fd51816e13a",
+    "packages/sanctions/dist/index.js": "6e55ad7b4123cf6f3e578c85a49f7c9d2682ae368f8772ab7dbeb98e84883727",
     "packages/sanctions/dist/normalize.js": "e2494ca0659b191e311ef71c4e659f9fff85a9ba3b1805216314f5a559eb378b",
     "packages/sanctions/dist/refresh.js": "2345128c4ba6051f231292d3b1e49a9f7e7adf6873244bfe264641d3e40c3452",
     "packages/sanctions/dist/search.js": "5f2fbbdd36718d4fe786ad55194c8aeaa7d0f976baf7ea8fad86e00762307cfc",
