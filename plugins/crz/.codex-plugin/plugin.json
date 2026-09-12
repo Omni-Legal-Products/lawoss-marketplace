@@ -1,6 +1,6 @@
 {
   "name": "crz",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
   "author": {
     "name": "LAWOSS"
