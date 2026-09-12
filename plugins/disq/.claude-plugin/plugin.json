@@ -1,6 +1,6 @@
 {
   "name": "disq",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Diskvalifikácie osôb: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"

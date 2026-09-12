@@ -23,7 +23,7 @@
       "name": "disq",
       "source": "./plugins/disq",
       "description": "Diskvalifikácie osôb: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "Productivity"
     },
     {
