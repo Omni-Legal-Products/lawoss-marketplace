@@ -1,8 +1,8 @@
 {
-  "plugin": "crz",
-  "plugin_version": "1.4.2",
-  "catalog_commit": "c889d013156a7f366dce857b0149cf31c958559e",
-  "source_repository": "Omni-Legal-Products/mcp-crz",
-  "source_commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
-  "runtime_manifest_sha256": "13a9293c0f15e6e6f54d2ca46b7961e752d9b696a1bccb1a57d3aa67a416232b"
+  "plugin": "fs-opendata-mcp",
+  "plugin_version": "1.1.2",
+  "catalog_commit": "a012fab7ea6ab49bc65009a2a335d7669941eb03",
+  "source_repository": "Omni-Legal-Products/mcp-financna-sprava",
+  "source_commit": "928095d315ef9d460eb83b8649e463cf8294fef5",
+  "runtime_manifest_sha256": "c69a0dfb74f56cfe4bed3e19a03ea0cf8365ef258cf5864610f69505d2a984a3"
 }

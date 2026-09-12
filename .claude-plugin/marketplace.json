@@ -37,7 +37,7 @@
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
       "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "category": "Productivity"
     },
     {
