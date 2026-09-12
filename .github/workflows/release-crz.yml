@@ -1,0 +1,118 @@
+name: Prepare CRZ release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: New plugin version (reviewed source commit comes from releases.json)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-crz-release
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: catalog
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      - name: Resolve reviewed source
+        id: source
+        working-directory: catalog
+        env:
+          SOURCE_READ_TOKEN: ${{ secrets.LAWOSS_SOURCE_READ_TOKEN }}
+        run: |
+          test -n "$SOURCE_READ_TOKEN" || { echo 'Configure LAWOSS_SOURCE_READ_TOKEN with read-only access to the reviewed source repository.'; exit 1; }
+          python3 - <<'PY'
+          import json, os, re
+          record = next(r for r in json.load(open('releases.json'))['releases'] if r['name'] == 'crz')
+          if record['repository'] != 'Omni-Legal-Products/mcp-crz' or not re.fullmatch('[0-9a-f]{40}', record['commit']):
+              raise SystemExit('Invalid reviewed source record')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('commit=' + record['commit'] + '\n')
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Omni-Legal-Products/mcp-crz
+          ref: ${{ steps.source.outputs.commit }}
+          token: ${{ secrets.LAWOSS_SOURCE_READ_TOKEN }}
+          path: reviewed-source
+          persist-credentials: false
+      - name: Build reviewed candidate
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 catalog/scripts/release_crz.py --source reviewed-source --version "$RELEASE_VERSION" --output candidate
+      - name: Apply candidate to release branch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          for relative in ['plugins/crz', '.claude-plugin/marketplace.json', 'releases.json', 'release-candidate.json']:
+              source, target = Path('candidate') / relative, Path('catalog') / relative
+              if source.is_dir():
+                  shutil.rmtree(target)
+                  shutil.copytree(source, target)
+              else:
+                  shutil.copyfile(source, target)
+          PY
+      - name: Validate catalog and portable launcher
+        working-directory: catalog
+        run: |
+          python3 -m unittest discover -s tests -v
+          python3 scripts/validate.py
+          cmp AGENTS.md CLAUDE.md
+          node plugins/crz/scripts/run.mjs tools > ../tools.json
+          node plugins/crz/scripts/run.mjs call crz_recent '{"limit":1}' > ../read.json
+          python3 - <<'PY'
+          import json
+          tools = json.load(open('../tools.json'))
+          if not any(tool['name'] == 'crz_recent' for tool in tools['tools']):
+              raise SystemExit('CRZ tools missing')
+          result = json.load(open('../read.json'))
+          if result.get('isError'):
+              raise SystemExit('CRZ live read failed')
+          payload = json.loads(next(c['text'] for c in result['content'] if c['type'] == 'text'))
+          if not payload.get('results'):
+              raise SystemExit('CRZ live read returned no contracts')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: crz-catalog-candidate
+          path: candidate/
+          include-hidden-files: true
+          retention-days: 14
+      - name: Prepare release branch for review
+        working-directory: catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          branch="release/crz-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch -c "$branch"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugins/crz .claude-plugin/marketplace.json releases.json release-candidate.json
+          git commit -m 'release: update verified CRZ plugin'
+          gh auth setup-git
+          git push origin "$branch"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.load(open('release-candidate.json'))
+          Path('../release-body.md').write_text('Update the local CRZ MCP, skill and CLI bundle to plugin version ' + report['plugin_version'] + '.\n\nReviewed source: `' + report['source_commit'] + '`.\n\nSource tests, build, catalog checks and a live CLI read passed. macOS Codex install/update/rollback acceptance must be checked before merging. Private gateway deployment is separate and retains user grants.\n')
+          PY
+          printf '## CRZ release ready for review\n\nBranch: `%s`\n\n[Open release comparison](https://github.com/%s/compare/%s...%s?expand=1)\n' "$branch" "$GITHUB_REPOSITORY" "$BASE_BRANCH" "$branch" >> "$GITHUB_STEP_SUMMARY"

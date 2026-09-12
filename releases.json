@@ -7,7 +7,7 @@
       "repository": "Omni-Legal-Products/mcp-crz",
       "commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
       "branch": "codex/lawoss-release-2026-09-05",
-      "distribution": "skills-and-manual-setup"
+      "distribution": "local-mcp-skill-cli"
     },
     {
       "name": "cz-agents",

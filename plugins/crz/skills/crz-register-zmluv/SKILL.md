@@ -5,15 +5,11 @@ description: Použi pri otázkach na zverejnené zmluvy verejného sektora, ich 
 
 # CRZ — Centrálny register zmlúv
 
-## Prevádzková hranica
+## Lokálny plugin
 
-Tento skill neobsahuje prednastavený vzdialený endpoint. Používateľ si prevádzkuje
-vlastnú inštanciu: lokálne cez `stdio`, alebo na vlastnej HTTPS doméne. Verejnosť
-údajov v CRZ neznamená, že má byť verejne otvorený samotný MCP server. Každé
-vzdialené nasadenie musí vyžadovať autentifikáciu; odporúčaný režim je OAuth.
+Tento plugin spúšťa pribalený CRZ MCP lokálne cez stdio. Vyžaduje Node.js 22.13+ a npm; závislosti sa pripravia pri prvom štarte. Nepripája sa na vzdialený MCP a nevyžaduje prihlasovanie do LAWOSS služby. Pri chybe štartu skontroluj Node/npm a výstup `node scripts/run.mjs doctor` z adresára pluginu.
 
-Dokumentácia používa iba zástupnú URL `https://mcp.example.com`. Nikdy ju
-nepovažuj za fungujúcu službu a nevymýšľaj inú prevádzkovanú adresu.
+CLI používa tie isté nástroje: `node scripts/run.mjs tools` alebo `node scripts/run.mjs call crz_recent '{"limit":1}'`. Cestu k skriptu odvoď z umiestnenia tohto skillu, nie z pracovného projektu. Preferuj už pripojené MCP nástroje; CLI je alternatívne rozhranie.
 
 ## Kedy použiť CRZ
 
@@ -36,24 +32,6 @@ na konečných užívateľov výhod RPVS a na právny predpis Slov-Lex.
 
 Na monitoring použi `crz_recent`, ulož `max_id` a pri ďalšej kontrole ho odovzdaj
 do `crz_whats_new` ako `since_id`.
-
-## Lokálna registrácia
-
-Po `npm ci && npm run build` zaregistruj absolútnu cestu k `dist/index.js`:
-
-```json
-{
-  "mcpServers": {
-    "crz": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-crz/dist/index.js"]
-    }
-  }
-}
-```
-
-Pre vzdialenú inštanciu nakonfiguruj vlastnú URL
-`https://mcp.example.com/mcp` a dokonči OAuth prihlásenie podľa klienta.
 
 ## Bezpečné používanie výsledkov
 

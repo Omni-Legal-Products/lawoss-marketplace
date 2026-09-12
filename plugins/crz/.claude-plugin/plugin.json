@@ -1,7 +1,7 @@
 {
   "name": "crz",
-  "version": "1.4.0",
-  "description": "LAWOSS crz: usage skills and setup guidance for your own MCP deployment.",
+  "version": "1.4.1",
+  "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
   "author": {
     "name": "LAWOSS"
   },

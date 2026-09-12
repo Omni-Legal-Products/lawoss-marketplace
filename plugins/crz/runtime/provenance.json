@@ -1,0 +1,24 @@
+{
+  "repository": "Omni-Legal-Products/mcp-crz",
+  "commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
+  "files": {
+    "LICENSE": "027ee9b0f16e612f6a3f578385c40208310e7b5fdd36450ad449bd2b3dc8760d",
+    "dist/crz/attachments.js": "9cdbbdd79f679108088b437762adf0c9ff540bce4573a441506b7a4e3926ee31",
+    "dist/crz/bulk.js": "d2fdbd64079740351ebbc8766ca912171280e113f653f329406fc82d5453e05d",
+    "dist/crz/cache.js": "5e91aee46648bec7de94b1eb891e3e7fc4f4cb4ea60d53cb978b0709d334065c",
+    "dist/crz/clauses.js": "06d6eea89983b73e1916aeedb721c2db65efd1222531498240547e932dd9912b",
+    "dist/crz/client.js": "0cddf47549323bf785cda3aa739b55b4072367bad77a44ca8dd4527db42e6596",
+    "dist/crz/contract.js": "02d783c4b4fadcc7ad8a262f3158984c104ddfbaf26460db6aad718cebe03c69",
+    "dist/crz/markdown.js": "95459ff099e643a8ee55e47b0ad029e531ccfcb2bc8154144628a045795676ac",
+    "dist/crz/money.js": "4d5ce7fba1abc6e7bb5660a930c87483cb006f117f2b55322ac20b3cf0c77354",
+    "dist/crz/recent.js": "6c94eee63f8d74206082d89c76d78fe20d1b396c7707910eb90fcac4d91e46f1",
+    "dist/crz/search.js": "6fe6a2b82a219a8621f7a49504a07043bbb6e3ea0c3bbc9442c2ddc4114c26e4",
+    "dist/crz/similar.js": "b22a9829308e90d039d0b36b5ba3c8a68e54c3263c7bae1a3db0b5b589f3b013",
+    "dist/crz/types.js": "01ae2a5b120382f9a648ced7ee8507493a134f216d100fc61600c6c9738235d2",
+    "dist/index.js": "cc26e3ee1347788fcf89c901c2d20dd5c2ae0a04c4efc8814b55bfb528956c70",
+    "dist/scalars.js": "3390fed48b45839f54400f29bdeb0e23544a8e6d8689060c356681358d4f36b5",
+    "dist/server.js": "1f39456e58a335be5bee92a449f88072fef949755ddbfd6d30d7226225d880fa",
+    "package-lock.json": "0a8b9850b49ca27c165b7123b9f301f7c5420843dff7156a67fc5285ac0d0597",
+    "package.json": "6306536fbc3d94bc3605104e20d0684d61cd12727eecb810e8afe96c77c8bd93"
+  }
+}

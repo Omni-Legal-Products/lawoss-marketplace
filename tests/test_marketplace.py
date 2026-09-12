@@ -89,11 +89,11 @@ class MarketplaceValidationTest(unittest.TestCase):
 
         plugin_root = (ROOT / codex_projection["source"]).resolve()
         plugin_root.relative_to(ROOT.resolve())
-        self.assertNotIn("mcpServers", manifest)
-        self.assertFalse(
-            (plugin_root / ".mcp.json").exists(),
-            "A skill-only marketplace wrapper must not auto-register an MCP server",
-        )
+        self.assertEqual(manifest['mcpServers'], './.mcp.json')
+        self.assertTrue((plugin_root / '.mcp.json').exists())
+        claude_manifest = json.loads((plugin_root / '.claude-plugin/plugin.json').read_text())
+        self.assertEqual(claude_manifest['version'], manifest['version'])
+        self.assertEqual(claude_manifest['description'], manifest['description'])
 
     def test_every_readme_link_resolves_inside_the_marketplace(self) -> None:
         """Catch setup links that require an unavailable external repository."""
