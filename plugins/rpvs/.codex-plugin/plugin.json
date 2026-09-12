@@ -1,6 +1,6 @@
 {
   "name": "rpvs",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Register partnerov verejného sektora: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
