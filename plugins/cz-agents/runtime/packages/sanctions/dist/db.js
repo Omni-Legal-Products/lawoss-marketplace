@@ -75,7 +75,11 @@ CREATE INDEX IF NOT EXISTS idx_change_log_ts ON change_log(ts);
 `;
 export class SanctionsDb {
     db;
-    constructor(dbPath) {
+    constructor(dbPath, options = {}) {
+        if (options.readonly) {
+            this.db = new Database(dbPath, { readonly: true, fileMustExist: true });
+            return;
+        }
         mkdirSync(dirname(dbPath), { recursive: true });
         this.db = new Database(dbPath);
         this.db.pragma('journal_mode = WAL');

@@ -5,6 +5,7 @@ export const MAX_PAGES = 20;
 export const MAX_ROWS = 2_000;
 export const MAX_RESPONSE_BYTES = 512 * 1024;
 export const MAX_METADATA_ROWS = 500;
+const VAT_DEDUPE_KEYS = ["ic_dph", "ico", "nazov_ds", "datum_registracie", "datum_reg", "typ_registracie", "druh_reg_dph"];
 export class FsSourceError extends Error {
     code;
     name = "FsSourceError";
@@ -47,7 +48,8 @@ function text(row, key) {
     return normalized || null;
 }
 export function normalizeVatRecord(row) {
-    return { icDph: text(row, "ic_dph"), ico: text(row, "ico"), name: text(row, "nazov_ds") ?? text(row, "nazov"), address: text(row, "adresa"), registrationDate: text(row, "datum_registracie"), registrationType: text(row, "typ_registracie") };
+    const address = text(row, "adresa") ?? ([text(row, "ulica_cislo"), text(row, "psc"), text(row, "obec"), text(row, "stat")].filter(Boolean).join(", ") || null);
+    return { icDph: text(row, "ic_dph"), ico: text(row, "ico"), name: text(row, "nazov_ds") ?? text(row, "nazov"), address, registrationDate: text(row, "datum_registracie") ?? text(row, "datum_reg"), registrationType: text(row, "typ_registracie") ?? text(row, "druh_reg_dph") };
 }
 export function normalizeDebtorRecord(row) {
     return { ico: text(row, "ico"), name: text(row, "nazov_subjektu") ?? text(row, "nazov_ds") ?? text(row, "nazov"), address: text(row, "adresa"), arrearsAmount: text(row, "suma_nedoplatku"), taxType: text(row, "druh_dane") };
@@ -62,13 +64,25 @@ function combineValidity(datasetKey, pages, returnedCount) {
     const truncated = pages.some((entry) => entry.validity.truncated);
     return { source: SOURCE, datasetKey, retrievedAt: new Date().toISOString(), sourceValidated: true, page: Math.max(...pages.map((entry) => entry.validity.page)), pageSize: Math.max(...pages.map((entry) => entry.validity.pageSize)), sourceTotal: pages.reduce((sum, entry) => sum + entry.validity.sourceTotal, 0), returnedCount, truncated, truncationReason: pages.find((entry) => entry.validity.truncationReason)?.validity.truncationReason ?? null, warnings: pages.flatMap((entry) => entry.validity.warnings) };
 }
+function mergeAggregatedPages(datasetKey, pages, keys) {
+    const all = dedupe(pages.flatMap((entry) => entry.data), keys);
+    const data = all.slice(0, MAX_ROWS);
+    const validity = combineValidity(datasetKey, pages, data.length);
+    if (all.length > MAX_ROWS) {
+        validity.truncated = true;
+        validity.truncationReason = "MAX_ROWS";
+        if (!validity.warnings.includes("Result was truncated by a configured safety limit."))
+            validity.warnings.push("Result was truncated by a configured safety limit.");
+    }
+    return { data, validity };
+}
 export function buildVatStatusResult(_query, registeredPage, deletedPage, cancelledPage) {
     const wrap = (datasetKey, value) => ({ data: value.data, validity: { source: SOURCE, datasetKey, retrievedAt: new Date().toISOString(), sourceValidated: true, page: value.page, pageSize: value.itemsPerPage, sourceTotal: value.itemsCount, returnedCount: value.data.length, truncated: false, truncationReason: null, warnings: [] } });
     return buildVatResult(wrap(SLUG_VAT_REGISTERED, registeredPage), wrap(SLUG_VAT_DELETED, deletedPage), wrap(SLUG_VAT_CANCELLED, cancelledPage));
 }
 function buildVatResult(registeredPage, deletedPage, cancelledPage) {
-    const registeredRows = dedupe(registeredPage.data, ["ic_dph", "ico", "nazov_ds", "datum_registracie"]);
-    const deregisteredRows = dedupe([...deletedPage.data, ...cancelledPage.data], ["ic_dph", "ico", "nazov_ds", "datum_registracie"]);
+    const registeredRows = dedupe(registeredPage.data, VAT_DEDUPE_KEYS);
+    const deregisteredRows = dedupe([...deletedPage.data, ...cancelledPage.data], VAT_DEDUPE_KEYS);
     const registered = registeredRows.slice(0, MAX_ROWS);
     const deregistered = deregisteredRows.slice(0, Math.max(0, MAX_ROWS - registered.length));
     const aggregateTruncated = registeredRows.length + deregisteredRows.length > MAX_ROWS;
@@ -117,13 +131,22 @@ export class FsClient {
             throw new FsSourceError("FS_INPUT", "IČ DPH must be SK followed by ten ASCII digits.");
         if (input.ico !== undefined && !ico)
             throw new FsSourceError("FS_INPUT", "IČO must contain exactly eight ASCII digits.");
-        const column = icDph ? "ic_dph" : "ico";
-        const search = icDph ?? ico;
-        const [registered, deleted, cancelled] = await Promise.all([
-            this.searchDataset(SLUG_VAT_REGISTERED, column, search, ["ic_dph", "ico", "nazov_ds", "datum_registracie"]),
-            this.searchDataset(SLUG_VAT_DELETED, column, search, ["ic_dph", "ico", "nazov_ds", "datum_registracie"]),
-            this.searchDataset(SLUG_VAT_CANCELLED, column, search, ["ic_dph", "ico", "nazov_ds", "datum_registracie"]),
+        if (icDph) {
+            const [registered, deleted, cancelled] = await Promise.all([
+                this.searchDataset(SLUG_VAT_REGISTERED, "ic_dph", icDph, VAT_DEDUPE_KEYS),
+                this.searchDataset(SLUG_VAT_DELETED, "ic_dph", icDph, VAT_DEDUPE_KEYS),
+                this.searchDataset(SLUG_VAT_CANCELLED, "ic_dph", icDph, VAT_DEDUPE_KEYS),
+            ]);
+            return buildVatResult(registered, deleted, cancelled);
+        }
+        const [registered, cancelled] = await Promise.all([
+            this.searchDataset(SLUG_VAT_REGISTERED, "ico", ico, VAT_DEDUPE_KEYS),
+            this.searchDataset(SLUG_VAT_CANCELLED, "ico", ico, VAT_DEDUPE_KEYS),
         ]);
+        const vatIds = [...new Set([...registered.data, ...cancelled.data].map((row) => normalizeIcDph(text(row, "ic_dph"))).filter((value) => value !== null))];
+        if (vatIds.length === 0)
+            throw new FsSourceError("FS_SCHEMA", "FS deleted VAT list cannot be validated from this IČO response.");
+        const deleted = mergeAggregatedPages(SLUG_VAT_DELETED, await Promise.all(vatIds.map((value) => this.searchDataset(SLUG_VAT_DELETED, "ic_dph", value, VAT_DEDUPE_KEYS))), VAT_DEDUPE_KEYS);
         return buildVatResult(registered, deleted, cancelled);
     }
     async checkTaxDebtor(input) {
@@ -164,7 +187,7 @@ export class FsClient {
         let truncated = null;
         for (let current = 1; current <= MAX_PAGES; current += 1) {
             const params = new URLSearchParams({ column, search, page: String(current) });
-            const parsed = parseDataPage(await this.requestJson(`/data/${encodeURIComponent(slug)}/search`, params));
+            const parsed = parseDataPage(await this.requestJson(`/data/${encodeURIComponent(slug)}/search`, params, current === 1));
             if (parsed.page !== current)
                 throw new FsSourceError("FS_TOTAL", "FS source changed the requested page number.");
             if (expectedTotal === undefined) {
@@ -194,9 +217,10 @@ export class FsClient {
     }
     async listDatasets() {
         const payload = await this.requestJson("/lists");
-        if (!payload || typeof payload !== "object" || !Array.isArray(payload.data))
+        const entries = Array.isArray(payload) ? payload : payload && typeof payload === "object" && Array.isArray(payload.data) ? payload.data : null;
+        if (!entries)
             throw new FsSourceError("FS_SCHEMA", "FS metadata response is invalid.");
-        const all = payload.data.map((entry) => {
+        const all = entries.map((entry) => {
             if (!entry || typeof entry !== "object" || Array.isArray(entry))
                 throw new FsSourceError("FS_SCHEMA", "FS metadata contains an invalid row.");
             const candidate = entry;
@@ -206,7 +230,12 @@ export class FsClient {
                 throw new FsSourceError("FS_SCHEMA", "FS metadata contains an invalid row.");
             if (candidate.columns !== undefined && (!Array.isArray(candidate.columns) || candidate.columns.some((column) => typeof column !== "string")))
                 throw new FsSourceError("FS_SCHEMA", "FS metadata contains an invalid row.");
-            return candidate;
+            if (candidate.searchable !== undefined && typeof candidate.searchable !== "string")
+                throw new FsSourceError("FS_SCHEMA", "FS metadata contains an invalid row.");
+            if (candidate.url !== undefined && typeof candidate.url !== "string" || candidate.update_date !== undefined && typeof candidate.update_date !== "string")
+                throw new FsSourceError("FS_SCHEMA", "FS metadata contains an invalid row.");
+            const columns = candidate.columns ?? candidate.searchable?.split(",").map((value) => value.trim()).filter(Boolean);
+            return { slug: candidate.slug.trim(), ...(candidate.name !== undefined ? { name: candidate.name } : {}), ...(columns !== undefined ? { columns } : {}) };
         });
         const seen = new Set();
         const records = all.filter((entry) => { if (seen.has(entry.slug))
@@ -214,7 +243,7 @@ export class FsClient {
         const truncated = all.length > MAX_METADATA_ROWS;
         return { records, validity: { source: SOURCE, datasetKey: "/lists", retrievedAt: new Date().toISOString(), sourceValidated: true, page: 1, pageSize: MAX_METADATA_ROWS, sourceTotal: all.length, returnedCount: records.length, truncated, truncationReason: truncated ? "MAX_METADATA_ROWS" : null, warnings: truncated ? ["Metadata result was truncated."] : [] } };
     }
-    async requestJson(path, params) {
+    async requestJson(path, params, allowExactSearchMiss = false) {
         return this.upstream.run(async () => {
             for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
                 const controller = new AbortController();
@@ -229,7 +258,8 @@ export class FsClient {
                     const response = await fetch(url, { method: "GET", headers, signal: controller.signal, redirect: "manual" });
                     if (response.status >= 300 && response.status < 400)
                         throw new FsSourceError("FS_REDIRECT", "FS source redirects are not accepted.");
-                    if (response.status !== 200)
+                    const exactSearchMissCandidate = response.status === 404 && allowExactSearchMiss && params?.get("page") === "1" && /^\/data\/(?:ds_dphs|ds_dphv|ds_dphz|ds_dsdd|ds_dph_oud|ds_dph_iban|ds_dpho|ds_dppos|ds_dsrdp|ds_iz_ran)\/search$/.test(path);
+                    if (response.status !== 200 && !exactSearchMissCandidate)
                         throw new FsSourceError("FS_HTTP", "FS source returned a non-success status.");
                     if (!/^(application\/(?:json|[^;]+\+json))(?:;|$)/i.test(response.headers.get("content-type") ?? ""))
                         throw new FsSourceError("FS_CONTENT_TYPE", "FS source did not return JSON.");
@@ -265,12 +295,20 @@ export class FsClient {
                         body.set(chunk, offset);
                         offset += chunk.byteLength;
                     }
+                    let payload;
                     try {
-                        return JSON.parse(new TextDecoder().decode(body));
+                        payload = JSON.parse(new TextDecoder().decode(body));
                     }
                     catch {
-                        throw new FsSourceError("FS_PARSE", "FS source returned invalid JSON.");
+                        throw new FsSourceError(exactSearchMissCandidate ? "FS_HTTP" : "FS_PARSE", exactSearchMissCandidate ? "FS source returned a non-success status." : "FS source returned invalid JSON.");
                     }
+                    if (exactSearchMissCandidate) {
+                        const miss = payload;
+                        if (!miss || typeof miss !== "object" || Array.isArray(miss) || Object.keys(miss).sort().join(",") !== "code,message,status" || miss.status !== "error" || miss.code !== "404" || miss.message !== "Page doesn't exists")
+                            throw new FsSourceError("FS_HTTP", "FS source returned a non-success status.");
+                        return { page: 1, pages: 1, itemsCount: 0, itemsPerPage: 0, data: [] };
+                    }
+                    return payload;
                 }
                 catch (error) {
                     const timeout = error instanceof DOMException && error.name === "AbortError";

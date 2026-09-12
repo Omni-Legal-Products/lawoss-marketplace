@@ -16,7 +16,7 @@
       "name": "cz-agents",
       "source": "./plugins/cz-agents",
       "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "Productivity"
     },
     {
@@ -37,7 +37,7 @@
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
       "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "Productivity"
     },
     {

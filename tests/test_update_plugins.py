@@ -23,7 +23,17 @@ with Path(os.environ["FAKE_CODEX_LOG"]).open("a", encoding="utf-8") as log:
     log.write(json.dumps(sys.argv[1:]) + "\n")
 
 args = sys.argv[1:]
-if args == ["plugin", "marketplace", "list", "--json"]:
+if args == ["app-server", "--stdio"]:
+    for line in sys.stdin:
+        request = json.loads(line)
+        if "id" not in request:
+            continue
+        if request["method"] == "config/value/write":
+            with Path(os.environ["FAKE_CODEX_LOG"]).open("a") as log:
+                log.write(json.dumps(["config-write", request["params"]]) + "\n")
+        print(json.dumps({"id": request["id"], "result": {}}), flush=True)
+    raise SystemExit(0)
+elif args == ["plugin", "marketplace", "list", "--json"]:
     result = {"marketplaces": state["marketplaces"]}
 elif args[:2] == ["plugin", "list"]:
     result = state["plugin_list"]
@@ -141,7 +151,7 @@ class UpdatePluginsTest(unittest.TestCase):
             ],
         )
 
-    def test_apply_stops_before_mutation_when_a_selected_plugin_is_disabled(self):
+    def test_apply_preserves_disabled_state_even_after_failed_install(self):
         state = {
             "marketplaces": [{
                 "name": "lawoss",
@@ -158,10 +168,23 @@ class UpdatePluginsTest(unittest.TestCase):
 
         result, calls = self.run_updater(state, "--marketplace", "lawoss", "--apply")
 
+        self.assertEqual(result.returncode, 0, result.stderr)
+        writes = [call[1] for call in calls if call[0] == "config-write"]
+        expected = {"keyPath": 'plugins."crz@lawoss".enabled', "value": False, "mergeStrategy": "replace"}
+        self.assertEqual(writes, [expected, expected])
+        state["fail_install"] = ["crz"]
+        result, calls = self.run_updater(state, "--marketplace", "lawoss", "--apply")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("cancelled before changes", result.stderr)
-        self.assertIn("crz@lawoss", result.stderr)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[-1], ["config-write", expected])
+
+    def test_invalid_enabled_state_stops_before_mutation(self):
+        for value in (None, "false", 0):
+            state = {"marketplaces": [{"name": "lawoss", "marketplaceSource": {"sourceType": "git"}}],
+                     "plugin_list": {"installed": [{"name": "crz", "marketplaceName": "lawoss", "installed": True, "enabled": value}]}}
+            result, calls = self.run_updater(state, "--marketplace", "lawoss", "--apply")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("valid enabled state", result.stderr)
+            self.assertEqual(len(calls), 2)
 
     def test_refresh_failure_stops_before_any_install(self):
         state = {

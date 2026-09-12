@@ -12,7 +12,7 @@
     {
       "name": "cz-agents",
       "repository": "Omni-Legal-Products/mcp-cz-agents",
-      "commit": "fea07bf6076e8b548da2d715b082fa04556abde9",
+      "commit": "294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
@@ -33,7 +33,7 @@
     {
       "name": "fs-opendata-mcp",
       "repository": "Omni-Legal-Products/mcp-financna-sprava",
-      "commit": "435a0846e98c1d7ea5a77fb1c58325e772d8d25b",
+      "commit": "928095d315ef9d460eb83b8649e463cf8294fef5",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
