@@ -8,6 +8,9 @@ individual portable-runtime verification.
 Read the [local runtime acceptance record](docs/local-runtime.md) for the CRZ
 pilot and the remaining rollout.
 
+Maintainers can [prepare a versioned CRZ release](docs/releasing.md); users can
+[update their installed plugins with one command](docs/updating.md).
+
 ## Install the local catalog
 
 ```bash

@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 
@@ -66,9 +67,18 @@ with tempfile.TemporaryDirectory(prefix='lawoss update rehearsal ') as temp:
                 run(git + ['commit', '-qm', 'Rollback fixture'], repo)
             if stage != 'install':
                 run(git + ['update-server-info'], repo)
-                run(['codex', 'plugin', 'marketplace', 'upgrade', 'lawoss', '--json'], base, env)
-            installed = json.loads(run(['codex', 'plugin', 'add', 'crz@lawoss', '--json'], base, env))
-            plugin = Path(installed['installedPath'])
+                update_output = run(
+                    [sys.executable, str(ROOT / 'scripts/update_plugins.py'), '--marketplace', 'lawoss', '--apply'],
+                    base,
+                    env,
+                )
+                listing = json.loads(run(['codex', 'plugin', 'list', '--marketplace', 'lawoss', '--json'], base, env))
+                installed = next(item for item in listing['installed'] if item['pluginId'] == 'crz@lawoss')
+                plugin = profile / 'plugins' / 'cache' / 'lawoss' / 'crz' / installed['version']
+                assert f"crz@lawoss: updated" in update_output
+            else:
+                installed = json.loads(run(['codex', 'plugin', 'add', 'crz@lawoss', '--json'], base, env))
+                plugin = Path(installed['installedPath'])
             node = shutil.which('node')
             tools = json.loads(run([node, str(plugin / 'scripts/run.mjs'), 'tools'], base, env))
             assert len(tools['tools']) == 10
