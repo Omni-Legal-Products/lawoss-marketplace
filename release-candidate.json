@@ -1,8 +1,8 @@
 {
-  "plugin": "crz",
-  "plugin_version": "1.4.2",
-  "catalog_commit": "c889d013156a7f366dce857b0149cf31c958559e",
-  "source_repository": "Omni-Legal-Products/mcp-crz",
-  "source_commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
-  "runtime_manifest_sha256": "13a9293c0f15e6e6f54d2ca46b7961e752d9b696a1bccb1a57d3aa67a416232b"
+  "plugin": "uvo",
+  "plugin_version": "1.1.1",
+  "catalog_commit": "a012fab7ea6ab49bc65009a2a335d7669941eb03",
+  "source_repository": "Omni-Legal-Products/mcp-uvo",
+  "source_commit": "1f64371888d3d27f384b3faae61e37af732092bb",
+  "runtime_manifest_sha256": "25daffb21e1a5b9a5293dd09b044faff18eb684918ab92e4b9aa6ed7d1c503a3"
 }
