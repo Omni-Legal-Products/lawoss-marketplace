@@ -1,6 +1,6 @@
 {
   "name": "ruz",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Register účtovných závierok: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
