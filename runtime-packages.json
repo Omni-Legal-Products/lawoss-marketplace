@@ -1,0 +1,243 @@
+{
+  "disq": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "obcan.justice.sk",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "tidelift.com"
+    ]
+  },
+  "eurlex-celex": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "data.europa.eu",
+      "eur-lex.europa.eu",
+      "github.com",
+      "ko-fi.com",
+      "opencollective.com",
+      "paulmillr.com",
+      "publications.europa.eu",
+      "purl.org",
+      "registry.npmjs.org",
+      "tidelift.com",
+      "www.w3.org"
+    ]
+  },
+  "fs-opendata-mcp": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "iz.opendata.financnasprava.sk",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "tidelift.com"
+    ]
+  },
+  "judikaty": {
+    "entrypoint": "dist/src/server/index.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "html.duckduckgo.com",
+      "obcan.justice.sk",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "www.justice.gov.sk",
+      "www.nsud.sk",
+      "www.slov-lex.sk",
+      "www.ustavnysud.sk"
+    ]
+  },
+  "kalkulacky": {
+    "entrypoint": "dist/src/server.js",
+    "assets": [
+      "data"
+    ],
+    "publicHosts": [
+      "github.com",
+      "nbs.sk",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "slovak.statistics.sk",
+      "tidelift.com",
+      "www.aksamec.sk",
+      "www.ecb.europa.eu",
+      "www.najpravo.sk",
+      "www.zakonypreludi.sk"
+    ]
+  },
+  "orsr": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "sluzby.orsr.sk",
+      "tidelift.com"
+    ]
+  },
+  "ov": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "obchodnyvestnik.justice.gov.sk",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "tidelift.com"
+    ]
+  },
+  "rpo": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "api.statistics.sk",
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "tidelift.com"
+    ]
+  },
+  "rpvs": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "rpvs.gov.sk",
+      "tidelift.com"
+    ]
+  },
+  "ru": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "replik.justice.sk",
+      "tidelift.com"
+    ]
+  },
+  "ruz": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "tidelift.com",
+      "www.registeruz.sk"
+    ]
+  },
+  "slovlex": {
+    "entrypoint": "dist/index.js",
+    "assets": [],
+    "publicHosts": [
+      "api-gateway.slov-lex.sk",
+      "feross.org",
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "static.slov-lex.sk",
+      "vyhladavanie.slov-lex.sk",
+      "www.patreon.com"
+    ]
+  },
+  "uvo": {
+    "entrypoint": "dist/server.js",
+    "assets": [],
+    "publicHosts": [
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "tidelift.com",
+      "www.uvo.gov.sk"
+    ]
+  },
+  "cz-agents": {
+    "entrypoint": "packages/ares/dist/index.js",
+    "servers": {
+      "ares": "packages/ares/dist/index.js",
+      "cnb": "packages/cnb/dist/index.js",
+      "sanctions": "packages/sanctions/dist/index.js",
+      "isir": "packages/isir/dist/index.js",
+      "adis": "packages/adis/dist/index.js",
+      "dd": "packages/dd/dist/index.js",
+      "realestate": "packages/realestate/dist/index.js",
+      "eu-registry": "packages/eu-registry/dist/index.js"
+    },
+    "defaultServer": "ares",
+    "nativeBuilds": [
+      "better-sqlite3"
+    ],
+    "include": [
+      "package.json",
+      "package-lock.json",
+      "LICENSE",
+      "packages/cnb/package.json",
+      "packages/realestate/package.json",
+      "packages/ares/package.json",
+      "packages/shared/package.json",
+      "packages/realestate-ingest/package.json",
+      "packages/adis/package.json",
+      "packages/dd/package.json",
+      "packages/eu-registry/package.json",
+      "packages/sanctions/package.json",
+      "packages/isir/package.json",
+      "packages/shared/dist",
+      "packages/ares/dist",
+      "packages/cnb/dist",
+      "packages/sanctions/dist",
+      "packages/isir/dist",
+      "packages/adis/dist",
+      "packages/dd/dist",
+      "packages/realestate/dist",
+      "packages/eu-registry/dist"
+    ],
+    "publicHosts": [
+      "127.0.0.1",
+      "adis.mfcr.cz",
+      "adisrws.mfcr.cz",
+      "annuaire-entreprises.data.gouv.fr",
+      "anthropic.com",
+      "api-krs.ms.gov.pl",
+      "api.company-information.service.gov.uk",
+      "api.gleif.org",
+      "api.statistics.sk",
+      "ares.gov.cz",
+      "claude.ai",
+      "claude.com",
+      "ekrs.ms.gov.pl",
+      "eslint.org",
+      "feross.org",
+      "find-and-update.company-information.service.gov.uk",
+      "github.com",
+      "isir.justice.cz",
+      "isirpublicws.cca.cz",
+      "isirws.cca.cz",
+      "localhost",
+      "mcp.example.com",
+      "mcp.example.com.",
+      "opencollective.com",
+      "recherche-entreprises.api.gouv.fr",
+      "registry.npmjs.org",
+      "rpo.statistics.sk",
+      "sanctionslistservice.ofac.treas.gov",
+      "schemas.xmlsoap.org",
+      "search.gleif.org",
+      "tidelift.com",
+      "www.anthropic.com",
+      "www.claude.com",
+      "www.cnb.cz",
+      "www.patreon.com"
+    ]
+  }
+}

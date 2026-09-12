@@ -56,3 +56,7 @@ z neho v podaní vychádzaš.
 Vzdialený HTTP transport je OAuth-only, s authorization-code flow, PKCE a jednorazovým
 súhlasom po prihlásení. Lokálne stdio beží bez autentifikácie. Repozitár neobsahuje
 predvolenú remote URL ani prihlasovacie údaje; tie spravuje operátor mimo Gitu.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

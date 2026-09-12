@@ -63,3 +63,7 @@ issuera server nenabehne. Produkčné hodnoty a tajomstvá nepatria do skillu an
 
 **English summary.** Local use is stdio-only. An owner-hosted remote deployment requires
 HTTPS, fail-closed OAuth, persistent state, and separate live security/privacy review.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

@@ -1,0 +1,94 @@
+{
+  "version": "2026-08-06",
+  "fetchedAt": "2026-08-06",
+  "source": "vyhl. 68/2017 Z. z., znenie ucinne od 1. 1. 2024; § 197 zak. 233/1995 Z. z. (Exekucny poriadok) - slov-lex MCP, overene 2026-08-06",
+  "_comment": "Vsetky sumy platia pre exekucne konania zacate od 1. 1. 2024. Pre starsie konania platia prechodne ustanovenia § 30, § 30a a § 30b vyhl. 68/2017 Z. z. - pozri pole 'historia'.",
+  "penazne": {
+    "sadzba": 0.20,
+    "min": null,
+    "max": 33000,
+    "zaklad": "vyska vymozeneho plnenia (§ 6 ods. 1 vyhl. 68/2017 Z. z.)",
+    "zakladSadzby": "§ 7 ods. 1 vyhl. 68/2017 Z. z.: 'Odmena exekutora je 20 % zo zakladu na jej urcenie.'",
+    "zakladMax": "§ 9 vyhl. 68/2017 Z. z.: 'Celkova odmena pri exekucii na penazne plnenie nemoze presiahnut 33 000 eur; ustanovenie § 197 ods. 1 zakona tym nie je dotknute.'",
+    "_comment": "OPRAVA DRAFTU: draft mal min 30 a max 33 193,92. (a) MINIMUM NEEXISTUJE - § 7 vyhl. 68/2017 Z. z. ma iba dva odseky a ani jeden neurcuje minimalnu odmenu; overene aj na zneni ucinnom 1. 4. 2017 - 31. 3. 2023. (b) MAXIMUM je 33 000 eur (§ 9), nie 33 193,92 eur (to je hranica tarifneho pasma podla vyhl. 655/2004)."
+  },
+  "dalsiLimitOdmeny": {
+    "pravidlo": "odmena nemoze presiahnut vysku vymahaneho naroku podla stavu ku dnu vydania poverenia na vykonanie exekucie",
+    "zaklad": "§ 197 ods. 1 zak. 233/1995 Z. z.: 'Vyska odmeny exekutora pri exekucii na vymozenie prava na penazne plnenie sa urci ako percento z vymozeneho plnenia a nemoze presiahnut vysku vymahaneho naroku podla stavu ku dnu vydania poverenia na vykonanie exekucie.'"
+  },
+  "splnenieVLehote": {
+    "sadzba": 0.10,
+    "pausalneVydavkyPodiel": 0.5,
+    "podmienka": "vymahany narok sa splni do uplynutia lehoty na podanie navrhu na zastavenie exekucie, ktory ma podla zakona odkladny ucinok",
+    "zaklad": "§ 7 ods. 2 vyhl. 68/2017 Z. z. (odmena 10 %); § 22 ods. 2 vyhl. 68/2017 Z. z. (pausalne vydavky v rozsahu 50 %)",
+    "nepenazne": {
+      "podiel": 0.5,
+      "zaklad": "§ 16 ods. 1 vyhl. 68/2017 Z. z.: 'Ak sa vymahany narok splni do uplynutia lehoty na podanie navrhu na zastavenie exekucie, ktory ma podla zakona odkladny ucinok, patri exekutorovi odmena vo vyske 50 % z odmeny podla § 11 az 15.'",
+      "_comment": "§ 16 ods. 1 sa vztahuje na SPLNENIE naroku v lehote na podanie navrhu na zastavenie, NIE na zastavenie exekucie. Preto je toto pole tu (pod splnenieVLehote), nie pod 'zastavenie'."
+    },
+    "_comment": "Toto je najblizsi ekvivalent draftoveho pola 'zastavenie' pri exekucii na penazne plnenie. Pole 'nepenazne' je ekvivalent pre nepenazne plnenie podla § 16 ods. 1. Pausalne vydavky sa NEURCUJU absolutnou sumou - pouzije sa 'pausalneVydavkyPodiel' na sumu platnu pre obdobie zacatia konania (pausalneVydavky.podlaObdobia)."
+  },
+  "zastavenie": {
+    "penazne": {
+      "odmena": "urci sa z vymozeneho plnenia podla § 7 (t. j. z toho, co sa do zastavenia vymohlo); vyhlaska neurcuje osobitnu odmenu za samotne zastavenie",
+      "pausalneVydavkyPodiel": 1.0,
+      "zaklad": "§ 21 ods. 2 vyhl. 68/2017 Z. z.: 'Nahrada pausalnych vydavkov patri exekutorovi pri zastaveni exekucie alebo jej ukonceni inym sposobom ako zastavenim exekucie.'; § 22 ods. 1",
+      "_comment": "Pri zastaveni exekucie patri PLNA nahrada pausalnych vydavkov (podiel 1,0) zo sumy platnej pre obdobie zacatia konania; polovica podla § 22 ods. 2 sa uplatni len pri SPLNENI naroku v lehote na podanie navrhu na zastavenie (pozri splnenieVLehote), nie pri zastaveni ako takom."
+    },
+    "_comment": "OVERENE: vyhl. 68/2017 Z. z. NEOBSAHUJE osobitnu 'odmenu pri zastaveni exekucie' - ani pri penaznom, ani pri nepenaznom plneni. Pri penaznom plneni je odmena vzdy percentom z vymozeneho plnenia; ak sa nic nevymohlo, odmena je nulova a exekutorovi patri iba nahrada pausalnych vydavkov (a pripadne nevyhnutnych vydavkov). ZIADNE 50 % znizenie sa pri zastaveni neuplatnuje - § 16 ods. 1 (50 %) sa vztahuje na splnenie naroku v lehote, nie na zastavenie."
+  },
+  "pausalneVydavky": {
+    "suma": 100,
+    "polovicnyPodiel": 0.5,
+    "podlaObdobia": [
+      { "zacatieKonaniaOd": "2017-04-01", "zacatieKonaniaDo": "2023-12-31", "suma": 60, "_comment": "§ 22 ods. 1 vyhl. 68/2017 Z. z. v zneni ucinnom 1. 4. 2017 - 31. 12. 2023 (overene na zneniach k 2020-01-01 a 2023-06-01); aplikuje sa cez prechodne ustanovenie § 30b" },
+      { "zacatieKonaniaOd": "2024-01-01", "zacatieKonaniaDo": null, "suma": 100, "_comment": "§ 22 ods. 1 vyhl. 68/2017 Z. z. v zneni ucinnom od 1. 1. 2024" }
+    ],
+    "vypocet": "nahrada = podiel x pausalneVydavky.podlaObdobia[obdobie zacatia konania].suma; podiel = 1,0 standardne, 0,5 pri splneni naroku do uplynutia lehoty na podanie navrhu na zastavenie exekucie s odkladnym ucinkom (alebo ak do uplynutia tejto lehoty nastane iny dovod na ukoncenie exekucie)",
+    "_comment": "Pole 'suma' (100) je AKTUALNA hodnota a zostava len pre spatnu kompatibilitu so schemou draftu. Vypocet MUSI pouzit 'podlaObdobia' - inak by konanie zacate pred 1. 1. 2024 so splnenim v lehote dalo 50 EUR namiesto spravnych 30 EUR (0,5 x 60).",
+    "zaklad": "§ 22 ods. 1 vyhl. 68/2017 Z. z.: 'Exekutorovi patri nahrada pausalnych vydavkov vo vyske 100 eur.'; § 22 ods. 2 (v rozsahu 50 % pri splneni do uplynutia lehoty na podanie navrhu na zastavenie exekucie s odkladnym ucinkom alebo ak do uplynutia tejto lehoty nastane iny dovod na ukoncenie exekucie)",
+    "zahrnuje": [
+      "naklady na vedenie spisu",
+      "naklady na cestovne, postovne a za sluzby elektronickych komunikacii",
+      "naklady na setrenie majetkovych pomerov povinneho v informacnych systemoch",
+      "naklady spojene s podavanim sprav exekutora o zistovani majetku povinneho zaslanych elektronickymi prostriedkami",
+      "ine administrativne naklady"
+    ],
+    "zakladZahrnuje": "§ 21 ods. 2 vyhl. 68/2017 Z. z."
+  },
+  "zaokruhlovanie": {
+    "zaklad": "naCeleEuraNahor",
+    "odmena": "naNajblizsich50EurocentovNahor",
+    "pravnyZaklad": "§ 29 vyhl. 68/2017 Z. z.: 'Zaklad na urcenie odmeny podla tejto vyhlasky sa zaokruhluje na cele eura nahor a vypocitana odmena na najblizsich 50 eurocentov nahor.'",
+    "_comment": "Draft toto pravidlo neobsahoval. Znenie § 29 je nezmenene od 1. 4. 2017."
+  },
+  "dph": {
+    "uplatniSa": "ak je exekutor platitelom DPH, zvysuje sa jeho odmena A nahrada vydavkov o DPH",
+    "sadzba": 0.23,
+    "zaklad": "§ 197 ods. 2 zak. 233/1995 Z. z.; § 27 ods. 1 zak. 222/2004 Z. z. (23 % od 1. 1. 2025)"
+  },
+  "ineOdmeny": [
+    { "id": "zaloznePravo", "suma": 30, "nazov": "za zriadene exekucne zalozne pravo na nehnutelnosti, ktorej vytazok tvori rozdelovanu podstatu (len raz)", "zaklad": "§ 8 vyhl. 68/2017 Z. z." },
+    { "id": "spisanieNavrhu", "suma": 30, "sumaVyzivneAleboOslobodeny": 16.50, "nazov": "za spisanie navrhu na vykonanie exekucie do zapisnice a zaslanie sudu elektronicky", "zaklad": "§ 17 vyhl. 68/2017 Z. z." },
+    { "id": "dorucovanie", "suma": 10, "nazov": "za kazdu sudnu pisomnost, ktoru sa adresatovi podarilo dorucit", "zaklad": "§ 19 vyhl. 68/2017 Z. z." },
+    { "id": "vypratanie", "suma": 200, "dodatok": "+ 10 % nevyhnutnych vydavkov; najviac 5 000 eur", "nazov": "za vykonanie exekucie vyprataním a vykazanim, za kazdu vypratanú nehnutelnost", "zaklad": "§ 10 vyhl. 68/2017 Z. z." },
+    { "id": "odobratieVeci", "suma": 50, "dodatok": "+ 10 % nevyhnutnych vydavkov; pausal najviac 2 000 eur za veci neevidovane v osobitnom registri, celkovo najviac 5 000 eur", "nazov": "za vykonanie exekucie odobratim veci, za kazdu odobratú vec na zaklade jedneho exekucneho titulu", "zaklad": "§ 11 vyhl. 68/2017 Z. z." },
+    { "id": "donucovacieOpatrenie", "suma": 50, "dodatok": "100 eur podla § 43a ods. 1 pism. c) zakona; opakovane ulozenie rovnakeho opatrenia 50 % z odmeny", "nazov": "za ulozenie donucovacieho opatrenia", "zaklad": "§ 20a vyhl. 68/2017 Z. z." }
+  ],
+  "konverzia": {
+    "zaSkenovanuStranu": 0.10,
+    "zaDokument": 0.50,
+    "zaklad": "§ 25 vyhl. 68/2017 Z. z."
+  },
+  "historia": {
+    "pausalneVydavky": "KANONICKY ZDROJ je pausalneVydavky.podlaObdobia - tu nie je duplikovany, aby nemohli vzniknut dve nekonzistentne tabulky.",
+    "prechodneUstanovenia": [
+      "§ 30: v exekucnych konaniach zacatych do 31. 3. 2017 patri exekutorovi odmena a nahrady podla predpisov ucinnych do 31. 3. 2017 (vyhl. 288/1995 Z. z.)",
+      "§ 30a: v exekucnom konani, ktore sa zacalo a pravoplatne neskoncilo do 31. 3. 2017, okrem konani ukoncenych podla zak. 233/2019 Z. z., patri odmena a nahrada vydavkov podla predpisov ucinnych do 31. 3. 2017",
+      "§ 30b: v exekucnom konani zacatom od 1. 4. 2017 do 31. 12. 2023, ktore sa pravoplatne neskoncilo do 31. 12. 2023, patri odmena a nahrada vydavkov podla predpisov ucinnych do 31. 12. 2023"
+    ]
+  },
+  "neoverene": [
+    "Odmeny a nahrady podla zrusenej vyhl. 288/1995 Z. z. (exekucne konania zacate do 31. 3. 2017) neboli overene - kalkulacka ich nema pokryvat."
+  ]
+}

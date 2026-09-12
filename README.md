@@ -1,14 +1,12 @@
 # LAWOSS Marketplace
 
 LAWOSS Marketplace distributes public-safe plugin wrappers for approved LAWOSS
-MCP projects. The catalog contains 15 reviewed organization editions. CRZ includes a local
-MCP runtime, skill and CLI. The other 14 remain guidance-only pending their
-individual portable-runtime verification.
+MCP projects. All 15 catalog entries include a local MCP runtime, usage skills and CLI. The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
 
 Read the [local runtime acceptance record](docs/local-runtime.md) for the CRZ
 pilot and the remaining rollout.
 
-Maintainers can [prepare a versioned CRZ release](docs/releasing.md); users can
+Maintainers can [prepare any plugin release](docs/RELEASES.md); users can
 [update their installed plugins with one command](docs/updating.md).
 
 ## Install the local catalog
@@ -19,10 +17,7 @@ codex plugin add crz@lawoss --json
 codex plugin list
 ```
 
-The CRZ plugin installs and registers a local stdio MCP with a bundled CLI.
-The other wrappers currently install guidance only. For example, follow the local
-[CRZ wrapper and setup guidance](plugins/crz/README.md) for the separate source
-prerequisite and the local installation procedure.
+Each plugin registers its bundled local stdio MCP and includes CLI access. See the [CRZ installation example](plugins/crz/README.md) and [full rollout and coverage](docs/full-rollout.md). No source-repository access is required for the packaged runtime. Node.js and npm remain prerequisites.
 
 ## Distribution boundary
 
@@ -36,8 +31,7 @@ prerequisite and the local installation procedure.
   or automatic connection to a personal MCP service.
 
 The catalog is a source distribution. It does not host, deploy, or operate the
-listed MCP servers. Repositories remain private: GitHub membership is required
-to clone the catalog and server source. No public hosting service is included.
+listed MCP servers. The marketplace is public. Maintainer source repositories remain private, while reviewed runtime artifacts are included here. No public hosting service is included.
 
 ## Catalog
 

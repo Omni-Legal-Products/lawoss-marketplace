@@ -1,0 +1,5 @@
+{
+  "name": "rpvs",
+  "entrypoint": "dist/server.js",
+  "minimumNode": "22.14.0"
+}

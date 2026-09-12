@@ -15,99 +15,99 @@
     {
       "name": "cz-agents",
       "source": "./plugins/cz-agents",
-      "description": "LAWOSS cz-agents: manual setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "disq",
       "source": "./plugins/disq",
-      "description": "LAWOSS disq: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Diskvalifikácie osôb: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "eurlex-celex",
       "source": "./plugins/eurlex-celex",
-      "description": "LAWOSS eurlex-celex: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
-      "description": "LAWOSS fs-opendata-mcp: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "judikaty",
       "source": "./plugins/judikaty",
-      "description": "LAWOSS judikaty: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Judikáty SR – Justice, NS SR, ÚS SR: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "kalkulacky",
       "source": "./plugins/kalkulacky",
-      "description": "LAWOSS kalkulacky: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Právne kalkulačky SR: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "orsr",
       "source": "./plugins/orsr",
-      "description": "LAWOSS orsr: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Obchodný register SR: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "ov",
       "source": "./plugins/ov",
-      "description": "LAWOSS ov: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Obchodný vestník: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "rpo",
       "source": "./plugins/rpo",
-      "description": "LAWOSS rpo: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Register právnických osôb: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "rpvs",
       "source": "./plugins/rpvs",
-      "description": "LAWOSS rpvs: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Register partnerov verejného sektora: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "ru",
       "source": "./plugins/ru",
-      "description": "LAWOSS ru: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Register úpadcov: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "ruz",
       "source": "./plugins/ruz",
-      "description": "LAWOSS ruz: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Register účtovných závierok: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "slovlex",
       "source": "./plugins/slovlex",
-      "description": "LAWOSS slovlex: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Slov-Lex – právne predpisy SR: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     },
     {
       "name": "uvo",
       "source": "./plugins/uvo",
-      "description": "LAWOSS uvo: usage skills and setup guidance for your own MCP deployment.",
-      "version": "1.0.0",
+      "description": "Verejné obstarávanie – ÚVO: bundled local MCP, usage guidance and CLI.",
+      "version": "1.1.0",
       "category": "Productivity"
     }
   ]

@@ -1,0 +1,119 @@
+{
+  "version": "2026-08-06",
+  "fetchedAt": "2026-08-06",
+  "source": "vyhl. 655/2004 Z. z., znenie ucinne od 1. 1. 2024 (§ 1, § 9, § 10, § 11, § 13a, § 14, § 16, § 17, § 18); overene cez slov-lex MCP 2026-08-06",
+  "_comment": "Pasma § 10 ods. 1 su nezmenene minimalne od znenia ucinneho 1. 7. 2013 (overene porovnanim znenia k 2015-06-01 a k 2026-08-06). Vyhlaska NEOBSAHUJE pravidlo zaokruhlovania - zaokruhluje sa az finalna suma na centy, half-up (konvencia projektu).",
+  "pasma": [
+    {
+      "nad": 0,
+      "do": 165.97,
+      "zaklad": 16.60,
+      "krok": null,
+      "_comment": "'do 165,97 eura ... 16,60 eura' - § 10 ods. 1 vyhl. 655/2004 Z. z."
+    },
+    {
+      "nad": 165.97,
+      "do": 663.88,
+      "zaklad": 16.60,
+      "krok": { "za": 33.19, "suma": 1.66, "prevysujucichSumu": 165.97 },
+      "_comment": "'nad 165,97 eura do 663,88 eura ... 16,60 eura + 1,66 eura za kazdych aj zacatych 33,19 eura prevysujucich sumu 165,97 eura' - § 10 ods. 1"
+    },
+    {
+      "nad": 663.88,
+      "do": 6638.78,
+      "zaklad": 41.49,
+      "krok": { "za": 331.94, "suma": 9.96, "prevysujucichSumu": 663.88 },
+      "_comment": "'nad 663,88 eura do 6 638,78 eura ... 41,49 eura + 9,96 eura za kazdych aj zacatych 331,94 eura prevysujucich sumu 663,88 eura' - § 10 ods. 1"
+    },
+    {
+      "nad": 6638.78,
+      "do": 33193.92,
+      "zaklad": 220.74,
+      "krok": { "za": 1659.70, "suma": 16.60, "prevysujucichSumu": 6638.78 },
+      "_comment": "'nad 6 638,78 eura do 33 193,92 eura ... 220,74 eura + 16,60 eura za kazdych aj zacatych 1 659,70 eura prevysujucich sumu 6 638,78 eura' - § 10 ods. 1"
+    },
+    {
+      "nad": 33193.92,
+      "do": null,
+      "zaklad": 486.29,
+      "krok": { "za": 3319.39, "suma": 6.64, "prevysujucichSumu": 33193.92 },
+      "_comment": "'nad 33 193,92 eura ... 486,29 eura + 6,64 eura za kazdych aj zacatych 3 319,39 eura prevysujucich sumu 33 193,92 eura' - § 10 ods. 1. Horna hranica nie je - odmena nie je zhora limitovana."
+    }
+  ],
+  "nevycislitelnaPodiel": "1/13",
+  "nevycislitelna": {
+    "podiel": "1/13",
+    "zaklad": "§ 11 ods. 1 vyhl. 655/2004 Z. z.",
+    "pripady": [
+      "§ 11 ods. 1 pism. a) - nie je mozne vyjadrit hodnotu veci alebo prava v peniazoch",
+      "§ 11 ods. 1 pism. b) - klientom je spotrebitel a ide o zastupovanie v spore zo spotrebitelskej zmluvy (neplati, ak bol klient co i len ciastocne uspesny - § 11 ods. 2)",
+      "§ 11 ods. 1 pism. c) - klientom je fyzicka osoba a predmet konania sa tyka nehnutelnosti urcenej na byvanie (neplati pri vyporiadani BSM alebo zruseni a vyporiadani podieloveho spoluvlastnictva)"
+    ]
+  },
+  "inePodiely": [
+    { "podiel": "1/4", "pripad": "zastupovanie pred Ustavnym sudom SR, ak predmet sporu nie je mozne ocenit peniazmi", "zaklad": "§ 11 ods. 3" },
+    { "podiel": "1/6", "pripad": "zastupovanie v konaniach podla Spravneho sudneho poriadku", "zaklad": "§ 11 ods. 4 prva veta" },
+    { "podiel": "1/13", "pripad": "davkove veci socialneho poistenia a veci socialnych sluzieb", "zaklad": "§ 11 ods. 4 druha veta" }
+  ],
+  "rezijnyPausalPodiel": "1/100",
+  "rezijnyPausal": {
+    "podiel": "1/100",
+    "zaZaklad": "vypoctovyZaklad roku, v ktorom bol ukon vykonany",
+    "zaKazdy": "ukonPravnejSluzby",
+    "zaklad": "§ 16 ods. 3 vyhl. 655/2004 Z. z.",
+    "_comment": "'Od klienta mozno pozadovat na nahradu vydavkov na miestne telekomunikacne vydavky a miestne prepravne sumu vo vyske jednej stotiny vypoctoveho zakladu za kazdy ukon pravnej sluzby.' Znenie § 16 ods. 3 je nezmenene minimalne od 1. 7. 2013 (overene). Nezavisi od poctu ukonov v ramci roka - kazdy ukon sa nasobi pausalom platnym pre rok ukonu."
+  },
+  "nahradaZaStratuCasu": {
+    "podiel": "1/60",
+    "zaKazdu": "aj zacatu polhodinu cesty do miesta, ktore nie je sidlom advokata, a spat",
+    "zaklad": "§ 17 ods. 1 vyhl. 655/2004 Z. z."
+  },
+  "plneUkony": {
+    "zaklad": "§ 13a ods. 1 vyhl. 655/2004 Z. z. (obcianske konanie a ine ukony pravnej sluzby)",
+    "polozky": [
+      "a) prevzatie a priprava zastupenia vratane prvej porady s klientom",
+      "b) dalsia porada alebo rokovanie s klientom za kazdu skoncenu hodinu",
+      "c) pisomne podanie na sud alebo iny organ alebo protistrane tykajuce sa veci samej",
+      "d) predzalobna vyzva ako sucast naroku na nahradu trov konania",
+      "e) ucast na konani pred sudom vratane nahliadnutia do sudneho spisu na sude, alebo inym organom a na konani o zmieri, za kazde zacate dve hodiny; ak ukon alebo na seba navazujuce ukony trvaju viac ako styri hodiny, patri odmena za kazde dve skoncene hodiny",
+      "f) vypracovanie pravneho rozboru veci",
+      "g) rokovanie s protistranou, za kazdu skoncenu hodinu",
+      "h) navrh na predbezne opatrenie, ak k nemu dojde pred zacatim konania, odvolanie proti takemuto rozhodnutiu o predbeznom opatreni, navrh na obnovu konania, odvolanie, dovolanie, navrh na podanie mimoriadneho dovolania",
+      "i) vypracovanie listiny o pravnom ukone alebo jej podstatne prepracovanie"
+    ]
+  },
+  "polovicneUkony": {
+    "podiel": "1/2",
+    "zaklad": "§ 13a ods. 2 a ods. 4 prva veta vyhl. 655/2004 Z. z.",
+    "_comment": "OPRAVA DRAFTU: draft odkazoval na '§ 14 ods. 2'. § 14 vyhlasky sa vztahuje na TRESTNE konanie a konanie o priestupkoch; pre obcianske konanie plati § 13a. Navyse § 14 ods. 2 urcuje 2/3, nie 1/2.",
+    "polozky": [
+      "a) navrh na predbezne opatrenie, ak k nemu dojde po zacati konania, navrh na zabezpecenie dokazu alebo dedicstva",
+      "b) odvolanie alebo staznost proti rozhodnutiu, ak nejde o rozhodnutie vo veci samej, a vyjadrenie k takemu odvolaniu",
+      "c) ak ide o vykon rozhodnutia alebo exekuciu: prevzatie a priprava zastupenia, navrh na zacatie konania, vyjadrenie k takemu navrhu, zastupovanie na pojednavani, odvolanie proti rozhodnutiu a vyjadrenie k takemu odvolaniu",
+      "d) dalsia porada alebo rokovanie s klientom, kratsia ako jedna hodina",
+      "e) dalsia porada alebo rokovanie s protistranou, kratsia ako jedna hodina",
+      "f) navrh na opravu odovodnenia rozhodnutia, na odstranenie nasledkov zmeskania lehoty a na zmenu rozhodnutia o plneni v splatkach",
+      "§ 13a ods. 4 prva veta: zastupenie na pojednavani, pri ktorom doslo iba k vyhlaseniu rozhodnutia"
+    ]
+  },
+  "stvrtinoveUkony": {
+    "podiel": "1/4",
+    "zaklad": "§ 13a ods. 4 druha veta vyhl. 655/2004 Z. z.",
+    "polozky": [
+      "zastupenie na pojednavani, ktore bolo odrocene bez prejednania veci"
+    ]
+  },
+  "tarifnaHodnotaOsobitne": [
+    { "pripad": "zrusenie a vyporiadanie podieloveho spoluvlastnictva", "hodnota": "cena pozadovaneho podielu", "zaklad": "§ 10 ods. 5" },
+    { "pripad": "vyporiadanie BSM", "hodnota": "polovica hodnoty vsetkych veci, pohladavok a zavazkov, ktore su predmetom vyporiadania", "zaklad": "§ 10 ods. 6" },
+    { "pripad": "ochrana osobnosti / nemajetkova ujma / masmedia", "hodnota": "3000 eur ak sa nezada nahrada nemajetkovej ujmy v peniazoch, 5000 eur ak sa zada", "zaklad": "§ 10 ods. 8" },
+    { "pripad": "ochrana osobnych udajov, nekala sutaz, obchodne tajomstvo, dusevne vlastnictvo", "hodnota": "5000 eur", "zaklad": "§ 10 ods. 9" },
+    { "pripad": "opakujuce sa plnenie", "hodnota": "sucet hodnot plneni; pri plneni na cas dlhsi ako 5 rokov alebo na neurcity cas 5-nasobok rocneho plnenia", "zaklad": "§ 10 ods. 3" }
+  ],
+  "dph": 0.23,
+  "dphHistoria": [
+    { "from": "2011-01-01", "to": "2024-12-31", "sadzba": 0.20, "_comment": "§ 27 ods. 1 zak. 222/2004 Z. z. - zakladna sadzba 20 %" },
+    { "from": "2025-01-01", "to": null, "sadzba": 0.23, "_comment": "§ 27 ods. 1 zak. 222/2004 Z. z. v zneni ucinnom od 1. 1. 2025 - zakladna sadzba 23 %; overene porovnanim znenia k 2024-12-31 (20 %) a k 2026-08-06 (23 %)" }
+  ],
+  "dphZaklad": "§ 18 ods. 3 vyhl. 655/2004 Z. z.: 'Ak je advokat platitelom dane z pridanej hodnoty, zvysuje sa odmena a nahrady podla tejto vyhlasky o dan z pridanej hodnoty.' DPH sa teda pocita z odmeny AJ z nahrad (vratane rezijneho pausalu)."
+}

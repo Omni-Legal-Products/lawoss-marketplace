@@ -1,0 +1,36 @@
+{
+  "name": "kalkulacky-sk-mcp",
+  "license": "MIT",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "dev": "tsx src/server.ts",
+    "dev:http": "tsx src/server-http.ts",
+    "start:http": "node dist/src/server-http.js",
+    "refresh:rates": "tsx scripts/refresh-rates.ts",
+    "refresh:rates:prod": "node dist/scripts/refresh-rates.js",
+    "smoke:http": "tsx scripts/smoke-http.ts",
+    "smoke:http:prod": "node dist/scripts/smoke-http.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.x",
+    "zod": "^3.x"
+  },
+  "devDependencies": {
+    "typescript": "^5.x",
+    "tsx": "^4.x",
+    "vitest": "^3.x",
+    "@types/node": "^22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omni-Legal-Products/mcp-kalkulacky-sk.git"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-kalkulacky-sk#readme"
+}

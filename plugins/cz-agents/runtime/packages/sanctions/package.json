@@ -1,0 +1,61 @@
+{
+  "name": "@czagents/sanctions",
+  "version": "0.1.4",
+  "description": "MCP server for sanctions screening (EU consolidated list, OFAC SDN, UN, OFSI) — KYC/AML for fintech, banks, payment institutions",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "cz-agents-sanctions": "./dist/index.js",
+    "cz-agents-sanctions-refresh": "./dist/cli-refresh.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sanctions",
+    "kyc",
+    "aml",
+    "ofac",
+    "eu-sanctions",
+    "compliance",
+    "claude"
+  ],
+  "license": "MIT",
+  "author": "Martin Havel <martin.havel@gmail.com>",
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-cz-agents#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/martinhavel/cz-agents-mcp.git",
+    "directory": "packages/sanctions"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "start:http": "node dist/http.js",
+    "refresh": "node dist/cli-refresh.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@czagents/shared": "^0.1.8",
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "better-sqlite3": "^11.5.0",
+    "fast-xml-parser": "^5.7.2",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "tsx": "^4.7.0",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.4"
+  },
+  "mcpName": "dev.cz-agents/sanctions",
+  "private": true
+}

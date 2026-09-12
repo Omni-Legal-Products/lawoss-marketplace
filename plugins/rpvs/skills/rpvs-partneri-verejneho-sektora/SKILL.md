@@ -45,3 +45,7 @@ Lokálny stdio režim stále používa verejnú sieť k RPVS; nie je offline.
 Vzdialený režim je určený na súkromné self-hostovanie cez TLS a OAuth/PKCE.
 Autorizáciu dokonči manuálne v klientovi a nikdy nevkladaj heslá ani tokeny do
 promptu, dokumentácie alebo repozitára.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

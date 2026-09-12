@@ -1,0 +1,31 @@
+{
+  "repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
+  "commit": "ab057d70eb788ea2e4e0e6dadbe8e553a0ef579e",
+  "configSha256": "c3041d552bb629fa79f186c1cefba2865f7d0e2eb4fcc5a7f48c2556f3e39dc3",
+  "files": {
+    "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
+    "data/ecb-main-rate.json": "96c3aba3dbbc22c3aedd9007673aac17837ec3761dbbe940ea37f16fcd4de26e",
+    "data/exekucia.json": "0053bad14da1c085a090174393635eada437893f22151f414f387d174dfafd33",
+    "data/rezimy-urokov.json": "a30cc85c562ac5e3e5c260488e5b180aa5773ef79ed39441cd425c4d009c61fc",
+    "data/sudne-poplatky.json": "bb7a7e6b53c08f6a303c755b7fb749ff5cff660e3b38733b20f8e54ad30f6e6d",
+    "data/trovy.json": "73bd84bbe5945751ced2dd24d48e27cccc536f40e67bc950a1a45afe15edd57e",
+    "data/vypoctovy-zaklad.json": "dd4e56b887984b39f592868a5e81066191736b1f5e64fd52011f4244e4c6cd14",
+    "dist/src/data/loader.js": "7ed236e67037dc14098c7fa5e6ad08c8d3171eccbd5004d1c3bcd0d826a92f27",
+    "dist/src/data/schemas.js": "a17e1f27a8d6214935c020affb87962acd4a91967d98730edd281ff32f5aaa49",
+    "dist/src/data/tables-cache.js": "bc334a5ac75e2a33637f0cd8ce60150039e519d0257349ae5d73ebe60781a904",
+    "dist/src/domain/dates.js": "c38a5529e245a65b112b31e74ff7316a8b41bd48175c95e6ff772d7da1446cfc",
+    "dist/src/domain/errors.js": "879e15e10ced36c4ba791333a0e5f077ad92df25439f9f292affc987dbaf84d4",
+    "dist/src/domain/exekucia.js": "9e65551add7ea8cbb34caac89d0bad84c091c440bd5fb901f481bc24f961b559",
+    "dist/src/domain/money.js": "290a6edfab3f66fc3d8cf7c8987d1d0a45c432220ad45aa835b4b0213b18f98a",
+    "dist/src/domain/poplatky.js": "f3f3784ea7a447b21cfd3d05d3b6ddb4b15229f21db375a8ed35f464ddc84e90",
+    "dist/src/domain/trovy.js": "60f7a75afd81697dd7186c2f85f11c0a69446a7bd00f8d4fd098743ed6b042f3",
+    "dist/src/domain/types.js": "129e5794d175050c29ee4f4dbda79b34f04a45b6b228181689e9a90d8a367f72",
+    "dist/src/domain/urok.js": "463e37ae36b20b4759d7b638325fd85422d74bc8b961526ab8f4a3fb5b797cff",
+    "dist/src/logging.js": "894d1cece4166848e191cfbf00bb785fc5b7a4a3b6320ef6932987735d60b73f",
+    "dist/src/server.js": "821cf972f6360a4b4afcf689f21cb4f5bc2a9ec20901dd75b3dfaf82d41babcb",
+    "dist/src/tools/register.js": "4769ddb3520f258a4de83f94e4ee203b31435a79120296c62e0d7fbac88037c3",
+    "dist/src/tools/scalars.js": "755f591b1fe182cd19bf1c0fbcf9cc7d19e5a0383b7189a94d68bb9c33e2dba9",
+    "package-lock.json": "ed32338aed97abf26bcb69d82cc0448660e051b76c95a2a05883467da04b6d30",
+    "package.json": "2bc9bd3abaff7126ec9eab8833cdf02c503e59cc17438aacc4a0a194cd258204"
+  }
+}

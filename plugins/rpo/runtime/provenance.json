@@ -1,0 +1,17 @@
+{
+  "repository": "Omni-Legal-Products/mcp-rpo",
+  "commit": "c33e1e46ffa2091dd4e1e4d451d068cdfbb65ba3",
+  "configSha256": "136a442920a0a4b827ae56bb2bb8a3c8a595df38073fcd198c0cfe9bea47a151",
+  "files": {
+    "LICENSE": "e817eae564f66f52a13c3cf26d530f096b92c58c250459c6d0737c932064f6c0",
+    "dist/mcp-server.js": "d716d1fb149acfc4b30c8751ac362958c2a386ec16db7f90f624838b8b4cde8b",
+    "dist/ranking.js": "3cc64f272894eed7d8555a840decd6a768a79d4143c0deaebacab626a1b1fe1a",
+    "dist/redaction.js": "9363a3dafdaf2d9a040a76a273cd949f72c912980e7706b9cba85aa05df99fa4",
+    "dist/rpo-client.js": "7b1b870b425dcc2c5f2cb2af2287cd796c236009d9067c4e426e1e907905722c",
+    "dist/scalars.js": "1e28a01ed1bc7427204641e4d8ae2c6f67a2c5c01a1ca9de63cc4d653ff07f7d",
+    "dist/server.js": "2a924e0843a4a23ee1652705592868931d441f83c9d9708b6f4c6955b5fece37",
+    "dist/types.js": "0a8038e83214125eb730fc67c37fce995cc4f03507b29e29c0b996e283cf8b75",
+    "package-lock.json": "560eee34011d6f7a73cab44788f4f89826612ccae1c68a3591daec4cadbb899d",
+    "package.json": "668c78ae41a56b88e6ba7691c5b5aed4dd4473280cc5f5f4e2eb147440dc0b9b"
+  }
+}

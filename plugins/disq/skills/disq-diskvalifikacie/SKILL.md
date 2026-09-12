@@ -20,3 +20,7 @@ Zhoda mena nie je identifikácia osoby. Menovcov odlíš nezávislými autoritat
 Úspešné výsledky obsahujú len dokumentované verejné polia: meno, súd, adresa, dátumy, spisové údaje a GUID potrebný pre dvojkrokový tok. Chyby majú stabilné kódy `DISQ_INPUT`, `DISQ_HTTP`, `DISQ_TIMEOUT`, `DISQ_CONTENT_TYPE` alebo `DISQ_SCHEMA`.
 
 Výstup vždy formuluj opatrne: ide o technický výpis z verejného zdroja, nie je právnym poradenstvom. Pri právnom alebo obchodnom úkone over originálny záznam a identitu osoby.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

@@ -1,7 +1,7 @@
 {
   "name": "rpvs",
-  "version": "1.0.0",
-  "description": "LAWOSS rpvs: usage skills and setup guidance for your own MCP deployment.",
+  "version": "1.1.0",
+  "description": "Register partnerov verejného sektora: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
   },

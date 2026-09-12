@@ -1,0 +1,40 @@
+{
+  "name": "register-diskvalifikacii-mcp",
+  "license": "MIT",
+  "version": "0.1.0",
+  "description": "Read-only MCP server for the DISQ register (Register diskvalifikácií / disqualified directors, Ministerstvo spravodlivosti SR)",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "start:http": "tsx src/server-http.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start:prod": "node dist/server-http.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:docs": "vitest run tests/documentation-contract.test.ts tests/diagram-contract.test.ts"
+  },
+  "keywords": [
+    "mcp",
+    "disq",
+    "diskvalifikacia",
+    "justice.sk",
+    "slovakia",
+    "due-diligence"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omni-Legal-Products/mcp-diskvalifikacie.git"
+  },
+  "homepage": "https://github.com/Omni-Legal-Products/mcp-diskvalifikacie#readme"
+}

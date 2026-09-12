@@ -1,0 +1,17 @@
+{
+  "repository": "Omni-Legal-Products/mcp-obchodny-vestnik",
+  "commit": "df8d000216e2aa033b7b8c5fdc4beeb7f68de792",
+  "configSha256": "f0b162848d4ff03c3328450742633faf9de092b18ea9182bb820d45b89523313",
+  "files": {
+    "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
+    "dist/mcp-server.js": "eb031eedaceaa6145733c13378919fe60a6fc1d6bee88d1eaf7c4b5dc4f25025",
+    "dist/ov-client.js": "05743338049adbf5b84c267283e7dbcfa22c16da5f89682ec8604d2bbdc343b4",
+    "dist/rate-limiter.js": "e94724a48316e8a56cfde001007c34f3d4554f4e3ccef7f2fb4fc52e18bba9ff",
+    "dist/redaction.js": "69d300560fcf089902f4818399ff84701389f2ac1ca994e6335e9703e73fa19e",
+    "dist/scalars.js": "2ce213e7ff94163ebbfd9fc1c6ce54369e3f6ab6d6bd2c8508232a3054564d70",
+    "dist/server.js": "f3440670861601bcbc05c5612f89f32919b09108341c61671f74ed3f2516efd5",
+    "dist/types.js": "75b9b62194a3bc623a6af2309167c8c856b4c4ea014128c4a360a7d316690c94",
+    "package-lock.json": "25358296766c974163ce9143371bcab1e9b88ea8de2a4b89b566cc460e12db69",
+    "package.json": "e6cc4de7265c11f9330f189fddd18a7bc3fe0f1ce719e36512e96725a9523895"
+  }
+}

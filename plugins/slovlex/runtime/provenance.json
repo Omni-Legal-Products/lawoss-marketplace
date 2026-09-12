@@ -1,0 +1,17 @@
+{
+  "repository": "Omni-Legal-Products/mcp-slovlex",
+  "commit": "3d0915feb5ce14f2459bcdfc85837d183f07fb6a",
+  "configSha256": "b2385be231650638b77ea26a89af5153496a49af226a58696fa2c05e02eeaf98",
+  "files": {
+    "LICENSE": "ca4e64136d3f6124512c3148ceabd2de6618a855d26776e8bebcec10bc9922ad",
+    "dist/document-text.js": "1abd4e2c15490375bb2938ea7db77d8538f4c05138d9dbe43ceb3d1f28a338be",
+    "dist/export-files.js": "ae73fb8c30c3a86e6aa90b1af02aa7c68240fc4b0a16bda4d9e87a5bab564482",
+    "dist/http.js": "54c3897d90a36682c01b3899d69252d18ba53165f4da84290decf0429d63d762",
+    "dist/index.js": "46e3133a72c91a5847ae3fc2906a49755fa1583199277f963cd071c3d3b2e004",
+    "dist/portal.js": "0220f966dd8a4c975996909e17226e3f1f6dd41e0b91c59e849f8d65826e23c1",
+    "dist/server.js": "c63fa533faf1dc22682b9d6fdead92908cdb08a2682706b2c91fd6fd1b5bb610",
+    "dist/slovlex.js": "2917b245ccb8ee3e4717885b79eb9cdcad3de2be99f94497c072bbae5f2f54dc",
+    "package-lock.json": "1494571185d5754b4b072fabd74a61c39ca1bb94977c889fd6afc7adff5697c9",
+    "package.json": "492ed4ebe44e56d9f4c2675eaf08588124f18cecf270a2d17a438d47e60eff47"
+  }
+}

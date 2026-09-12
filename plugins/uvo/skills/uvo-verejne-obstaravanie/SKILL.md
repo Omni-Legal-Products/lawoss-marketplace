@@ -38,3 +38,7 @@ Zdrojom je meniace sa HTML. Odpoveď je 512 KiB, pole 8 KiB, upstream concurrenc
 Pri chybe uveď tool, typovaný kód, čas a redigovaný popis; neprikladaj raw URL s query, body, hlavičky, cookie, IP, cesty ani výnimku. Pozri SUPPORT.md a SECURITY.md.
 
 **English summary.** Report only redacted technical context and use the repository support/security process.
+
+## Inštalácia v LAWOSS
+
+Pribalený lokálny runtime a CLI vyžadujú Node.js 22.14+ a npm. Prvý štart nainštaluje uzamknuté závislosti; ďalšie štarty použijú vyrovnávaciu pamäť. Podrobnosti a obmedzenia sú v README pluginu.

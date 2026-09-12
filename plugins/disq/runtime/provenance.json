@@ -1,0 +1,17 @@
+{
+  "repository": "Omni-Legal-Products/mcp-diskvalifikacie",
+  "commit": "3f941db176277ed2ae178ea8d43d6dda28679f64",
+  "configSha256": "6701216ab63497e53f0e480445ecefa7c46cdb4f05e96c3e4067571ab7e63450",
+  "files": {
+    "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
+    "dist/disq-client.js": "6c644d3d335ce90137339b10905331344faa858af765b264cd349e653ecb8edb",
+    "dist/mcp-server.js": "55fc6844dcb887a8e767f1038e728539eb03b7cd4639755f4271da6ac02909db",
+    "dist/rate-limiter.js": "9e0004d235eb786892b8ae3aed00abc7848e36025a2b0715b99c794263923777",
+    "dist/redaction.js": "7affe44ffdd24fdbe3c831b8ade1473a15b7fd4465a1252e08544a14a3a650b8",
+    "dist/scalars.js": "2ce213e7ff94163ebbfd9fc1c6ce54369e3f6ab6d6bd2c8508232a3054564d70",
+    "dist/server.js": "5accfc67b7a13204a88143683b5935e13754174fedb21f8a010768242f1f9013",
+    "dist/types.js": "c282db56ea89df21b6d90f03358c524c871a655882c26237629f4c461e2c14f8",
+    "package-lock.json": "e9be98dacdc09c52499de5d8efef9aff7c951c3743a3a666aced3a073ab59e20",
+    "package.json": "f036ad892565d3f26ff1ff1715402cee43f97242dba8eb55995f60cd6e245f5f"
+  }
+}

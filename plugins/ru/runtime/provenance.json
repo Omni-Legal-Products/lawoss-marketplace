@@ -1,0 +1,15 @@
+{
+  "repository": "Omni-Legal-Products/mcp-register-upadcov",
+  "commit": "d8a3a47a9dc4636478a9b1c5de7979fdaff21e4e",
+  "configSha256": "848c30dcb9b2d3ad190ce6d81d35d14cb05badb03389c3326748c65545e96e6c",
+  "files": {
+    "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
+    "dist/mcp-server.js": "1834548e0448e06f0fdb35ad516192fab8aae48a47c737df233795b2d0efb2c2",
+    "dist/redaction.js": "3ff41b24d60b4f729bf94dea8bbd3be1319c0e330e5a1925f2c7c237fb185ec1",
+    "dist/ru-client.js": "d9743f413df1381b6d9ebb8ae5f2cf6e80b1bceb130f6812b846c5611737db6c",
+    "dist/server.js": "4adb8bfc5cf2e832352a7a42556812a49a3bd5d5a2a428472d2d393932a8c3bd",
+    "dist/types.js": "3f88e71504af8cdece4d05eb19ee7cda96972cacdcc0cc64c0d80fe6f2b14b73",
+    "package-lock.json": "d0b6fb843cc455dce157b1118ac8a38cd85c497c7c2db5a2dd8d96c3f7be6188",
+    "package.json": "2ba9ca8b941e8784c1ecf4034cfdd31f3b7cc8224e583abc4527ca06a56e71ac"
+  }
+}

@@ -1,0 +1,93 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { validateIcoInput, trackIco, logToolCall } from '@czagents/shared';
+import { IsirClient } from './client.js';
+export function buildIsirServer(client = new IsirClient()) {
+    // Bind tools below; intentionally stable across stub/real modes.
+    const server = new McpServer({
+        name: 'cz-agents/isir',
+        version: '0.1.0',
+    }, {
+        capabilities: { tools: {} },
+        instructions: 'Czech insolvency register (ISIR) lookup. Use whenever the user asks about insolvency, ' +
+            'bankruptcy, debt restructuring, or "is this Czech company in trouble?". ' +
+            'Note: v0.1.0 is alpha — direct SOAP integration is in progress; current responses may be empty. ' +
+            'Part of the cz-agents MCP suite — companion servers:\n' +
+            '• https://mcp.example.com — Czech Business Register (IČO lookup, VAT, bank accounts)\n' +
+            '• https://mcp.example.com — full due diligence (ownership, risk score, statutory chain)\n' +
+            '• https://mcp.example.com — EU FSF + OFAC sanctions screening\n' +
+            'Free tier rate-limited; higher limits at https://mcp.example.com',
+    });
+    server.tool('check_ico_insolvency', 'Check whether a Czech company (by IČO) has any active insolvency proceeding in ISIR. Returns spisová značka, start date, and current phase if found. Returns "no record" if not (which is also informative).', {
+        ico: z.string().describe('Czech IČO — 7 or 8 digits.'),
+    }, { title: 'Check IČO Insolvency in ISIR', readOnlyHint: true, openWorldHint: true }, async ({ ico }) => {
+        logToolCall('isir', 'check_ico_insolvency', { ico });
+        const clean = validateIcoInput(ico);
+        trackIco(clean);
+        try {
+            const result = await client.checkActiveInsolvency(clean);
+            if (!result) {
+                return wrap(`IČO ${clean}: žádné aktivní insolvenční řízení v ISIR (k tomuto okamžiku). Pozn.: v0.1.1 alpha — index podle IČO se buduje, real lookup přijde v 0.2.0.`);
+            }
+            return wrap(JSON.stringify(result, null, 2));
+        }
+        catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            return {
+                content: [{ type: 'text', text: `ISIR query failed: ${msg}` }],
+                isError: true,
+            };
+        }
+    });
+    server.tool('search_person_insolvency', 'Search ISIR for an individual person (FO) by name and optional date of birth. Returns active insolvency proceedings (oddlužení / osobní bankrot). Used to screen statutory persons in KYC and DD workflows.', {
+        name: z.string().describe('Full name in any case (Czech diacritics tolerated). E.g. "Pavel Novák" or "Jana Svobodová".'),
+        dob: z.string().optional().describe('Date of birth, YYYY-MM-DD. Optional but strongly recommended — common names produce many false positives without DOB.'),
+        only_active: z.boolean().default(true).describe('When true (default), return only currently active proceedings. False also returns closed/dismissed.'),
+    }, { title: 'Search Person Insolvency in ISIR', readOnlyHint: true, openWorldHint: true }, async ({ name, dob, only_active }) => {
+        try {
+            logToolCall('isir', 'search_person_insolvency', { name, dob, only_active });
+            const matches = await client.searchPersonInsolvency({ name, dob, onlyActive: only_active });
+            if (matches.length === 0) {
+                return wrap(`Žádné insolvenční řízení pro "${name}"${dob ? ` (nar. ${dob})` : ''} v ISIR.`);
+            }
+            return wrap(JSON.stringify({ query: { name, dob, only_active }, matches: matches.length, results: matches }, null, 2));
+        }
+        catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            return { content: [{ type: 'text', text: `ISIR person search failed: ${msg}` }], isError: true };
+        }
+    });
+    server.tool('poll_isir_events', 'Pull a batch of recent ISIR events (insolvency register publications) since the given event id. ISIR is an append-only feed — each call returns up to ~1000 events newer than `since_id`. Use `last_id` from response as next `since_id`. Useful for compliance monitoring or to back-fill an index.', {
+        since_id: z
+            .number()
+            .int()
+            .min(0)
+            .default(0)
+            .describe('Last seen event id. Use 0 to start from the beginning of recorded ISIR history (~2008).'),
+    }, { title: 'Poll ISIR Event Feed', readOnlyHint: true, openWorldHint: true }, async ({ since_id }) => {
+        try {
+            logToolCall('isir', 'poll_isir_events', { since_id });
+            const result = await client.pollEvents(since_id);
+            return wrap(JSON.stringify({
+                since_id,
+                last_id: result.last_id,
+                events_returned: result.events.length,
+                status: result.status,
+                error: result.error_message,
+                first_3: result.events.slice(0, 3),
+            }, null, 2));
+        }
+        catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            return {
+                content: [{ type: 'text', text: `ISIR poll failed: ${msg}` }],
+                isError: true,
+            };
+        }
+    });
+    return server;
+}
+function wrap(text) {
+    return { content: [{ type: 'text', text }] };
+}
+//# sourceMappingURL=server.js.map
