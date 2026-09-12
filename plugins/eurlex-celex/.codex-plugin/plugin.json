@@ -1,6 +1,6 @@
 {
   "name": "eurlex-celex",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
