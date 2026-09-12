@@ -16,7 +16,7 @@
       "name": "cz-agents",
       "source": "./plugins/cz-agents",
       "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "category": "Productivity"
     },
     {
