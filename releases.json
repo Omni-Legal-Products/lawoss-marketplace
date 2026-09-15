@@ -96,7 +96,7 @@
     {
       "name": "slovlex",
       "repository": "Omni-Legal-Products/mcp-slovlex",
-      "commit": "69b16970d38f6232d8b5a3c1c6231ac5c864203b",
+      "commit": "c3b2e7056a5cbfa65297ef3af7e2a3b11eb94f4d",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },

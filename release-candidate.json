@@ -1,8 +1,8 @@
 {
   "plugin": "slovlex",
   "plugin_version": "1.1.1",
-  "catalog_commit": "a012fab7ea6ab49bc65009a2a335d7669941eb03",
+  "catalog_commit": "bf38ee8d3e40ac4cba87ade57de91a60585db7c1",
   "source_repository": "Omni-Legal-Products/mcp-slovlex",
-  "source_commit": "69b16970d38f6232d8b5a3c1c6231ac5c864203b",
-  "runtime_manifest_sha256": "f277ac472fb6475da33a14a1477c34252b8f98306c381b209fcb2286edd868b3"
+  "source_commit": "c3b2e7056a5cbfa65297ef3af7e2a3b11eb94f4d",
+  "runtime_manifest_sha256": "d70463d0e40107c700d00de5f32a2b302164a644a52162781bdb5bd686beb3f6"
 }
