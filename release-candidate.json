@@ -1,8 +1,8 @@
 {
-  "plugin": "crz",
-  "plugin_version": "1.4.2",
-  "catalog_commit": "c889d013156a7f366dce857b0149cf31c958559e",
-  "source_repository": "Omni-Legal-Products/mcp-crz",
-  "source_commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
-  "runtime_manifest_sha256": "13a9293c0f15e6e6f54d2ca46b7961e752d9b696a1bccb1a57d3aa67a416232b"
+  "plugin": "slovlex",
+  "plugin_version": "1.1.1",
+  "catalog_commit": "a012fab7ea6ab49bc65009a2a335d7669941eb03",
+  "source_repository": "Omni-Legal-Products/mcp-slovlex",
+  "source_commit": "69b16970d38f6232d8b5a3c1c6231ac5c864203b",
+  "runtime_manifest_sha256": "f277ac472fb6475da33a14a1477c34252b8f98306c381b209fcb2286edd868b3"
 }

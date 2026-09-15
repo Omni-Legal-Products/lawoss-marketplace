@@ -14,6 +14,10 @@ node scripts/run.mjs call TOOL_NAME '{}'
 
 For Czech services, insert `--server ares` (or cnb, adis, isir, sanctions, dd, realestate, eu-registry) before the command. Each service is registered separately and can be enabled when needed. The CLI is bundled; no global executable is installed.
 
+## Version 1.1.1
+
+Restores article-based amendments such as 63/2024, preserves quoted provisions and pagination, and reports failed empty extraction as an MCP error. Includes compatible dependency security updates.
+
 ## Coverage and setup
 
 Uses public register sources. Report retrieval time, source links, truncation and upstream errors; an error is not an empty result.
@@ -26,4 +30,4 @@ Refresh the marketplace with `codex plugin marketplace upgrade lawoss`, then rei
 
 ## Provenance
 
-Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-slovlex/tree/3d0915feb5ce14f2459bcdfc85837d183f07fb6a), revision `3d0915feb5ce14f2459bcdfc85837d183f07fb6a`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.
+Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-slovlex/tree/69b16970d38f6232d8b5a3c1c6231ac5c864203b), revision `69b16970d38f6232d8b5a3c1c6231ac5c864203b`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.

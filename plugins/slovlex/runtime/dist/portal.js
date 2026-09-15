@@ -315,10 +315,33 @@ export function renderWholeLawText(portalHtml, maxChars) {
         return { text: chunk.text, truncated: false };
     return { text: `${chunk.text}\n\n…(truncated to ${maxChars} chars)…`, truncated: true };
 }
+function renderArticle($, article) {
+    const lines = [];
+    // Walk blocks in source order: amendments interleave quotes, text2 and points.
+    // Read inline markup together so superscripts and punctuation stay attached.
+    function visit(node) {
+        const $node = $(node);
+        if ($node.is("script, style"))
+            return;
+        if ($node.is("table")) {
+            lines.push(renderTable($, $node));
+        }
+        else if ($node.find("div, p, table").length === 0) {
+            const text = norm($node.clone().find("br").replaceWith(" ").end().text());
+            if (text)
+                lines.push(text);
+        }
+        else {
+            $node.contents().each((_, child) => visit(child));
+        }
+    }
+    visit(article);
+    return lines.filter(Boolean).join("\n");
+}
 export function renderWholeLawTextChunk(portalHtml, options) {
     const $ = cheerio.load(portalHtml);
     const parts = [];
-    $("div.paragraf").each((_, el) => {
+    $("div.paragraf, div.clanok").each((_, el) => {
         const $par = $(el);
         // Slov-Lex portal HTML contains two div.paragraf trees: a navigation
         // table-of-contents (inside div.obsah, marked paragrafOznacenie.index_element,
@@ -326,13 +349,18 @@ export function renderWholeLawTextChunk(portalHtml, options) {
         // whole-law output leads with a large empty skeleton before any real text.
         if ($par.closest("div.obsah").length > 0)
             return;
-        if ($par.children("div.paragrafOznacenie").hasClass("index_element"))
+        if ($par.children("div.paragrafOznacenie, div.clanokOznacenie").hasClass("index_element"))
             return;
-        const text = renderParagraf($, $par);
+        // Nested paragraphs/articles are already included in their parent article.
+        if ($par.parents("div.clanok").length > 0)
+            return;
+        const text = $par.hasClass("clanok") ? renderArticle($, el) : renderParagraf($, $par);
         if (text.trim())
             parts.push(text.trim());
     });
     const full = parts.join("\n\n");
+    if (!full)
+        throw new Error("Nepodarilo sa extrahovať text predpisu z HTML Slov-Lex. Prázdny výsledok nie je úplné znenie; overte zdrojový dokument.");
     const maxChars = options.maxChars;
     const offsetChars = Math.max(0, Math.min(options.offsetChars ?? 0, full.length));
     const text = full.slice(offsetChars, offsetChars + maxChars);
