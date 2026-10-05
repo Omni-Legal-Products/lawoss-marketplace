@@ -62,9 +62,10 @@ async function sparqlQuery(query) {
 function sparqlValue(binding, key) {
     return binding[key]?.value;
 }
+const parseSparqlBoolean = (value) => value === "true" || value === "1" ? true : value === "false" || value === "0" ? false : undefined;
 // ─── Metadata ────────────────────────────────────────────────────────────────
 export async function getMetadata(celex) {
-    const key = `metadata:${celex}`;
+    const key = `metadata:v2:${celex}`;
     const cached = cacheGet(key);
     if (cached)
         return cached;
@@ -115,7 +116,7 @@ LIMIT 5
         dateDocument: sparqlValue(b, "dateDoc"),
         datePublication: sparqlValue(b, "datePub"),
         ojReference: sparqlValue(b, "oj"),
-        inForce: inForceStr === "true",
+        inForce: parseSparqlBoolean(inForceStr),
         eli: sparqlValue(b, "eli"),
     };
     cacheSet(key, metadata, TTL_METADATA);
@@ -315,7 +316,7 @@ LIMIT 1
     return eli;
 }
 export async function checkCitationAtDate(celex, checkDate) {
-    const key = `citation:${celex}:${checkDate}`;
+    const key = `citation:v2:${celex}:${checkDate}`;
     const cached = cacheGet(key);
     if (cached)
         return cached;
@@ -351,7 +352,7 @@ LIMIT 1
     const dateDoc = sparqlValue(b, "dateDoc");
     const dateEntry = sparqlValue(b, "dateEntry");
     const dateEnd = sparqlValue(b, "dateEnd");
-    const inForce = sparqlValue(b, "inForce");
+    const inForce = parseSparqlBoolean(sparqlValue(b, "inForce"));
     const checkDateObj = new Date(checkDate);
     const dateEntryObj = dateEntry ? new Date(dateEntry) : null;
     const dateEndObj = dateEnd ? new Date(dateEnd) : null;
@@ -374,7 +375,7 @@ LIMIT 1
     else if (isFutureCheck) {
         note = `Validity on ${checkDate} is unknown because current EUR-Lex status cannot establish a future legal state`;
     }
-    else if (hasDateEntry && (hasDateEnd || inForce === "true")) {
+    else if (hasDateEntry && (hasDateEnd || inForce === true)) {
         wasValid = true;
         validityStatus = "in_force";
         note = `Document was in force on ${checkDate} based on the EUR-Lex entry-into-force date ${dateEntry}${hasDateEnd ? ` and end-of-validity date ${dateEnd}` : " and current in-force status"}`;
@@ -396,7 +397,7 @@ LIMIT 1
         dateDocument: dateDoc,
         dateEntryIntoForce: dateEntry,
         dateEndValidity: dateEnd,
-        currentStatus: inForce === "true" ? "in_force" : inForce === "false" ? "not_in_force" : "unknown",
+        currentStatus: inForce === true ? "in_force" : inForce === false ? "not_in_force" : "unknown",
         note,
     };
     cacheSet(key, result, TTL_METADATA);
