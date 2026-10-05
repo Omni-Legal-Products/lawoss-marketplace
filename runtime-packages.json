@@ -1,4 +1,18 @@
 {
+  "crz": {
+    "entrypoint": "dist/index.js",
+    "assets": [],
+    "publicHosts": [
+      "api.mistral.ai",
+      "crz.gov.sk",
+      "feross.org",
+      "github.com",
+      "opencollective.com",
+      "registry.npmjs.org",
+      "www.crz.gov.sk",
+      "www.patreon.com"
+    ]
+  },
   "disq": {
     "entrypoint": "dist/server.js",
     "assets": [],

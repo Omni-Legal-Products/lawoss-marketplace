@@ -2,14 +2,14 @@
 
 ## Scope
 
-CRZ only. Remaining 14 catalog entries still provide guidance; they do not yet install local MCP or CLI. The marketplace is not an all-server local bundle until each entry passes its own gate. No hosted transport is permitted in LAWOSS.
+Historical record of the CRZ pilot from 12 September 2026. All runtime plugins now ship local MCP and CLI (see [full rollout](full-rollout.md)). Since plugin version 1.4.3 CRZ also uses the shared launcher and the generic packager. No hosted transport is permitted in LAWOSS.
 
 ## Build and validation
 
 The packaging script reads the reviewed commit from releases.json and exports it with git archive. An operator supplies a checkout containing that commit:
 
 ```sh
-python3 scripts/package_crz.py --source "$CRZ_REVIEWED_CHECKOUT"
+python3 scripts/package_runtime.py --plugin crz --source "$CRZ_REVIEWED_CHECKOUT"
 python3 -m unittest discover -s tests -v
 python3 scripts/validate.py
 claude plugin validate --strict .

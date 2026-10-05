@@ -1,6 +1,6 @@
 {
   "name": "crz",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
   "author": {
     "name": "LAWOSS"
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "CRZ – Centrálny register zmlúv",
     "shortDescription": "Local MCP + skill + CLI",
-    "longDescription": "Runs locally with Node 22.13+ and npm. Installs locked dependencies on first use. No hosted MCP or shared credentials.",
+    "longDescription": "Runs locally over stdio using the bundled reviewed runtime. Requires Node.js 22.14+ and npm. Installs locked dependencies on first use. No hosted MCP or shared credentials.",
     "developerName": "LAWOSS",
     "category": "Productivity",
     "capabilities": [

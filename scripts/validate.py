@@ -35,7 +35,6 @@ DEPLOYMENT_ID = re.compile(
 MACOS_USER_PATH = re.compile("/" + r"Users/[^/\s]+/")
 WINDOWS_USER_PATH = re.compile(r"[A-Za-z]:\\" + r"Users\\[^\\\s]+\\")
 ALLOWED_PUBLIC_HOSTS = {"mcp.example.com", "www.crz.gov.sk", "fonts.googleapis.com", "github.com", "mcp.example.org"}
-RUNTIME_PUBLIC_HOSTS = {"crz.gov.sk", "api.mistral.ai", "registry.npmjs.org", "opencollective.com", "feross.org", "www.patreon.com"}
 ALLOWED_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 PRIVATE_NETWORKS = tuple(
     ipaddress.ip_network(value)
@@ -122,22 +121,7 @@ def validate_plugin(entry: dict, plugin_root: Path, root: Path) -> dict:
         manifest.get("author", {}).get("name") == "LAWOSS",
         "plugin author must be LAWOSS",
     )
-    if entry['name'] == 'crz':
-        require(manifest.get('mcpServers') == './.mcp.json', 'CRZ must declare its local transport')
-        config = load_json(plugin_root / '.mcp.json', root)
-        require(config == {'mcpServers': {'crz': {'command': 'node', 'args': ['scripts/run.mjs', 'mcp'], 'cwd': '.', 'startup_timeout_sec': 300}}}, 'local CRZ transport must use the portable stdio launcher only')
-        runtime = plugin_root / 'runtime'
-        provenance = load_json(runtime / 'provenance.json', root)
-        record = next(r for r in load_json(root / 'releases.json', root)['releases'] if r['name'] == 'crz')
-        require(provenance.get('commit') == record['commit'] and provenance.get('repository') == record['repository'], 'runtime provenance must match reviewed release')
-        files = provenance.get('files', {})
-        actual = {p.relative_to(runtime).as_posix() for p in runtime.rglob('*') if p.is_file() and p.name != 'provenance.json'}
-        require(set(files) == actual and {'dist/index.js', 'package.json', 'package-lock.json', 'LICENSE'} <= actual, 'runtime manifest must enumerate all shipped files')
-        for name, digest in files.items():
-            path = (runtime / name).resolve()
-            require(path.is_relative_to(runtime.resolve()), 'runtime path escapes plugin')
-            require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'runtime digest mismatch')
-    elif 'mcpServers' in manifest:
+    if 'mcpServers' in manifest:
         specs = load_json(root / 'runtime-packages.json', root)
         name = entry['name']
         require(name in specs, 'unreviewed runtime specification')
@@ -348,7 +332,6 @@ def validate_public_tree(root: Path) -> None:
             hostname = (urlparse(match.group(0)).hostname or "").lower()
             require(
                 hostname in ALLOWED_PUBLIC_HOSTS or hostname in ALLOWED_LOOPBACK_HOSTS
-                or (relative.parts[:3] == ('plugins', 'crz', 'runtime') and hostname in RUNTIME_PUBLIC_HOSTS)
                 or (len(relative.parts) > 3 and relative.parts[0] == 'plugins' and relative.parts[2] == 'runtime' and hostname in load_json(root / 'runtime-packages.json', root).get(relative.parts[1], {}).get('publicHosts', [])),
                 f"unapproved URL hostname found in {relative}",
             )

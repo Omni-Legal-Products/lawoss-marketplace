@@ -4,9 +4,9 @@ Installs a local MCP runtime, a usage skill and command-line access to the same 
 
 ## Installation
 
-Install Node.js 22.13 or newer with npm, add this marketplace and install `crz@lawoss`. On first use, the launcher installs integrity-locked dependencies in the user's cache. Internet access to the npm registry is required once per runtime version; later starts reuse that cache. MCP communication uses stdio and opens no HTTP listener.
+Install Node.js 22.14 or newer with npm, add this marketplace and install `crz@lawoss`. On first use, the launcher installs integrity-locked dependencies in the user's cache. Internet access to the npm registry is required once per runtime version; later starts reuse that cache. MCP communication uses stdio and opens no HTTP listener.
 
-Codex resolves the configured `cwd` relative to the installed plugin root. The local runtime has been tested in Codex on macOS; Claude catalog validation alone does not prove Claude runtime compatibility.
+Codex resolves the configured `cwd` relative to the installed plugin root. Since plugin version 1.4.3 CRZ uses the shared LAWOSS launcher and ships `runtime-config.json` like the other runtime plugins, so clients that resolve the launcher from the plugin root (for example the LAWOSS app) start it independently of their working directory. The local runtime has been tested in Codex on macOS; Claude catalog validation alone does not prove Claude runtime compatibility.
 
 ## CLI
 
@@ -35,4 +35,4 @@ Data comes from the public CRZ website. OCR may use Mistral only when explicitly
 
 ## Provenance
 
-Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-crz/tree/f4cc8bf0c4560f3ee50205dd9f7452b415197ffa), revision `f4cc8bf0c4560f3ee50205dd9f7452b415197ffa`. Build output and lockfile hashes are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved.
+Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-crz/tree/f4cc8bf0c4560f3ee50205dd9f7452b415197ffa), revision `f4cc8bf0c4560f3ee50205dd9f7452b415197ffa`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved.

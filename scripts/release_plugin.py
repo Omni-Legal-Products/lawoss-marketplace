@@ -44,10 +44,6 @@ def load_module(path, name):
     return module
 
 
-def load_crz_release(root):
-    return load_module(root / 'scripts/release_crz.py', 'lawoss_release_crz')
-
-
 def load_packager(root):
     return load_module(root / 'scripts/package_runtime.py', 'lawoss_package_runtime')
 
@@ -62,8 +58,6 @@ def export_tree(root, commit, destination, archive):
 
 
 def release(root, plugin, source, version, output):
-    if plugin == 'crz':
-        return load_crz_release(root).release(root, source, version, output)
     if plugin not in REPOSITORIES:
         raise ValueError('Plugin is not in the LAWOSS release allowlist')
     root, source, output = root.resolve(), source.resolve(), output.absolute()
