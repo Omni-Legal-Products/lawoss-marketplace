@@ -1,6 +1,6 @@
 {
-  "reviewDate": "2026-09-12",
-  "visibility": "private",
+  "reviewDate": "2026-10-05",
+  "visibility": "public",
   "releases": [
     {
       "name": "crz",
@@ -26,7 +26,7 @@
     {
       "name": "eurlex-celex",
       "repository": "Omni-Legal-Products/mcp-eurlex",
-      "commit": "607120840be59afb89d73f8e0d565228f8d89f74",
+      "commit": "1ddcb282cd0c5fe10c3a26febe18b97f3412645a",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
