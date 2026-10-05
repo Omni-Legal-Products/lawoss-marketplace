@@ -1,0 +1,24 @@
+{
+  "name": "google-workspace-gog",
+  "version": "0.1.0",
+  "description": "Google Workspace cez gog: usage skill for Gmail, Calendar, Drive and Docs through the local gog CLI. Read-only by default, drafts only, no MCP.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "interface": {
+    "displayName": "Google Workspace cez gog",
+    "shortDescription": "Skill · local gog CLI · no MCP",
+    "longDescription": "Uses the gog command line tool (gogcli) installed by the user, signed in with the user's own Google Cloud OAuth client. Read-only by default; emails only as drafts; every change is shown with --dry-run and runs only after explicit confirmation. Omni Legal Products ships no OAuth client and no server.",
+    "developerName": "LAWOSS / Omni Legal Products",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "brandColor": "#9A7627",
+    "defaultPrompt": [
+      "Nájdi v Gmaile posledné správy od klienta a zhrň ich; nič neodosielaj."
+    ]
+  },
+  "skills": "./skills/"
+}

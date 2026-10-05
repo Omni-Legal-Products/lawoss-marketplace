@@ -183,6 +183,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "google-workspace-gog",
+      "source": {
+        "source": "local",
+        "path": "./plugins/google-workspace-gog"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }

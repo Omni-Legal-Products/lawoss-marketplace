@@ -45,8 +45,12 @@ class MarketplaceValidationTest(unittest.TestCase):
 
         self.assertEqual(codex["name"], "lawoss")
         self.assertEqual(codex["interface"], {"displayName": "LAWOSS Marketplace"})
-        self.assertEqual(len(codex["plugins"]), 15)
-        self.assertEqual(set(plugin["name"] for plugin in codex["plugins"]), set(record["name"] for record in json.loads((ROOT / "releases.json").read_text())["releases"]))
+        ledger = json.loads((ROOT / "releases.json").read_text())
+        self.assertEqual(len(codex["plugins"]), 16)
+        self.assertEqual(
+            set(plugin["name"] for plugin in codex["plugins"]),
+            set(record["name"] for record in ledger["releases"]) | set(record["name"] for record in ledger["inRepoSkills"]),
+        )
         self.assertEqual(claude["name"], "lawoss")
         self.assertEqual(claude.get("owner"), {"name": "LAWOSS"})
         self.assertEqual(
@@ -63,7 +67,7 @@ class MarketplaceValidationTest(unittest.TestCase):
         )
         self.assertEqual(
             set(claude_plugin),
-            {"name", "source", "description", "version", "category"},
+            {"name", "source", "description", "version", "category", "tags"},
         )
         self.assertEqual(claude_plugin["source"], "./plugins/crz")
 
@@ -204,6 +208,64 @@ class MarketplaceValidationTest(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Claude plugin source must be a relative path string", result.stderr)
+
+    def test_skill_only_wrapper_cannot_ship_mcp_or_runtime(self) -> None:
+        """The Google Workspace skill stays a skill: no MCP transport, runtime or unrecorded plugin."""
+        manifest = json.loads((ROOT / "plugins" / "google-workspace-gog" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["skills"], "./skills/")
+        self.assertNotIn("mcpServers", manifest)
+        self.assertFalse((ROOT / "plugins" / "google-workspace-gog" / ".mcp.json").exists())
+        skill = (ROOT / "plugins" / "google-workspace-gog" / "skills" / "google-workspace" / "SKILL.md").read_text(encoding="utf-8")
+        for flag in ("--readonly", "--gmail-no-send", "--dry-run", "--wrap-untrusted", "--no-input", "gog auth setup"):
+            self.assertIn(flag, skill)
+
+        for mutation, message in (
+            (lambda root: (root / "plugins/google-workspace-gog/.mcp.json").write_text('{"mcpServers": {}}'), "must not declare an MCP transport"),
+            (lambda root: (root / "plugins/google-workspace-gog/runtime").mkdir(), "must not ship a runtime"),
+        ):
+            with tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                mutation(copied_root)
+                result = self._run_validator(copied_root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+
+        with tempfile.TemporaryDirectory() as directory:
+            copied_root = self._copy_repository(directory)
+            ledger_path = copied_root / "releases.json"
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["inRepoSkills"] = []
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
+            result = self._run_validator(copied_root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("catalog must match reviewed release records", result.stderr)
+
+    def test_lawoss_metadata_carries_categories_jurisdictions_and_bundles(self) -> None:
+        """Categories and bundles live in the marketplace, not in the LAWOSS app."""
+        meta = json.loads((ROOT / "lawoss-catalog.json").read_text(encoding="utf-8"))
+        bundles = {bundle["id"]: bundle for bundle in meta["bundles"]}
+        self.assertEqual(bundles["sk-zaklad"]["plugins"], ["slovlex", "orsr", "judikaty", "kalkulacky", "ruz", "rpo"])
+        self.assertEqual(bundles["cz-zaklad"]["plugins"], ["cz-agents", "eurlex-celex"])
+        self.assertTrue(bundles["cz-zaklad"]["provisional"])
+        self.assertEqual(meta["plugins"]["google-workspace-gog"]["category"], "general")
+        claude = json.loads(CLAUDE_CATALOG.read_text(encoding="utf-8"))
+        orsr = next(plugin for plugin in claude["plugins"] if plugin["name"] == "orsr")
+        self.assertEqual(orsr["tags"], ["lawoss-category:sk", "jurisdiction:sk"])
+
+        for mutate, message in (
+            (lambda meta: meta["plugins"].pop("orsr"), "must describe exactly the catalog plugins"),
+            (lambda meta: meta["bundles"][0]["plugins"].append("neexistuje"), "references unknown plugins"),
+            (lambda meta: meta["plugins"]["orsr"]["title"].pop("de"), "needs sk, cs, en and de"),
+        ):
+            with tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                path = copied_root / "lawoss-catalog.json"
+                data = json.loads(path.read_text(encoding="utf-8"))
+                mutate(data)
+                path.write_text(json.dumps(data), encoding="utf-8")
+                result = self._run_validator(copied_root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
 
     def test_denylist_exemption_rejects_changed_runtime_bytes(self):
         import importlib.util

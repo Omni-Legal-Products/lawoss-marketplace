@@ -1,0 +1,10 @@
+{
+  "name": "google-workspace-gog",
+  "version": "0.1.0",
+  "description": "Google Workspace cez gog: usage skill for Gmail, Calendar, Drive and Docs through the local gog CLI. Read-only by default, drafts only, no MCP.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

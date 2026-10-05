@@ -1,7 +1,7 @@
 # LAWOSS Marketplace
 
 LAWOSS Marketplace distributes public-safe plugin wrappers for approved LAWOSS
-MCP projects. All 15 catalog entries include a local MCP runtime, usage skills and CLI. The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
+MCP projects. The 15 organization plugins include a local MCP runtime, usage skills and CLI; Google Workspace cez gog is a skill-only wrapper for the user's own gog CLI, with no MCP. The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
 
 Read the [local runtime acceptance record](docs/local-runtime.md) for the CRZ
 pilot and the remaining rollout.
@@ -36,7 +36,15 @@ listed MCP servers. The marketplace is public. Maintainer source repositories re
 ## Catalog
 
 CRZ · CZ Agents · DISQ · EUR-Lex · Finančná správa · Judikáty · Kalkulačky ·
-ORSR · Obchodný vestník · RPO · RPVS · Register úpadcov · RÚZ · Slov-Lex · ÚVO.
+ORSR · Obchodný vestník · RPO · RPVS · Register úpadcov · RÚZ · Slov-Lex · ÚVO ·
+Google Workspace cez gog.
+
+`lawoss-catalog.json` carries the LAWOSS metadata: categories by jurisdiction
+(Slovakia, Czechia), General, and bundles (`sk-zaklad`, provisional `cz-zaklad`),
+plus localized titles in Slovak, Czech, English and German. `scripts/sync_claude.py`
+projects category and jurisdiction into Claude catalog `tags`; the validator keeps
+both in step. Skill-only wrappers authored here are recorded under
+`inRepoSkills` in `releases.json`.
 
 Each wrapper records its exact organization source commit in its README and in
 `releases.json`. After updating this catalog, update/reinstall the selected plugin
