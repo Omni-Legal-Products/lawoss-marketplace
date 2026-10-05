@@ -1,6 +1,6 @@
 # České registre – ARES, ČNB a ďalšie · LAWOSS
 
-Installs the local MCP runtime, usage guidance and CLI. Requires Node.js 22.14+ with npm; the Czech edition is verified on Node 22. On first use, locked dependencies are installed into a versioned cache. Later starts reuse that cache. The Czech edition also builds the allowlisted SQLite native dependency for the current platform; a C/C++ toolchain may be needed when a prebuilt binding is unavailable.
+Installs the local MCP runtime, usage guidance and CLI. Requires Node.js 22.14+ with npm; the Czech edition is verified on Node 22, 24 and, since plugin version 1.1.2 (better-sqlite3 13.0.3), on Node 26. On first use, locked dependencies are installed into a versioned cache. Later starts reuse that cache. The Czech edition also builds the allowlisted SQLite native dependency for the current platform; a C/C++ toolchain may be needed when a prebuilt binding is unavailable.
 
 ## CLI
 
@@ -26,6 +26,6 @@ Refresh the marketplace with `codex plugin marketplace upgrade lawoss`, then rei
 
 ## Provenance
 
-Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-cz-agents/tree/294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b), revision `294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.
+Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-cz-agents/tree/7d100cb9fcc88dff51151a9b6703b83c25e1c2b0), revision `7d100cb9fcc88dff51151a9b6703b83c25e1c2b0`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.
 
 For a query-only mount of an existing sanctions database, set `SANCTIONS_READ_ONLY=1` alongside `SANCTIONS_DB`. This skips database creation, migration and WAL setup. The refresh job needs its own writable connection.
