@@ -12,7 +12,7 @@
     {
       "name": "cz-agents",
       "repository": "Omni-Legal-Products/mcp-cz-agents",
-      "commit": "294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b",
+      "commit": "7d100cb9fcc88dff51151a9b6703b83c25e1c2b0",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
