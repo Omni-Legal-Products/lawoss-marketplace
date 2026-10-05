@@ -1,10 +1,10 @@
 {
   "repository": "Omni-Legal-Products/mcp-cz-agents",
-  "commit": "294e9f9e8b704bbc7438ca2966b88ca6ac1ea84b",
+  "commit": "7d100cb9fcc88dff51151a9b6703b83c25e1c2b0",
   "configSha256": "52b047cbc0fb13d85b0d7d6e479824d9ed14fc02fd6b749059c3072ada4776e4",
   "files": {
     "LICENSE": "8259f535053d8035495a805b5f280aeac546b361a303a65b00b681eb6348dba5",
-    "package-lock.json": "31b3b4f40327abfb420f455df41a50fac55afec7501c592809ec38c15a1925ed",
+    "package-lock.json": "25347447091506d04b2963e8e081d269f28b24bbc1f8e97a49a20ff306494726",
     "package.json": "e3b1e302f4e027f605d528c5081b89af77e99b6761c9cc5318638d4c727b8f9d",
     "packages/adis/dist/client.js": "1eb2f8932f1fec74f075df0ec4fa0f253217dabc71ce380c1c4e176f5714d3e4",
     "packages/adis/dist/index.js": "18263479cb89058a6f83d61e16ac7eadfefe791c35c5749bbeddf3c6d6a2a7d0",
@@ -38,7 +38,7 @@
     "packages/eu-registry/dist/gleif-cache.js": "65cedef6d9f4c6ef1006d1bfd06a9100bad750f026b0116fcd0af0b1dc70facd",
     "packages/eu-registry/dist/index.js": "47998628bd13f46400814f0208ac0ceafb4450350e13b98972539b03e3d7d7aa",
     "packages/eu-registry/dist/server.js": "2695b633b05cf12d418f1eff075beaa550c092c2579c456d24c97c573da08cdf",
-    "packages/eu-registry/package.json": "0b56782d6a6c37bba00e90414e5455600f642c7640d61489fa460234e81fad39",
+    "packages/eu-registry/package.json": "3596019c6005439c0e6f77187a15a9002add4decfea143877cdd65df0e576700",
     "packages/isir/dist/client.js": "9462850185e4de0dc01c951b5e8068678379a81f7f76d105f40e0267fe2ebaf3",
     "packages/isir/dist/cuzk.js": "7ace592d8f88f4506de13e5bb99c249c3e944e64ec9d1d91845a278fe2f4f904",
     "packages/isir/dist/index.js": "ca335cdffe9ea79d5a140e078aa6cf5d48b8d10ef142e3272a529cdc0ff5aa30",
@@ -48,8 +48,8 @@
     "packages/realestate/dist/index.js": "27604b6b57f572b448e9e3104ac22d46b5c953838a75ea498387edc808e214b9",
     "packages/realestate/dist/server.js": "01fa346848faf0c6ee6a831939155b33195f48fd0368737ee6bda14a707f96a7",
     "packages/realestate/dist/tools/get_district_aggregate.js": "110337010b7e463fc7cc6bd2157463d52cebb74090d343d8b66c1405f0e3a5bf",
-    "packages/realestate/package.json": "20fdd78220e14230073ac8e2c0579a866bf7cf3db39d78484e3d2b847e46475e",
-    "packages/realestate-ingest/package.json": "51c1dab310a549ff4b5ffb47a0965a316fb5467ad478f63274db0399c8101f0a",
+    "packages/realestate/package.json": "1f887e39f83d71331cc5f8cf4417b63bb393acbe4dc55340edb3e91b1c014b16",
+    "packages/realestate-ingest/package.json": "254f3f3c03f684a206cc43aff8b05c9055adad2e2e92398c0bfb68d4465438bf",
     "packages/sanctions/dist/db.js": "822d263e3198ba9c0bfcd092ac6287337a8c0ecef894b8e012223c7291c7d338",
     "packages/sanctions/dist/fetchers/eu.js": "bc77442d8109ad86a287d9fc1b707248c553c339d606e1412f74cf104ee84a9e",
     "packages/sanctions/dist/fetchers/index.js": "66a6cc5d7f3f2ff94414dd358240d5ce65dfcc99f5954a515d2bcab0f6838731",
@@ -59,7 +59,7 @@
     "packages/sanctions/dist/refresh.js": "2345128c4ba6051f231292d3b1e49a9f7e7adf6873244bfe264641d3e40c3452",
     "packages/sanctions/dist/search.js": "5f2fbbdd36718d4fe786ad55194c8aeaa7d0f976baf7ea8fad86e00762307cfc",
     "packages/sanctions/dist/server.js": "a4b40711bdbc23450eeb48e409f963db65742db5696da05ec66d38bb062524e3",
-    "packages/sanctions/package.json": "12e9276a8f198fa28503d42296c58bd66d64a83e9ba19ae8358eabc8e4e12153",
+    "packages/sanctions/package.json": "9dba3c6bd4f7a2cd4cb4a1b8e81f71bd973cfb8acedb286dfe8c83dc4043a36f",
     "packages/shared/dist/billing/index.js": "ba174c375ab5b553b6453a87ff46a11927c26f55cbead087e2b77cfc2ba65b8e",
     "packages/shared/dist/billing/quota.js": "5e1efa52dc02b59ea3ee18e4fe568eda51426aad11b4d15eb806a9ae20f16ea8",
     "packages/shared/dist/billing/stripeWebhook.js": "681acd04c50c89ec0314adc89827d79c7adea409788900116290ec2912d0ef43",
@@ -76,6 +76,6 @@
     "packages/shared/dist/rest.js": "12ccee1ed56a81c979da644416897eada027feff2dc2336315bb7dfe16cb7fee",
     "packages/shared/dist/sessionRegistry.js": "28884b224745512012a5fe6a3d61e2a29fd17d710d7563deddd304e5283d01a5",
     "packages/shared/dist/slug.js": "d64d4c266c706bfafbb827d1734752b05c37f2dda6e055b06023a0ccec3acb72",
-    "packages/shared/package.json": "13e16a8e2ebe4bc56489aee112503a4e8dcdf7f47d37c5d8f0e05954e9ec9a13"
+    "packages/shared/package.json": "4967d85bdd509265dd095b2f15889b00df4ee4fe2a437604f480cb2d59eb1ba8"
   }
 }

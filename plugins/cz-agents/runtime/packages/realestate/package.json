@@ -42,7 +42,7 @@
   "dependencies": {
     "@czagents/shared": "^0.1.8",
     "@modelcontextprotocol/sdk": "^1.18.0",
-    "better-sqlite3": "^12.9.0",
+    "better-sqlite3": "^13.0.3",
     "zod": "^3.25.0"
   },
   "devDependencies": {

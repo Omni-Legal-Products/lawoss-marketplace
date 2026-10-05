@@ -9,7 +9,7 @@
       "name": "crz",
       "source": "./plugins/crz",
       "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
-      "version": "1.4.2",
+      "version": "1.4.3",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -20,7 +20,7 @@
       "name": "cz-agents",
       "source": "./plugins/cz-agents",
       "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "category": "Productivity",
       "tags": [
         "lawoss-category:cz",
@@ -42,7 +42,7 @@
       "name": "eurlex-celex",
       "source": "./plugins/eurlex-celex",
       "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:general",

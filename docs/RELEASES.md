@@ -12,7 +12,7 @@ python3 scripts/release_plugin.py \
   --output /path/to/new-candidate
 ```
 
-The output directory must not exist and must be outside both checkouts. For CRZ, this command delegates to `scripts/release_crz.py`, preserving its established package and validation path. Other runtime plugins use `package_runtime.build` from the exported candidate. A successful candidate contains the packaged runtime, updated Codex and Claude version projections, the activated `local-mcp-skill-cli` ledger record, and `release-candidate.json` with the source and runtime-manifest identities.
+The output directory must not exist and must be outside both checkouts. Every runtime plugin, CRZ included since plugin version 1.4.3, uses `package_runtime.build` from the exported candidate. A successful candidate contains the packaged runtime, updated Codex and Claude version projections, the activated `local-mcp-skill-cli` ledger record, and `release-candidate.json` with the source and runtime-manifest identities.
 
 The **Prepare plugin release** workflow accepts one of the 15 catalog plugin names and a new semantic version. It resolves the exact repository and commit through the same independent allowlist, then uses `LAWOSS_SOURCE_READ_TOKEN` only for the private source checkout. The build step does not receive that secret. Configure the secret as a read-only token with access only to the necessary organization source repositories.
 
@@ -27,4 +27,4 @@ These checks are an explicit local release gate. The hosted workflow does not in
 
 After source tests, packaging, catalog validation, and local launcher checks pass, the workflow uploads the complete candidate and pushes a release branch. Its summary links to a branch comparison. It does not open or merge a pull request. A reviewer must inspect the comparison, complete platform install/update/rollback acceptance, and decide whether to open a pull request under the organization release policy.
 
-The older **Prepare CRZ release** workflow remains available and unchanged. Neither workflow publishes a repository, deploys a gateway, changes authentication, or transfers operator credentials and state.
+The former CRZ-only release path (`release_crz.py`, `package_crz.py` and the **Prepare CRZ release** workflow) was removed in CRZ 1.4.3 because it produced a runtime without `runtime-config.json` and with a different launcher. The workflow does not publish a repository, deploy a gateway, change authentication, or transfer operator credentials and state.

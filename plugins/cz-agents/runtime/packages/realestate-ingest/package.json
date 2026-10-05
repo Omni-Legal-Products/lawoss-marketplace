@@ -16,7 +16,7 @@
   "dependencies": {
     "@czagents/isir": "^0.2.3",
     "@czagents/shared": "^0.1.9",
-    "better-sqlite3": "^12.9.0"
+    "better-sqlite3": "^13.0.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

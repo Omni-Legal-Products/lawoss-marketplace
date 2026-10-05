@@ -48,7 +48,7 @@ class LocalRuntimeTest(unittest.TestCase):
                     (plugin / 'runtime/dist/index.js').write_text('changed')
                 result = subprocess.run(['python3', str(copied / 'scripts/validate.py')], capture_output=True, text=True)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn('local CRZ transport' if mutation == 'http' else 'runtime digest mismatch', result.stderr)
+                self.assertIn('only reviewed local stdio transports allowed' if mutation == 'http' else 'runtime digest mismatch', result.stderr)
 
     def test_relative_cache_is_absolute_and_corruption_is_rejected(self):
         plugin = ROOT / 'plugins/crz'
@@ -59,11 +59,13 @@ class LocalRuntimeTest(unittest.TestCase):
                                       env=env, capture_output=True, text=True, timeout=20)
             result = doctor()
             self.assertEqual(result.returncode, 0, result.stderr)
-            cache = Path(json.loads(result.stdout)['cache'])
+            report = json.loads(result.stdout)
+            cache = Path(report['cache'])
             self.assertTrue(cache.is_absolute())
             shutil.copytree(plugin / 'runtime', cache)
             digest = hashlib.sha256((plugin / 'runtime/provenance.json').read_bytes()).hexdigest()[:24]
-            (cache / '.ready').write_text(digest)
+            self.assertTrue(report['cacheKey'].startswith(digest + '-'))
+            (cache / '.ready').write_text(report['cacheKey'])
             self.assertTrue(json.loads(doctor().stdout)['cached'])
             (cache / 'dist/index.js').write_text('damaged')
             result = doctor()

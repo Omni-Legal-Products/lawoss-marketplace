@@ -1,0 +1,5 @@
+{
+  "name": "crz",
+  "entrypoint": "dist/index.js",
+  "minimumNode": "22.14.0"
+}

@@ -7,7 +7,7 @@ description: Použi pri otázkach na zverejnené zmluvy verejného sektora, ich 
 
 ## Lokálny plugin
 
-Tento plugin spúšťa pribalený CRZ MCP lokálne cez stdio. Vyžaduje Node.js 22.13+ a npm; závislosti sa pripravia pri prvom štarte. Nepripája sa na vzdialený MCP a nevyžaduje prihlasovanie do LAWOSS služby. Pri chybe štartu skontroluj Node/npm a výstup `node scripts/run.mjs doctor` z adresára pluginu.
+Tento plugin spúšťa pribalený CRZ MCP lokálne cez stdio. Vyžaduje Node.js 22.14+ a npm; závislosti sa pripravia pri prvom štarte. Nepripája sa na vzdialený MCP a nevyžaduje prihlasovanie do LAWOSS služby. Pri chybe štartu skontroluj Node/npm a výstup `node scripts/run.mjs doctor` z adresára pluginu.
 
 CLI používa tie isté nástroje: `node scripts/run.mjs tools` alebo `node scripts/run.mjs call crz_recent '{"limit":1}'`. Cestu k skriptu odvoď z umiestnenia tohto skillu, nie z pracovného projektu. Preferuj už pripojené MCP nástroje; CLI je alternatívne rozhranie.
 

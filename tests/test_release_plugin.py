@@ -56,15 +56,13 @@ class GenericReleaseTest(unittest.TestCase):
             run.assert_not_called()
             load_packager.assert_not_called()
 
-    def test_crz_delegates_to_existing_release_without_generic_packaging(self):
+    def test_crz_uses_the_generic_runtime_release_path(self):
         module = self.module()
-        expected = {'plugin': 'crz'}
-        delegate = types.SimpleNamespace(release=lambda *args: expected)
-        with patch.object(module, 'load_crz_release', return_value=delegate), \
-             patch.object(module, 'load_packager') as load_packager:
-            result = module.release(ROOT, 'crz', ROOT, '1.4.9', Path('/tmp/new-crz-candidate'))
-        self.assertEqual(result, expected)
-        load_packager.assert_not_called()
+        self.assertFalse(hasattr(module, 'load_crz_release'))
+        self.assertFalse((ROOT / 'scripts/release_crz.py').exists())
+        specifications = json.loads((ROOT / 'runtime-packages.json').read_text())
+        self.assertEqual(specifications['crz']['entrypoint'], 'dist/index.js')
+        self.assertEqual(module.REPOSITORIES['crz'], 'Omni-Legal-Products/mcp-crz')
 
     def test_dirty_catalog_stops_before_export_or_packaging(self):
         module = self.module()
