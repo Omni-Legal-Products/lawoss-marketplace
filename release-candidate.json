@@ -1,8 +1,8 @@
 {
-  "plugin": "cz-agents",
-  "plugin_version": "1.1.2",
-  "catalog_commit": "b1c12bb95aa86d0a58f1d692f17457f9cb83a67d",
-  "source_repository": "Omni-Legal-Products/mcp-cz-agents",
-  "source_commit": "7d100cb9fcc88dff51151a9b6703b83c25e1c2b0",
-  "runtime_manifest_sha256": "efff2a7fe1b0e70288f096ee920a07b25ea8b08d4676f63c8fe7b2481f2d1264"
+  "plugin": "eurlex-celex",
+  "plugin_version": "1.1.1",
+  "catalog_commit": "43ab973ecfab6e77391a77af21494fdcfaedc98c",
+  "source_repository": "Omni-Legal-Products/mcp-eurlex",
+  "source_commit": "466477ced88093e91d931da4ef9af10b613ac4f8",
+  "runtime_manifest_sha256": "326af5d7f50ef93a60b04439a5282e28ad2c282819d15cec96e4515120644879"
 }
