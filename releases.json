@@ -107,5 +107,14 @@
       "branch": "codex/rollout-fix-uvo",
       "distribution": "local-mcp-skill-cli"
     }
+  ],
+  "inRepoSkills": [
+    {
+      "name": "google-workspace-gog",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/google-workspace-gog",
+      "distribution": "skill-only",
+      "reviewDate": "2026-10-05"
+    }
   ]
 }

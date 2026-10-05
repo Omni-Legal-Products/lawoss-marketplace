@@ -182,6 +182,52 @@ def validate_plugin(entry: dict, plugin_root: Path, root: Path) -> dict:
     return manifest
 
 
+LOCALES = {"sk", "cs", "en", "de"}
+JURISDICTIONS = {"SK", "CZ", "EU"}
+
+
+def localized(value: object) -> bool:
+    return isinstance(value, dict) and set(value) == LOCALES and all(isinstance(text, str) and text.strip() for text in value.values())
+
+
+def validate_lawoss_metadata(root: Path, names: list[str]) -> dict:
+    """Categories, jurisdictions and bundles live here, not in the LAWOSS app."""
+    meta = load_json(root / "lawoss-catalog.json", root)
+    require(meta.get("schemaVersion") == 1, "lawoss-catalog.json schemaVersion must be 1")
+    categories = meta.get("categories")
+    require(isinstance(categories, list) and categories, "lawoss-catalog.json categories required")
+    kinds = {}
+    for category in categories:
+        require(isinstance(category, dict) and isinstance(category.get("id"), str), "category id required")
+        require(category["id"] not in kinds, "duplicate category id")
+        require(category.get("kind") in {"jurisdiction", "general", "bundles"}, "category kind must be jurisdiction, general or bundles")
+        require(category["kind"] != "jurisdiction" or category.get("jurisdiction") in JURISDICTIONS, "jurisdiction category needs a jurisdiction code")
+        require(localized(category.get("title")), "category title needs sk, cs, en and de")
+        kinds[category["id"]] = category["kind"]
+    plugins = meta.get("plugins")
+    require(isinstance(plugins, dict) and set(plugins) == set(names), "lawoss-catalog.json must describe exactly the catalog plugins")
+    for name, plugin in plugins.items():
+        require(kinds.get(plugin.get("category")) in {"jurisdiction", "general"}, f"plugin {name} needs a jurisdiction or general category")
+        codes = plugin.get("jurisdictions")
+        require(isinstance(codes, list) and set(codes) <= JURISDICTIONS, f"plugin {name} has unknown jurisdictions")
+        require(localized(plugin.get("title")) and localized(plugin.get("summary")), f"plugin {name} needs sk, cs, en and de title and summary")
+    bundle_ids = set()
+    for bundle in meta.get("bundles", []):
+        require(isinstance(bundle, dict) and isinstance(bundle.get("id"), str) and bundle["id"] not in bundle_ids, "bundle id required and unique")
+        bundle_ids.add(bundle["id"])
+        require(kinds.get(bundle.get("category")) == "bundles", "bundle must be in the bundles category")
+        require(bundle.get("jurisdiction") in JURISDICTIONS, "bundle jurisdiction required")
+        members = bundle.get("plugins")
+        require(isinstance(members, list) and members and set(members) <= set(names) and len(members) == len(set(members)), f"bundle {bundle['id']} references unknown plugins")
+        require(localized(bundle.get("title")) and localized(bundle.get("summary")), f"bundle {bundle['id']} needs sk, cs, en and de title and summary")
+    return meta
+
+
+def claude_tags(meta: dict, name: str) -> list[str]:
+    plugin = meta["plugins"][name]
+    return [f"lawoss-category:{plugin['category']}"] + [f"jurisdiction:{code.lower()}" for code in plugin["jurisdictions"]]
+
+
 def validate_catalogs(root: Path) -> int:
     codex = load_json(root / ".agents/plugins/marketplace.json", root)
     claude = load_json(root / ".claude-plugin/marketplace.json", root)
@@ -193,6 +239,18 @@ def validate_catalogs(root: Path) -> int:
     for record in records:
         require(bool(re.fullmatch(r"Omni-Legal-Products/mcp-[a-z-]+", record.get("repository", ""))), "organization source required")
         require(bool(re.fullmatch(r"[0-9a-f]{40}", record.get("commit", ""))), "recorded organization commit required")
+    # Skill-only wrappers authored in this repository: no organization source, runtime or MCP.
+    in_repo = ledger.get("inRepoSkills", [])
+    require(isinstance(in_repo, list), "inRepoSkills must be an array")
+    skill_only = {}
+    for record in in_repo:
+        name = record.get("name", "")
+        require(bool(re.fullmatch(r"[a-z][a-z0-9-]*", name)), "in-repo skill name required")
+        require(name not in by_name and name not in skill_only, "duplicate release names")
+        require(record.get("repository") == "Omni-Legal-Products/lawoss-marketplace", "in-repo skill must come from this repository")
+        require(record.get("path") == f"plugins/{name}", "in-repo skill path must be plugins/<name>")
+        require(record.get("distribution") == "skill-only", "in-repo wrapper must be skill-only")
+        skill_only[name] = record
     require(codex.get("name") == "lawoss", "canonical marketplace name must be lawoss")
     require(codex.get("interface") == {"displayName": "LAWOSS Marketplace"}, "marketplace display name must be LAWOSS Marketplace")
     require(set(claude) == {"name", "owner", "description", "plugins"}, "Claude catalog contains missing or unsupported top-level fields")
@@ -201,8 +259,9 @@ def validate_catalogs(root: Path) -> int:
     entries, counterparts = codex.get("plugins"), claude.get("plugins")
     require(isinstance(entries, list) and isinstance(counterparts, list), "catalog plugins must be arrays")
     names = [e.get("name") for e in entries]
-    require(len(names) == len(set(names)) and set(names) == set(by_name), "catalog must match reviewed release records")
+    require(len(names) == len(set(names)) and set(names) == set(by_name) | set(skill_only), "catalog must match reviewed release records")
     require(names == [e.get("name") for e in counterparts], "Codex and Claude catalogs have different semantic projections")
+    lawoss_meta = validate_lawoss_metadata(root, names)
     for entry, counterpart in zip(entries, counterparts):
         source = entry.get("source", {})
         require(isinstance(source, dict) and source.get("source") == "local", "Codex plugin source must be local")
@@ -212,14 +271,19 @@ def validate_catalogs(root: Path) -> int:
         require(entry.get("policy") == {"installation": "AVAILABLE", "authentication": "ON_INSTALL"}, "Codex policy must be AVAILABLE with ON_INSTALL authentication")
         require(entry.get("category") == "Productivity", "Codex catalog category must be Productivity")
         manifest = validate_plugin(entry, plugin_root, root)
-        require(set(counterpart) == {"name", "source", "description", "version", "category"}, "Claude plugin entry contains missing or unsupported fields")
+        require(set(counterpart) == {"name", "source", "description", "version", "category", "tags"}, "Claude plugin entry contains missing or unsupported fields")
         other_path = counterpart.get("source")
         require(isinstance(other_path, str) and other_path.startswith("./plugins/"), "Claude plugin source must be a relative path string under ./plugins/")
         resolve_plugin_root(root, other_path)
-        expected = {"name": entry["name"], "source": relative, "description": manifest["description"], "version": manifest["version"], "category": entry["category"]}
+        expected = {"name": entry["name"], "source": relative, "description": manifest["description"], "version": manifest["version"], "category": entry["category"], "tags": claude_tags(lawoss_meta, entry["name"])}
         require(counterpart == expected, "Codex and Claude catalogs have different semantic projections")
         readme = (plugin_root / "README.md").read_text()
-        require(by_name[entry["name"]]["commit"] in readme, "wrapper must identify its reviewed source commit")
+        if entry["name"] in skill_only:
+            require("mcpServers" not in manifest and not (plugin_root / ".mcp.json").exists(), "skill-only wrapper must not declare an MCP transport")
+            require(not (plugin_root / "runtime").exists() and not (plugin_root / "scripts").exists(), "skill-only wrapper must not ship a runtime")
+            require("inRepoSkills" in readme, "skill-only wrapper must identify its in-repo provenance")
+        else:
+            require(by_name[entry["name"]]["commit"] in readme, "wrapper must identify its reviewed source commit")
     return len(entries)
 
 

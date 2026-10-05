@@ -17,6 +17,11 @@ file as publishable even when the repository currently has no remote.
   inside the repository root.
 - Add a plugin as `AVAILABLE` only after its organization edition passes the
   complete release gate. Pending projects are not installable catalog entries.
+- Exception (decided by MČ on 2026-10-05): a skill-only plugin that has no
+  organization source repository and ships no runtime or MCP server (listed in
+  `releases.json` under `inRepoSkills`) may be `AVAILABLE` after the repository
+  checks pass (unit tests, `scripts/validate.py`, `claude plugin validate --strict`)
+  and a maintainer review of its skill text.
 
 ## Required mirrors and checks
 

@@ -10,105 +10,175 @@
       "source": "./plugins/crz",
       "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
       "version": "1.4.2",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "cz-agents",
       "source": "./plugins/cz-agents",
       "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.1",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:cz",
+        "jurisdiction:cz"
+      ]
     },
     {
       "name": "disq",
       "source": "./plugins/disq",
       "description": "Diskvalifikácie osôb: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "eurlex-celex",
       "source": "./plugins/eurlex-celex",
       "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:general",
+        "jurisdiction:eu"
+      ]
     },
     {
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
       "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.1",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "judikaty",
       "source": "./plugins/judikaty",
       "description": "Judikáty SR – Justice, NS SR, ÚS SR: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "kalkulacky",
       "source": "./plugins/kalkulacky",
       "description": "Právne kalkulačky SR: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "orsr",
       "source": "./plugins/orsr",
       "description": "Obchodný register SR: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "ov",
       "source": "./plugins/ov",
       "description": "Obchodný vestník: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "rpo",
       "source": "./plugins/rpo",
       "description": "Register právnických osôb: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "rpvs",
       "source": "./plugins/rpvs",
       "description": "Register partnerov verejného sektora: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "ru",
       "source": "./plugins/ru",
       "description": "Register úpadcov: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "ruz",
       "source": "./plugins/ruz",
       "description": "Register účtovných závierok: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "slovlex",
       "source": "./plugins/slovlex",
       "description": "Slov-Lex – právne predpisy SR: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.1",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     },
     {
       "name": "uvo",
       "source": "./plugins/uvo",
       "description": "Verejné obstarávanie – ÚVO: bundled local MCP, usage guidance and CLI.",
       "version": "1.1.0",
-      "category": "Productivity"
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
+    },
+    {
+      "name": "google-workspace-gog",
+      "source": "./plugins/google-workspace-gog",
+      "description": "Google Workspace cez gog: usage skill for Gmail, Calendar, Drive and Docs through the local gog CLI. Read-only by default, drafts only, no MCP.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:general"
+      ]
     }
   ]
 }
