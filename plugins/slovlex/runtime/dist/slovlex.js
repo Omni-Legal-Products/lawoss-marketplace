@@ -90,6 +90,50 @@ export async function getVersionIriForDate(baseIri, dateIso) {
         throw new Error(`Nenašlo sa znenie pre ${baseIri} k dátumu ${date}.`);
     return { versionIri: doc.iri, date };
 }
+export function nextDayIso(timestamp) {
+    const day = timestamp.slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day))
+        return undefined;
+    const parsed = new Date(`${day}T00:00:00Z`);
+    if (Number.isNaN(parsed.getTime()))
+        return undefined;
+    parsed.setUTCDate(parsed.getUTCDate() + 1);
+    return toYyyyMmDd(parsed);
+}
+// ucinnyDo on a Slov-Lex record is the end of that consolidated version, not of the
+// law itself. Probe the day after it so callers learn about an already published
+// future version instead of reading the end date as the law's expiry.
+export async function probeNextVersion(baseIri, versionIri, ucinnyDo) {
+    const date = ucinnyDo ? nextDayIso(ucinnyDo) : undefined;
+    if (!date)
+        return { kind: "none" };
+    try {
+        const { versionIri: nextIri } = await getVersionIriForDate(baseIri, date);
+        return nextIri === versionIri ? { kind: "none" } : { kind: "found", date, iri: nextIri };
+    }
+    catch {
+        return { kind: "missing", date };
+    }
+}
+export function formatVersionValidity(meta, next) {
+    if (!meta.ucinnyOd && !meta.ucinnyDo)
+        return [];
+    const from = meta.ucinnyOd?.slice(0, 10) ?? "?";
+    const to = meta.ucinnyDo
+        ? `${meta.ucinnyDo.slice(0, 10)} (koniec znenia, nie nevyhnutne koniec predpisu)`
+        : "(bez známeho konca)";
+    const lines = [`Účinnosť tohto znenia: ${from} - ${to}`];
+    if (next.kind === "found") {
+        lines.push(`Nasledujúce znenie: účinné od ${next.date} (IRI: ${next.iri}) – pre jeho text zavolaj tool s date=${next.date}`);
+    }
+    else if (next.kind === "missing") {
+        lines.push(`Nasledujúce znenie: k ${next.date} sa v Slov-Lex nenašlo (predpis mohol byť zrušený – over v Slov-Lex)`);
+    }
+    return lines;
+}
+export async function describeVersionValidity(baseIri, versionIri, meta) {
+    return formatVersionValidity(meta, await probeNextVersion(baseIri, versionIri, meta.ucinnyDo));
+}
 export async function getPortalHtml(versionIri) {
     const cached = portalHtmlCache.get(versionIri);
     if (cached)
