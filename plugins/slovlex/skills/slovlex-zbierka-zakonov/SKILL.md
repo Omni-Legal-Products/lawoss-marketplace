@@ -43,6 +43,14 @@ Je iba na čítanie a nie je právne stanovisko; časové znenie si vždy over v
   nesedí — treba explicitne zadať dátum.
 - **Novely s delenou účinnosťou** menia rôzne časti predpisu k rôznym dňom; over
   výsledok voči originálu, nespoliehaj sa na jeden dátum pre celý predpis.
+- **„Účinnosť tohto znenia … do“ nie je koniec predpisu.** Je to koniec konsolidovaného
+  znenia. Ak hlavička uvádza „Nasledujúce znenie“, zavolaj tool s jeho dátumom; riadok
+  „POZOR: … označené na zmenu alebo zrušenie“ znamená, že ustanovenie mení už vyhlásená novela.
+- **Nečíslovaný odsek sa necituje ako „ods. 1“.** Keď `get_paragraph` uvedie
+  „odsek nie je číslovaný“, cituj tak, ako odporučí („§ N písm. x)“, alebo len „§ N“,
+  keď odsek nemá písmená).
+- **Kontrola desiatok citácií naraz:** jedným volaním `save_law_markdown` ulož celé
+  znenie a over citácie cez `read_saved_markdown`, nie paragraf po paragrafe.
 - **Slov-Lex je verejný portál bez zmluvného API.** Zmena štruktúry stránky môže
   dočasne rozbiť parsovanie — skús neskôr.
 - **Dôvodová správa nie je k dispozícii ku každému predpisu**, najmä pri starších —
