@@ -80,8 +80,14 @@ function renderUnit($, el, indent, depth) {
     const isBod = classList.includes("bod");
     let label = "";
     if (isOdsek) {
-        label = norm($el.children("div.odsekOznacenie").first().text());
-        if (!label) {
+        const $label = $el.children("div.odsekOznacenie").first();
+        // An empty odsekOznacenie means the official text does not number this odsek
+        // (single-odsek paragraphs). Inventing "(1)" there produces wrong citations
+        // such as "§ 10 ods. 1 písm. a)"; only fall back to the id when the div is absent.
+        if ($label.length > 0) {
+            label = norm($label.text());
+        }
+        else {
             const num = labelFromId("odsek", $el.attr("id"));
             label = num ? `(${num})` : "(?)";
         }
@@ -136,6 +142,36 @@ export function renderParagraf($, $par) {
     });
     lines.push(...getTrailingContent($, $par, 0));
     return lines.filter(Boolean).join("\n");
+}
+// True when a top-level odsek carries an empty odsekOznacenie, i.e. the official
+// text does not number it and citations must skip "ods.".
+export function hasUnnumberedOdsek($, $par) {
+    return unnumberedOdseky($, $par).length > 0;
+}
+function unnumberedOdseky($, $par) {
+    return $par
+        .children("div.odsek")
+        .toArray()
+        .filter((el) => {
+        const $label = $(el).children("div.odsekOznacenie").first();
+        return $label.length > 0 && !norm($label.text());
+    });
+}
+// Citation hint for a paragraph whose odsek is unnumbered. Only suggests
+// "písm." when the unnumbered odsek actually contains lettered units.
+export function unnumberedOdsekCitationHint($, $par, paragraphRef) {
+    const odseky = unnumberedOdseky($, $par);
+    if (odseky.length === 0)
+        return null;
+    const hasLetters = odseky.some((el) => $(el).children("div.pismeno").length > 0);
+    const preferred = hasLetters ? `„§ ${paragraphRef} písm. …“` : `„§ ${paragraphRef}“`;
+    return `Citácia: odsek nie je číslovaný – cituj ${preferred}, nie „§ ${paragraphRef} ods. 1“.`;
+}
+// Slov-Lex marks units that a later, already published amendment changes or
+// repeals with the toBeModified / toBeDeleted classes.
+export function hasPendingChange($par) {
+    const selector = ".toBeModified, .toBeDeleted";
+    return $par.is(selector) || $par.find(selector).length > 0;
 }
 function normalizeParagraphNumber(input) {
     return input.replace(/^§\s*/i, "").trim();

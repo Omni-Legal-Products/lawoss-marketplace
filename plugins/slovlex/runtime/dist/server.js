@@ -1,9 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import path from "node:path";
-import { extractExplanatoryReportText, findLpCandidatesForLaw, getExplanatoryReportsByLp, getPortalHtml, getRecentPredpisy, getRozsireneByCislo, getRozsireneByIri, getVersionIriForDate, parseLawBaseIri, searchNavrhy, searchRozsirene, selectExplanatoryReport, chooseConfidentLpCandidate, } from "./slovlex.js";
+import { extractExplanatoryReportText, findLpCandidatesForLaw, getExplanatoryReportsByLp, getPortalHtml, getRecentPredpisy, getRozsireneByCislo, getRozsireneByIri, getVersionIriForDate, parseLawBaseIri, searchNavrhy, searchRozsirene, selectExplanatoryReport, chooseConfidentLpCandidate, describeVersionValidity, } from "./slovlex.js";
 import { formatReadMarkdownWindowResult, formatSavedMarkdownResult, readMarkdownFileWindow, resolveConfiguredExportRoot, writeMarkdownFile, } from "./export-files.js";
-import { extractCrossLawReferences, extractFootnoteDefinitions, extractParagraphReferences, extractParagrafFromPortalHtml, renderParagraf, renderWholeLawTextChunk, resolveFootnoteReferences, sliceWindow, } from "./portal.js";
+import { extractCrossLawReferences, extractFootnoteDefinitions, extractParagraphReferences, extractParagrafFromPortalHtml, hasPendingChange, renderParagraf, renderWholeLawTextChunk, resolveFootnoteReferences, sliceWindow, unnumberedOdsekCitationHint, } from "./portal.js";
 function textResult(text) {
     return { content: [{ type: "text", text }] };
 }
@@ -69,7 +69,7 @@ export function createSlovLexMcpServer() {
     const exportRoot = resolveConfiguredExportRoot(process.env);
     const server = new McpServer({
         name: "slov-lex-mcp",
-        version: "1.3.1",
+        version: "1.3.3",
     });
     server.tool("get_law", "Získa základné informácie o zákone podľa čísla a roku (napr. 595/2003).", {
         number: z.string().describe("Číslo zákona"),
@@ -77,13 +77,12 @@ export function createSlovLexMcpServer() {
     }, async ({ number, year }) => {
         const cislo = `${String(number).trim()}/${String(year).trim()}`;
         const doc = await getRozsireneByCislo(cislo);
+        const validity = await describeVersionValidity(parseLawBaseIri(cislo).baseIri, doc.iri, doc);
         const out = [
             `${doc.cislo ?? cislo} - ${doc.nazov ?? ""}`.trim(),
             doc.typPredp_value ? `Typ: ${doc.typPredp_value}` : null,
             doc.vyhlaseny ? `Vyhlásené: ${doc.vyhlaseny}` : null,
-            doc.ucinnyOd || doc.ucinnyDo
-                ? `Účinnosť: ${doc.ucinnyOd ?? "?"} - ${doc.ucinnyDo ?? "?"}`
-                : null,
+            ...validity,
             doc.iri ? `IRI: ${doc.iri}` : null,
             doc.nadpisy?.length
                 ? `Nadpisy: ${doc.nadpisy.slice(0, 40).join(" | ")}${doc.nadpisy.length > 40 ? " | …" : ""}`
@@ -95,13 +94,14 @@ export function createSlovLexMcpServer() {
     });
     server.tool("get_version", "Získa znenie zákona. DÔLEŽITÉ: Bez parametra 'date' vráti AKTUÁLNE platné znenie (k dnešnému dňu). Ak je text dlhý, vracia sa po oknách (offset_chars + max_chars). Keď je v hlavičke MCP_WINDOW_COMPLETE: false a potrebuješ úplné/komplexné posúdenie, zavolaj tool znova s offset_chars=MCP_NEXT_OFFSET.", {
         law: z.string().describe("Číslo zákona (napr. '595/2003') alebo IRI"),
-        date: z.string().optional().describe("Dátum znenia YYYY-MM-DD. Bez tohto parametra = dnešný dátum. Pre historické prípady zadaj relevantný dátum (napr. '2023-12-31' pre rok 2023)."),
+        date: z.string().optional().describe("Dátum znenia YYYY-MM-DD. Bez tohto parametra = dnešný dátum. Pre historické prípady zadaj relevantný dátum (napr. '2023-12-31' pre rok 2023). Funguje aj budúci dátum pre už vyhlásené novely s neskoršou účinnosťou (pozri riadok 'Nasledujúce znenie' v hlavičke)."),
         max_chars: positiveInteger().optional().describe("Max počet znakov (default: 20000)"),
         offset_chars: z.number().int().min(0).optional().describe("Offset od ktorého sa má text vrátiť (default: 0)."),
     }, async ({ law, date, max_chars, offset_chars }) => {
         const { baseIri } = parseLawBaseIri(law);
         const { versionIri, date: resolvedDate } = await getVersionIriForDate(baseIri, date);
         const meta = await getRozsireneByIri(versionIri);
+        const validity = await describeVersionValidity(baseIri, versionIri, meta);
         const portalHtml = await getPortalHtml(versionIri);
         const maxChars = max_chars ?? 20_000;
         const offsetChars = offset_chars ?? 0;
@@ -109,7 +109,7 @@ export function createSlovLexMcpServer() {
         const windowEnd = rendered.offsetChars + rendered.returnedChars;
         const header = [
             `${law} – znenie k ${resolvedDate}`,
-            meta.ucinnyOd || meta.ucinnyDo ? `Účinnosť: ${meta.ucinnyOd ?? "?"} - ${meta.ucinnyDo ?? "?"}` : null,
+            ...validity,
             `IRI: ${versionIri}`,
             `MCP_WINDOW_COMPLETE: ${rendered.hasMore ? "false" : "true"}`,
             `MCP_TOTAL_CHARS: ${rendered.totalChars}`,
@@ -125,7 +125,7 @@ export function createSlovLexMcpServer() {
     server.tool("get_paragraph", "Získa konkrétny paragraf zo zákona. DÔLEŽITÉ: Bez parametra 'date' vráti AKTUÁLNE platné znenie (k dnešnému dňu). Pre historické prípady použi parameter 'date'. Predvolene zahrnie aj paragrafy, na ktoré sa text priamo odkazuje v rámci toho istého zákona. Voliteľne (include_cross_law_references=true) sleduje aj odkazy na iné zákony – inline (napr. „§ 5 zákona č. 461/2003 Z. z.“), kódexy (Zákonník práce, Občiansky zákonník, …) aj odkazy v poznámkach pod čiarou. Veľké paragrafy sa vracajú po oknách (offset_chars + max_chars). Keď je v hlavičke MCP_WINDOW_COMPLETE: false a potrebuješ celý text, zavolaj tool znova s offset_chars=MCP_NEXT_OFFSET.", {
         law: z.string().describe("Číslo zákona (napr. '595/2003') alebo IRI"),
         paragraph: z.string().describe("Číslo paragrafu (napr. '3' alebo '§3')"),
-        date: z.string().optional().describe("Dátum znenia YYYY-MM-DD. Bez tohto parametra = dnešný dátum. Pre historické prípady zadaj relevantný dátum."),
+        date: z.string().optional().describe("Dátum znenia YYYY-MM-DD. Bez tohto parametra = dnešný dátum. Pre historické prípady zadaj relevantný dátum. Funguje aj budúci dátum pre už vyhlásené novely s neskoršou účinnosťou."),
         include_linked_paragraphs: z.boolean().optional().describe("Ak true (default), pridá aj paragrafy, na ktoré sa vyžiadaný paragraf priamo odkazuje v tom istom zákone."),
         include_cross_law_references: z.boolean().optional().describe("Ak true (default), pripojí aj relevantné paragrafy z INÝCH zákonov, na ktoré sa text/poznámky odkazujú."),
         max_linked_paragraphs: positiveInteger().max(20).optional().describe("Maximálny počet odkazov dohľadávaných v tom istom zákone (default: 8)."),
@@ -136,6 +136,7 @@ export function createSlovLexMcpServer() {
         const { baseIri, number: selfNumber, year: selfYear } = parseLawBaseIri(law);
         const { versionIri, date: resolvedDate } = await getVersionIriForDate(baseIri, date);
         const meta = await getRozsireneByIri(versionIri);
+        const validity = await describeVersionValidity(baseIri, versionIri, meta);
         const portalHtml = await getPortalHtml(versionIri);
         const includeLinkedParagraphs = include_linked_paragraphs ?? true;
         const includeCrossLaw = include_cross_law_references ?? true;
@@ -180,7 +181,11 @@ export function createSlovLexMcpServer() {
         }
         const header = [
             `${law} – ${paragraph} (k ${resolvedDate})`,
-            meta.ucinnyOd || meta.ucinnyDo ? `Účinnosť: ${meta.ucinnyOd ?? "?"} - ${meta.ucinnyDo ?? "?"}` : null,
+            ...validity,
+            unnumberedOdsekCitationHint(extracted.$, extracted.$par, requestedRef),
+            hasPendingChange(extracted.$par)
+                ? "POZOR: ustanovenie je v Slov-Lex označené na zmenu alebo zrušenie neskorším predpisom – over nasledujúce znenie."
+                : null,
         ]
             .filter(Boolean)
             .join("\n");
@@ -378,6 +383,7 @@ export function createSlovLexMcpServer() {
         const { baseIri, number, year } = parseLawBaseIri(law);
         const { versionIri, date: resolvedDate } = await getVersionIriForDate(baseIri, date);
         const meta = await getRozsireneByIri(versionIri);
+        const validity = await describeVersionValidity(baseIri, versionIri, meta);
         const portalHtml = await getPortalHtml(versionIri);
         const maxChars = max_chars ?? 50_000;
         const rendered = renderWholeLawTextChunk(portalHtml, { maxChars, offsetChars: 0 });
@@ -391,7 +397,7 @@ export function createSlovLexMcpServer() {
             `- IRI: \`${versionIri}\``,
             meta.nazov ? `- Názov: ${meta.nazov}` : null,
             meta.typPredp_value ? `- Typ: ${meta.typPredp_value}` : null,
-            meta.ucinnyOd || meta.ucinnyDo ? `- Účinnosť: ${meta.ucinnyOd ?? "?"} - ${meta.ucinnyDo ?? "?"}` : null,
+            ...validity.map((line) => `- ${line}`),
             rendered.hasMore ? `- Poznámka: text bol skrátený na ${maxChars} znakov` : null,
             "",
             "## Text predpisu",
