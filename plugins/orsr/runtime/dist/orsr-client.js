@@ -278,8 +278,9 @@ function logOrsrEvent(event, payload) {
         event,
         ...payload,
     };
-    // Single-line JSON keeps Dokploy logs searchable and parseable.
-    console.log(JSON.stringify(line));
+    // Single-line JSON keeps Dokploy logs searchable and parseable. stderr, not
+    // stdout: in stdio mode stdout is the MCP protocol stream.
+    console.error(JSON.stringify(line));
 }
 function isTruthy(value) {
     return /^(1|true|yes|on)$/i.test(value ?? "");
