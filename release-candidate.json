@@ -1,8 +1,8 @@
 {
-  "plugin": "orsr",
+  "plugin": "rpvs",
   "plugin_version": "1.2.0",
-  "catalog_commit": "3a7259cf959ce3329d51d59b2620c8ecb71c22b6",
-  "source_repository": "Omni-Legal-Products/mcp-orsr",
-  "source_commit": "d31637dd2ad4a5e8b14ef1ab202663f08acddedb",
-  "runtime_manifest_sha256": "d57d1af53222c09bc0cf5b2c0ade140db6090ecfcebbb655ca73cdc6903a0af3"
+  "catalog_commit": "b0a77a1f9a27e35ee4e08eb412ef88571257bbbe",
+  "source_repository": "Omni-Legal-Products/mcp-rpvs",
+  "source_commit": "ef900abda5dd3dca2c3991c62df87b8bcc5b1cde",
+  "runtime_manifest_sha256": "0a2b7451b3aacad28ece1ade5ea62a3a01c9ad456844bc580761633e5779061c"
 }
