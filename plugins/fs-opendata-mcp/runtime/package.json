@@ -1,7 +1,7 @@
 {
   "name": "fs-opendata-mcp",
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Read-only MCP server for validated Slovak Financial Administration public information lists",
   "type": "module",
   "main": "dist/server.js",
