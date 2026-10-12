@@ -27,13 +27,18 @@ Verification:
 
 - **Source:** `npm ci`, `npm run check`, `npm run build`, and `npm test` with 862 tests (849 passed, 0 failed, 13 live tests skipped), including the organization contract tests. Builder rerun: 849 passed.
 - **Catalog:** 42 Python tests, `scripts/validate.py`, `claude plugin validate --strict .` and instruction mirrors passed.
-- **Not run:** the Codex plugin-creator validator was not available in the preparing environment and still has to run.
+- **Codex gate:** Codex CLI 0.162.1 ships no plugin-creator validator, so the isolated install acceptance from `docs/RELEASES.md` ran instead (see below).
 - **Packaged runtime smoke (stdio, live reads, 2026-10-12):**
   - `doctor` reported commit 211a958.
   - `resolve_decision_identity` "5Co/1/2020" returned `matched: false` with three regional courts.
   - `get_decision_detail` for 15Co/134/2024 reported Krajský súd Bratislava and 15Co/134/2024.
   - Auto mode "PL. ÚS 3/09" resolved at the Constitutional Court.
 
-Pending before merge: Codex plugin-creator validator and isolated Git-marketplace install/update/rollback acceptance.
+Codex isolated install acceptance (2026-10-12, Codex CLI 0.162.1, fresh `CODEX_HOME` and `LAWOSS_CACHE_DIR`):
+
+- `codex plugin add judikaty@lawoss` from `main` installed 1.1.0.
+- With the ref set to `release/judikaty-1.2.0`, `update_plugins.py --apply` reported `updated 1.1.0 -> 1.2.0`.
+- The installed runtime started over stdio: `doctor` reported commit 211a958, and `get_decision_detail` for 15Co/134/2024 returned Krajský súd Bratislava and 15Co/134/2024.
+- With the ref set back to `main`, the updater reported `updated 1.2.0 -> 1.1.0` and `doctor` reported commit 116c7f5.
 
 Tests establish behaviour for captured source responses, a real judgment text and selected live reads. They do not establish the legal correctness of any outcome or citation.
