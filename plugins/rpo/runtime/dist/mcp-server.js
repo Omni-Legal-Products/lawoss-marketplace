@@ -8,7 +8,7 @@ export function createRpoMcpServer() {
     const client = new RpoClient();
     const server = new McpServer({
         name: "rpo-mcp",
-        version: "0.1.0",
+        version: "0.2.0",
     });
     // -- rpo_search ----------------------------------------------------------
     const searchInputSchema = {
@@ -38,16 +38,19 @@ export function createRpoMcpServer() {
             .optional()
             .describe(`Maximálny počet vrátených záznamov (default ${DEFAULT_SEARCH_LIMIT}). ` +
             "Register vracia celú množinu naraz, preto sa orezáva až na strane servera; " +
-            "count vždy nesie skutočný počet zhôd a truncated hovorí, či je zoznam neúplný."),
+            "Register vracia najviac 500 riadkov bez celkového počtu: pri countIsLowerBound=true je count len dolná hranica. " +
+            "truncated hovorí, či je zoznam neúplný."),
     };
     server.registerTool("rpo_search", {
         title: "RPO Search",
         description: "Vyhladanie subjektov (pravnicke osoby, zivnostnici, verejne subjekty) v RPO podla nazvu (fullName) alebo ICO (identifier). " +
             "Diakritika je nepovinna (Vseobecna najde Vseobecna). Aspon jeden parameter je povinny. " +
             "Vysledky su zoradene podla presnosti zhody s fullName (presna zhoda, potom prefix na hranici slova, potom podretazec) " +
-            "a orezane na 'limit' zaznamov (default 20). 'count' je vzdy skutocny pocet zhod a 'truncated' hovori, ci je zoznam neuplny — " +
+            "a orezane na 'limit' zaznamov (default 20). 'count' je pocet riadkov od registra; register vracia najviac 500, " +
+            "preto pri countIsLowerBound=true je to len dolna hranica. 'truncated' hovori, ci je zoznam neuplny — " +
             "pri neuplnom zozname zvys limit alebo zuz dopyt filtrami (onlyActive, addressMunicipality, sourceRegister, ...). " +
-            "Vracia normalizovany zoznam s aktualnym nazvom/adresou a internym 'id' pre rpo_get_entity.",
+            "Vracia normalizovany zoznam s nazvom/adresou a internym 'id' pre rpo_get_entity. Zaniknuty subjekt ma 'termination' " +
+            "a jeho posledny nazov/adresa nesu nameValidTo/addressValidTo (uz neplatne).",
         inputSchema: searchInputSchema,
     }, async (args) => {
         const params = args;
@@ -74,7 +77,12 @@ export function createRpoMcpServer() {
             "(IČO; server najprv vyhlada id cez identifier= a potom nacita detail). " +
             "Vracia aktualny nazov, adresu, pravnu formu, predmety cinnosti, statutarny organ (mena osob), " +
             "zdrojovy register a statisticke kody (hlavna cinnost NACE, ESA2010). " +
-            "Volby showHistoricalData a showOrganizationUnits rozsiruju vystup.",
+            "Dalej: ostatne osoby okrem statutarov (dozorna rada, prokuristi, spolocnici, akcionar), sposob konania ('authorizations'), " +
+            "zakladne imanie ('equities'), akcie ('shares'), vklady ('deposits'), dalsie pravne skutocnosti, pravni predchodcovia/nastupcovia, " +
+            "'termination' (datum zaniku) a 'legalStatuses' (napr. Zaniknuta spolocnost, V likvidacii). " +
+            "S showHistoricalData=true pribudnu aj ukoncene zaznamy; ukonceny zaznam (byvaly clen organu, zrusena cinnost) ma vzdy 'validTo'. " +
+            "Zaznam bez 'validTo' je platny. showOrganizationUnits rozsiruje vystup o organizacne zlozky. " +
+            "Pre pravny ukon a podiely spolocnikov je zdrojom pravdy ORSR.",
         inputSchema: {
             id: looseNumber(z.number().int().positive()).optional(),
             ico: z.string().min(1).optional(),
@@ -174,14 +182,17 @@ function formatSearchError(operation, error, input) {
         // RPO throws HTTP 500 on overly broad queries (e.g. fullName=obec) instead
         // of a clean "too many results". Surface actionable guidance.
         if (error.status >= 500) {
+            // An HTML outage page already carries its own diagnosis.
+            const outage = /nedostupný/.test(error.message);
             return {
                 ok: false,
                 operation,
                 input: redactToolInput(input),
                 error_class: safeErrorClass(error),
-                error_message: "RPO API vratilo HTTP 500 - dopyt je prilis siroky (prilis vela zhod). " +
-                    "Pridajte selektivnejsi vyraz alebo zuzte filtre (addressMunicipality, establishmentAfter, sourceRegister). " +
-                    "Pozn.: onlyActive=true samo o sebe siroky dopyt nezuzi.",
+                error_message: outage
+                    ? error.message
+                    : `RPO API vratilo HTTP ${error.status}. Moze ist o vypadok registra alebo o prilis siroky dopyt — ` +
+                        "z odpovede sa to rozlisit neda. Skuste to neskor, pripadne zuzte filtre (addressMunicipality, establishmentAfter, sourceRegister).",
                 http_status: error.status,
             };
         }

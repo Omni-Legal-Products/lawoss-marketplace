@@ -1,8 +1,8 @@
 {
-  "plugin": "eurlex-celex",
-  "plugin_version": "1.2.1",
-  "catalog_commit": "9a8027622ed7962b96db714bb3b642928e8ac902",
-  "source_repository": "Omni-Legal-Products/mcp-eurlex",
-  "source_commit": "e6c930f3b1a902c879431233c9466c443c694f7f",
-  "runtime_manifest_sha256": "3f69afebb1739b94b01f68ea0d88535c3a8a08cd4b416bf1c3fe389410bff597"
+  "plugin": "rpo",
+  "plugin_version": "1.2.0",
+  "catalog_commit": "2f91d6d1d662c6e460221fde74a3844a8749afca",
+  "source_repository": "Omni-Legal-Products/mcp-rpo",
+  "source_commit": "53033548a30a105e45b8a5a883632f420612581b",
+  "runtime_manifest_sha256": "1dabff6f770ba500da9af840da96de7e9ab39e1769c6eb4b2d992091883a391a"
 }
