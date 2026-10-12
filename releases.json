@@ -26,7 +26,7 @@
     {
       "name": "eurlex-celex",
       "repository": "Omni-Legal-Products/mcp-eurlex",
-      "commit": "466477ced88093e91d931da4ef9af10b613ac4f8",
+      "commit": "3c397229e0615e1d8c80a554c37ed7e07fd6c5a6",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
