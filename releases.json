@@ -26,7 +26,7 @@
     {
       "name": "eurlex-celex",
       "repository": "Omni-Legal-Products/mcp-eurlex",
-      "commit": "3c397229e0615e1d8c80a554c37ed7e07fd6c5a6",
+      "commit": "e6c930f3b1a902c879431233c9466c443c694f7f",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
@@ -68,7 +68,7 @@
     {
       "name": "rpo",
       "repository": "Omni-Legal-Products/mcp-rpo",
-      "commit": "c33e1e46ffa2091dd4e1e4d451d068cdfbb65ba3",
+      "commit": "53033548a30a105e45b8a5a883632f420612581b",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
