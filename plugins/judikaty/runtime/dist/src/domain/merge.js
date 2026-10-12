@@ -1,3 +1,4 @@
+import { isAmbiguousResolution } from "./fallback-boundary.js";
 export function mergeSearchDecisionResults(results) {
     const seen = new Set();
     const items = [];
@@ -47,16 +48,32 @@ export function mergeAutocompleteItems(groups, limit) {
     }
     return { items: merged };
 }
+/**
+ * Pick the first provider that resolved the reference. An ambiguous answer from
+ * any provider (one reference, several decisions it cannot choose between) wins
+ * over a match elsewhere: the match is then listed as one more candidate instead
+ * of being presented as the answer. Unresolved answers keep every provider's notes.
+ */
 export function firstResolvedIdentity(results) {
-    return (results.find((result) => result.matched) ?? {
+    const matched = results.find((result) => result.matched);
+    const ambiguous = results.some(isAmbiguousResolution);
+    if (matched && !ambiguous) {
+        return matched;
+    }
+    const notes = results.filter((result) => !result.matched).flatMap((result) => result.notes);
+    if (matched) {
+        notes.push(`Candidate from ${matched.provider}: ${matched.spisovaZnacka ?? "(no spisová značka)"}, ` +
+            `ECLI ${matched.ecli ?? "(none)"}, providerId=${matched.providerId}.`);
+    }
+    return {
         matched: false,
         provider: null,
         providerId: null,
         ecli: null,
         spisovaZnacka: null,
         sourceUrl: null,
-        notes: results.flatMap((result) => result.notes)
-    });
+        notes
+    };
 }
 function decisionDedupKey(item) {
     if (item.ecli) {

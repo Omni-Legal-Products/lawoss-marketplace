@@ -4,7 +4,12 @@ export function presentSearchResult(result, view) {
         items: result.items.map((item) => presentDecisionSummary(item, view)),
         providerBreakdown: result.providerBreakdown,
         dedupApplied: result.dedupApplied,
-        ...(view === "compact" ? {} : { coverageNotes: result.coverageNotes })
+        // coverageNotes carry the honest caveats (index lag, sampling, counts taken
+        // before dedup), so compact keeps them too. Compact only omits an empty list
+        // to save tokens; standard/full always include the field.
+        ...(view === "compact" && result.coverageNotes.length === 0
+            ? {}
+            : { coverageNotes: result.coverageNotes })
     };
 }
 export function presentBatchSummaries(items, view) {

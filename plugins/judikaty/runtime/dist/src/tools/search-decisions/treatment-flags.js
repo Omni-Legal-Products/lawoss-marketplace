@@ -1,11 +1,15 @@
 // src/tools/search-decisions/treatment-flags.ts
 import { asCaseRef, normalizeCaseRef } from "../../domain/relation-extractor.js";
+import { pickModelOverlay } from "../../domain/relation-model-labels.js";
 import { getRelationsReviewing, getRelationsReviewingMany } from "../../providers/nsud/law-index-store.js";
 const DISPOSITION_PRIORITY = [
     "zrusene_vratene",
     "zrusene",
     "zmenene",
+    "ciastocne",
+    "porusenie_prava",
     "potvrdene",
+    "zastavene",
     "odmietnute",
     "zamietnute",
     "ine"
@@ -17,9 +21,30 @@ const DISPOSITION_LABEL = {
     potvrdene: "potvrdené",
     odmietnute: "opravný prostriedok odmietnutý",
     zamietnute: "opravný prostriedok zamietnutý",
+    // The next two come only from model labels; the text extractor never produces them.
+    zastavene: "konanie zastavené",
+    porusenie_prava: "konštatované porušenie práva",
+    // From model labels, and since 2026-10 also from the extractor (mixed operative verbs).
+    ciastocne: "⚠️ čiastočne zrušené alebo zmenené",
     // NOT "preskúmané vyšším súdom". See `kind` below — we cannot support that claim.
     ine: "spomenuté v inom rozhodnutí (bez zisteného výroku)"
 };
+/** Every value a model estimated is presented as such (design 2026-09-25, R7). */
+const MODEL_ESTIMATE_SUFFIX = " (odhad modelu)";
+/**
+ * Every outcome the regex extractor found is presented as an estimate too (audit
+ * 2026-10-09, J2). Stored rows were extracted by older, looser logic that read
+ * past-tense descriptions of other courts' acts as outcomes, and the stored row does
+ * not say which logic produced it, so no heuristic outcome is stated as a fact.
+ */
+export const TEXT_ESTIMATE_SUFFIX = " (odhad z textu výroku, over v rozhodnutí)";
+/**
+ * Is this row's outcome only the text extractor's reading? True for any outcome other
+ * than a mention that a model neither estimated nor confidently verified.
+ */
+export function isTextEstimate(row) {
+    return row.disposition !== "ine" && row.dispositionSource !== "model-estimate" && row.verifiedBy !== "model";
+}
 /**
  * Pick the most adverse known outcome. "Most adverse" rather than most recent on
  * purpose: if any higher court quashed the decision, that is what the lawyer has
@@ -41,8 +66,11 @@ function strongestFlag(rows) {
             bestRank = rank;
         }
     }
+    const estimated = best.dispositionSource === "model-estimate";
+    const textEstimate = isTextEstimate(best);
+    const suffix = estimated ? MODEL_ESTIMATE_SUFFIX : textEstimate ? TEXT_ESTIMATE_SUFFIX : "";
     return {
-        label: DISPOSITION_LABEL[best.disposition] ?? best.disposition,
+        label: (DISPOSITION_LABEL[best.disposition] ?? best.disposition) + suffix,
         disposition: best.disposition,
         // A detected outcome is evidence of an actual review; its absence is not.
         kind: best.disposition === "ine" ? "mention" : "review",
@@ -50,7 +78,9 @@ function strongestFlag(rows) {
         // The review is real even when the source decision's stored ref is not a
         // reference at all (the NS API puts subject-matter text in that field), so the
         // outcome stays and only the unusable citation is dropped.
-        reviewingRef: asCaseRef(best.sourceRef)
+        reviewingRef: asCaseRef(best.sourceRef),
+        ...(textEstimate ? { textEstimate: true } : {}),
+        ...pickModelOverlay(best)
     };
 }
 /** Look up the strongest known treatment for a case ref; null when none known. */

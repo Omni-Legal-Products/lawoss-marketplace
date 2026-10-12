@@ -10,6 +10,8 @@ import { buildNsudCitationCandidateQueries, buildNsudCitationCandidateQueryPlan,
 import { countNsudLawIndexByToken, searchNsudLawIndexByToken } from "./law-index-store.js";
 /** How many verified ids a false-zero note names before it switches to a count. */
 const VERIFIED_IDS_SHOWN = 5;
+/** Most candidate decisions a live law search inspects; `total` is counted within them. */
+const NSUD_LAW_CANDIDATE_BUDGET = 160;
 export class NsudProvider extends PlaceholderProvider {
     #client;
     constructor(client = new NsudClient()) {
@@ -219,7 +221,10 @@ export class NsudProvider extends PlaceholderProvider {
             coverageNotes: [
                 "nsud law search uses on-demand citation extraction over extracted decision text rather than merito-only summary matching.",
                 "Extracted citations are normalized to Slov-Lex anchors and cached per decision for subsequent lookups.",
-                `nsud citation-index candidate queries: ${candidateQueries.join(" | ")}`
+                `nsud citation-index candidate queries: ${candidateQueries.join(" | ")}`,
+                `nsud: total counts matches among ${candidateIds.length} candidate decisions ` +
+                    `(capped at ${NSUD_LAW_CANDIDATE_BUDGET}) found through the NS portal's text index, ` +
+                    "not every NS decision citing this provision; more may exist."
             ]
         };
     }
@@ -290,7 +295,7 @@ export class NsudProvider extends PlaceholderProvider {
         };
     }
     async #collectCandidateIds(plan) {
-        const totalBudget = 160;
+        const totalBudget = NSUD_LAW_CANDIDATE_BUDGET;
         const [paragraphResults, combinedResults, lawResults] = await Promise.all([
             this.#runCandidateQueries(plan.paragraphQueries),
             this.#runCandidateQueries(plan.combinedQueries),

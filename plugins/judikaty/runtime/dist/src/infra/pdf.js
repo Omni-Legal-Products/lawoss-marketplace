@@ -92,11 +92,15 @@ export function sliceTextWindow(input) {
 export function getPdftotextCandidates() {
     return [...new Set(DEFAULT_PDFTOTEXT_CANDIDATES)];
 }
+// A court register token (C, Co, Cdo, Obdo, Sžo, CoCsp ...): uppercase initial, at most five letters.
+// Anything longer or lowercase-initial is an ordinary word ("nariadenia", "smernice"), not a register.
+const REGISTER = "\\p{Lu}\\p{L}{0,4}";
+const COURT_YEAR = "(?:19|20)\\d{2}";
 export function normalizePdfExtractedText(text) {
     return text
-        .replace(/\b(\d+)\s+([A-Za-zČ-ž]{1,10})\s+(\d{1,4})\/(\d{2,4})\b/gu, "$1$2/$3/$4")
-        .replace(/\b([IVXLC]+\.)\s+([A-Za-zČ-ž]{1,10})\s+(\d{1,4})\/(\d{2,4})\b/gu, "$1 $2 $3/$4")
-        .replace(/\b((?:\d+[A-Za-zČ-ž]{1,10}|[IVXLC]+\.\s*[A-Za-zČ-ž]{1,10})\/)(\d{1,4})(19\d{2}|20\d{2})\b/gu, "$1$2/$3");
+        .replace(new RegExp(`\\b(\\d{1,3})\\s+(${REGISTER})\\s+(\\d{1,5})\\/(${COURT_YEAR})\\b`, "gu"), "$1$2/$3/$4")
+        .replace(new RegExp(`\\b([IVXLC]+\\.)\\s+(${REGISTER})\\s+(\\d{1,5})\\/(${COURT_YEAR})\\b`, "gu"), "$1 $2 $3/$4")
+        .replace(new RegExp(`\\b((?:\\d{1,3}${REGISTER}|[IVXLC]+\\.\\s*${REGISTER})\\/)(\\d{1,4})(${COURT_YEAR})\\b`, "gu"), "$1$2/$3");
 }
 function sanitizeFileName(name) {
     const trimmed = name.trim() || "decision.pdf";

@@ -26,4 +26,4 @@ Refresh the marketplace with `codex plugin marketplace upgrade lawoss`, then rei
 
 ## Provenance
 
-Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-judikaty-sk/tree/116c7f50a6557a96008893aa2e8d2ca94504ad75), revision `116c7f50a6557a96008893aa2e8d2ca94504ad75`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.
+Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-judikaty-sk/tree/211a958d19e4eabed232b833514b351f489769f2), revision `211a958d19e4eabed232b833514b351f489769f2`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved. Build checks do not establish source freshness or legal correctness.

@@ -1,3 +1,4 @@
+import { normalizeCaseRef, stripCourtPrefix } from "../../domain/relation-extractor.js";
 import { buildAvailabilityNotes, buildSourceAvailability } from "../../domain/source-availability.js";
 import { buildSourceProvenance } from "../../domain/source-provenance.js";
 function parseJusticeDate(value) {
@@ -58,7 +59,77 @@ export function mapJusticeDecisionSummary(item) {
         normalizationConfidence: "medium"
     };
 }
-export function mapJusticeDecisionDetail(item) {
+export function detectJusticePortalFileShape(item) {
+    const ownRef = item.povodnaSpisovaZnacka?.trim();
+    const fileRef = item.spisovaZnacka?.trim();
+    if (!ownRef || !fileRef) {
+        return null;
+    }
+    const ownNorm = normalizeCaseRef(ownRef);
+    const fileNorm = normalizeCaseRef(stripCourtPrefix(fileRef) ?? fileRef);
+    if (!ownNorm || ownNorm === fileNorm) {
+        return null;
+    }
+    return {
+        ownRef,
+        firstInstanceRef: fileRef,
+        firstInstanceCourt: getOriginalCourtName(item.povodnySud) ?? item.sud.nazov ?? null,
+        holdingCourt: item.sud.nazov ?? null
+    };
+}
+function courtTypeFromName(name) {
+    return name?.split(" ").slice(0, 2).join(" ") ?? null;
+}
+function resolveJusticeIdentity(item, override = {}) {
+    const shape = detectJusticePortalFileShape(item);
+    if (!shape) {
+        return {
+            spisovaZnacka: item.spisovaZnacka ?? null,
+            court: {
+                id: item.sud.registreGuid ?? null,
+                name: item.sud.nazov ?? "Neznámy súd",
+                type: courtTypeFromName(item.sud.nazov),
+                address: null
+            },
+            relatedCase: {
+                originalCourt: getOriginalCourtName(item.povodnySud),
+                originalCaseRef: item.povodnaSpisovaZnacka ?? null
+            },
+            notes: []
+        };
+    }
+    const decidingCourt = override.decidingCourt ?? null;
+    const holding = shape.holdingCourt ? ` (${shape.holdingCourt})` : "";
+    return {
+        spisovaZnacka: shape.ownRef,
+        court: decidingCourt
+            ? {
+                id: decidingCourt.id,
+                name: decidingCourt.name,
+                type: courtTypeFromName(decidingCourt.name),
+                address: null
+            }
+            : { id: null, name: "Neznámy súd", type: null, address: null },
+        relatedCase: {
+            originalCourt: shape.firstInstanceCourt,
+            originalCaseRef: shape.firstInstanceRef
+        },
+        notes: [
+            decidingCourt
+                ? `justice portal detail names the first-instance file "${shape.firstInstanceRef}"${holding} ` +
+                    `as spisovaZnacka; the decision's own number "${shape.ownRef}" was taken from ` +
+                    "povodnaSpisovaZnacka and the deciding court from the justice search list."
+                : `justice portal detail carries two file numbers: spisovaZnacka "${shape.firstInstanceRef}"` +
+                    `${holding} and povodnaSpisovaZnacka "${shape.ownRef}". The latter is reported as the ` +
+                    "decision's own number because on this portal it held the decision's own number in every " +
+                    "measured record, but the number and the deciding court could not be confirmed from " +
+                    "the justice search list, so the court is reported as unknown. Verify both against the " +
+                    "document; the court code is part of the ECLI in `ecli`."
+        ]
+    };
+}
+export function mapJusticeDecisionDetail(item, override = {}) {
+    const identity = resolveJusticeIdentity(item, override);
     const dateIssued = parseJusticeDate(item.datumVydania);
     const updatedAt = parseJusticeDate(item.updateDate);
     const sourceCompleteness = item.dokument?.url ? "metadata_document" : "metadata";
@@ -67,17 +138,12 @@ export function mapJusticeDecisionDetail(item) {
         provider: "justice",
         providerId: item.guid,
         ecli: item.ecli ?? null,
-        court: {
-            id: item.sud.registreGuid ?? null,
-            name: item.sud.nazov ?? "Neznámy súd",
-            type: item.sud.nazov?.split(" ").slice(0, 2).join(" ") ?? null,
-            address: null
-        },
+        court: identity.court,
         judge: {
             id: item.sudca?.registreGuid ?? null,
             name: item.sudca?.meno ?? null
         },
-        spisovaZnacka: item.spisovaZnacka ?? null,
+        spisovaZnacka: identity.spisovaZnacka,
         identifikacneCisloSpisu: item.identifikacneCislo ?? null,
         dateIssued,
         decisionForm: item.formaRozhodnutia ?? null,
@@ -98,10 +164,7 @@ export function mapJusticeDecisionDetail(item) {
             slovLexLawId: extractSlovLexLawId(regulation.url),
             slovLexAnchor: extractSlovLexAnchor(regulation.url)
         })),
-        relatedCase: {
-            originalCourt: getOriginalCourtName(item.povodnySud),
-            originalCaseRef: item.povodnaSpisovaZnacka ?? null
-        },
+        relatedCase: identity.relatedCase,
         source: {
             provider: "justice",
             retrievedAt: new Date().toISOString(),
@@ -114,7 +177,10 @@ export function mapJusticeDecisionDetail(item) {
             dateIssued
         }),
         sourceCompleteness,
-        availabilityNotes: buildAvailabilityNotes({ ...sourceAvailability, provider: "justice" }),
+        availabilityNotes: [
+            ...buildAvailabilityNotes({ ...sourceAvailability, provider: "justice" }),
+            ...identity.notes
+        ],
         normalizationConfidence: updatedAt ? "high" : "medium"
     };
 }
@@ -149,14 +215,15 @@ export function mapJusticeDecisionAutocompleteItem(item) {
         ecli: null
     };
 }
-export function mapJusticeRelatedSlovlexContext(item) {
+export function mapJusticeRelatedSlovlexContext(item, override = {}) {
+    const identity = resolveJusticeIdentity(item, override);
     return {
         decision: {
             provider: "justice",
             providerId: item.guid,
             ecli: item.ecli ?? null,
-            courtName: item.sud.nazov ?? "Neznámy súd",
-            spisovaZnacka: item.spisovaZnacka ?? null,
+            courtName: identity.court.name,
+            spisovaZnacka: identity.spisovaZnacka,
             dateIssued: parseJusticeDate(item.datumVydania)
         },
         citedRegulations: (item.odkazovanePredpisy ?? []).map((regulation) => ({
@@ -171,7 +238,7 @@ export function mapJusticeResolvedIdentity(item, notes = []) {
         provider: item ? "justice" : null,
         providerId: item?.guid ?? null,
         ecli: item?.ecli ?? null,
-        spisovaZnacka: item?.spisovaZnacka ?? null,
+        spisovaZnacka: item ? resolveJusticeIdentity(item).spisovaZnacka : null,
         sourceUrl: item ? buildJusticeDecisionPublicUrl(item.guid) : null,
         notes
     };

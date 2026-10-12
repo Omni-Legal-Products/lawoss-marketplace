@@ -1,8 +1,8 @@
 {
-  "plugin": "rpo",
-  "plugin_version": "1.2.1",
-  "catalog_commit": "bc1ce6b366e5a96371c29dc27af34c7983ef5a29",
-  "source_repository": "Omni-Legal-Products/mcp-rpo",
-  "source_commit": "3a0231cbb9b594d9adda08c640d3b345635d6169",
-  "runtime_manifest_sha256": "9f367cde5bd10d7342e8ba81fd595078e3802cf2b42164a6ce1a0183fdf626c6"
+  "plugin": "judikaty",
+  "plugin_version": "1.2.0",
+  "catalog_commit": "a66f574511e19014332f8e0ef08262c9a0e4d0af",
+  "source_repository": "Omni-Legal-Products/mcp-judikaty-sk",
+  "source_commit": "211a958d19e4eabed232b833514b351f489769f2",
+  "runtime_manifest_sha256": "2ae5db36658163630d313fa1eb8688222dc7a01c8ae5b153ebfb4b8bbdbb8e25"
 }
