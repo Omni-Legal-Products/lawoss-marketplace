@@ -1,8 +1,8 @@
 {
   "plugin": "judikaty",
-  "plugin_version": "1.2.1",
-  "catalog_commit": "29af9e6a76faffba5bf0e04277b38c269fb52eee",
+  "plugin_version": "1.2.2",
+  "catalog_commit": "d52ad5a40d31f86f605bcf2cfdc2de764e905af6",
   "source_repository": "Omni-Legal-Products/mcp-judikaty-sk",
-  "source_commit": "5889b7296859a347242a9cf89cf996e2058557c1",
-  "runtime_manifest_sha256": "008c7b4d8ce89a30a90fd653e7f92b31dbd9668703c0d131368adf692995a7de"
+  "source_commit": "72ddb64454c35e72cabc75dbee249e90e42512b6",
+  "runtime_manifest_sha256": "d470ba3022fc58b24d18d8ddc101ad473f7bce4b5dc38f8da475135dae6fe143"
 }

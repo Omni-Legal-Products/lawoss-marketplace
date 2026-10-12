@@ -28,7 +28,7 @@ const strictlyPositiveInt = z.preprocess((value) => {
 const grantLimit = strictlyPositiveInt.refine((value) => value === undefined || value >= 2, "OAuth live grant limits must be at least 2.");
 const ApplicationServerConfigSchema = z.object({
     name: z.string().default("slovak-judiciary"),
-    version: z.string().default("0.2.1"),
+    version: z.string().default("0.2.2"),
     authMode: z.literal("oauth").default("oauth"),
     maxBodyBytes: positiveInt.transform((value) => value ?? DEFAULT_MAX_BODY_BYTES),
     rateLimitPerMinute: positiveInt.transform((value) => value ?? DEFAULT_RATE_LIMIT_RPM),
