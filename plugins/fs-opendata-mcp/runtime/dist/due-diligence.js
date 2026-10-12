@@ -9,10 +9,6 @@ function valid(value) {
     if (!value || typeof value !== "object" || !("validity" in value))
         return false;
     const source = value.validity;
-    // A VAT result whose ds_dphv could not be queried is not a complete answer.
-    const unverified = value.unverifiedLists;
-    if (Array.isArray(unverified) && unverified.length > 0)
-        return false;
     return Boolean(source?.sourceValidated && !source.truncated && source.truncationReason === null && typeof source.returnedCount === "number" && typeof source.sourceTotal === "number" && source.returnedCount <= source.sourceTotal);
 }
 function first(records, ...keys) {
@@ -23,7 +19,7 @@ function first(records, ...keys) {
     return null;
 }
 export function resolveIdentity(vat, reliability, income) {
-    const vatRows = isUsable(vat) ? [...vat.registered, ...vat.cancellationGrounds, ...vat.deregistered] : [];
+    const vatRows = isUsable(vat) ? [...vat.registered, ...vat.deregistered] : [];
     const icDph = normalizeIcDph(vatRows.find((row) => row.icDph)?.icDph ?? null) ?? normalizeIcDph(first(isUsable(reliability) ? reliability.records : [], "ic_dph"));
     const name = vatRows.find((row) => row.name)?.name?.trim() ?? first(isUsable(reliability) ? reliability.records : [], "nazov_subjektu", "nazov_ds") ?? first(isUsable(income) ? income.records : [], "nazov_subjektu", "nazov_ds");
     return { icDph: icDph ?? null, name: name ?? null };
@@ -31,16 +27,10 @@ export function resolveIdentity(vat, reliability, income) {
 export function extractReliabilityIndex(section) { return first(isUsable(section) ? section.records : [], "ids"); }
 export function summarise(sections) {
     const findings = [];
-    const warnings = [];
     const vat = sections.vatStatus;
     const debtor = sections.taxDebtor;
     if (isUsable(vat) && !vat.isVatPayer)
         findings.push("not_vat_payer");
-    // ds_dphz used to be folded into "deregistered" and never reached the summary.
-    if (isUsable(vat) && vat.cancellationGroundsPublished)
-        findings.push("vat_cancellation_grounds_published");
-    if (isUsable(vat) && vat.isDeregistered)
-        (vat.isVatPayer ? warnings : findings).push(vat.isVatPayer ? "vat_previously_deleted" : "vat_deleted");
     if (isUsable(debtor) && debtor.isDebtor)
         findings.push("tax_debtor");
     const incomplete = mandatory.filter((name) => {
@@ -49,7 +39,7 @@ export function summarise(sections) {
     });
     const status = findings.length ? "findings" : incomplete.length ? "incomplete" : "clean";
     const note = status === "clean" ? "All six mandatory source sections were validated, complete, and non-truncated." : status === "findings" ? "Findings are present; incomplete sections, if any, remain listed." : "One or more sections are incomplete; this is not a clean result.";
-    return { status, findings, warnings, incomplete, note };
+    return { status, findings, incomplete, note };
 }
 export async function runFullDueDiligence(ico, deps, now = () => new Date().toISOString()) {
     const [vatResult, reliabilityResult, incomeResult, corporateResult] = await Promise.allSettled([

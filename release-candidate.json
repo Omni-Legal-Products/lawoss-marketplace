@@ -1,8 +1,8 @@
 {
-  "plugin": "fs-opendata-mcp",
+  "plugin": "rpo",
   "plugin_version": "1.2.0",
-  "catalog_commit": "c501716cc2dc1846f186501c880fc4dd5df1bab5",
-  "source_repository": "Omni-Legal-Products/mcp-financna-sprava",
-  "source_commit": "4272a4b209a9955046ed7c00678d93aa2eefa1e8",
-  "runtime_manifest_sha256": "eb95cf5070d5e4a63ee308be97de8519819ffab5f1d7435ea1b5c576481e0e29"
+  "catalog_commit": "2f91d6d1d662c6e460221fde74a3844a8749afca",
+  "source_repository": "Omni-Legal-Products/mcp-rpo",
+  "source_commit": "53033548a30a105e45b8a5a883632f420612581b",
+  "runtime_manifest_sha256": "1dabff6f770ba500da9af840da96de7e9ab39e1769c6eb4b2d992091883a391a"
 }

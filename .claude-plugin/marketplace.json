@@ -42,7 +42,7 @@
       "name": "eurlex-celex",
       "source": "./plugins/eurlex-celex",
       "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:general",
@@ -53,7 +53,7 @@
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
       "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.1.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -108,7 +108,7 @@
       "name": "rpo",
       "source": "./plugins/rpo",
       "description": "Register právnických osôb: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
