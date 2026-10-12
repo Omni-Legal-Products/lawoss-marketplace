@@ -1,8 +1,8 @@
 {
-  "plugin": "rpvs",
+  "plugin": "disq",
   "plugin_version": "1.2.0",
-  "catalog_commit": "b0a77a1f9a27e35ee4e08eb412ef88571257bbbe",
-  "source_repository": "Omni-Legal-Products/mcp-rpvs",
-  "source_commit": "ef900abda5dd3dca2c3991c62df87b8bcc5b1cde",
-  "runtime_manifest_sha256": "0a2b7451b3aacad28ece1ade5ea62a3a01c9ad456844bc580761633e5779061c"
+  "catalog_commit": "4c952c0fcea05fa95c99585f927e82038ae39a46",
+  "source_repository": "Omni-Legal-Products/mcp-diskvalifikacie",
+  "source_commit": "b6d3d3033717af94d0fe876bcd64a3c479866df4",
+  "runtime_manifest_sha256": "59a46bc694c8822eff48ef13900488e69ba1dd53a0a97e8ef84997f7f751eeee"
 }
