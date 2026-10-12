@@ -1,8 +1,8 @@
 {
-  "plugin": "rpo",
-  "plugin_version": "1.2.0",
-  "catalog_commit": "2f91d6d1d662c6e460221fde74a3844a8749afca",
-  "source_repository": "Omni-Legal-Products/mcp-rpo",
-  "source_commit": "53033548a30a105e45b8a5a883632f420612581b",
-  "runtime_manifest_sha256": "1dabff6f770ba500da9af840da96de7e9ab39e1769c6eb4b2d992091883a391a"
+  "plugin": "ov",
+  "plugin_version": "1.2.1",
+  "catalog_commit": "51ed359c3da7a525d2fedfe4c6ae9b1e26540fd3",
+  "source_repository": "Omni-Legal-Products/mcp-obchodny-vestnik",
+  "source_commit": "41177404d26dc0d64ae92da316a4decadadbc89c",
+  "runtime_manifest_sha256": "9ba31741b485830ee00fa17b364677bf1f96b548278d00f6d08fa7593e490b0f"
 }
