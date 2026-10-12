@@ -1,7 +1,7 @@
 # LAWOSS Marketplace
 
 LAWOSS Marketplace distributes public-safe plugin wrappers for approved LAWOSS
-MCP projects. The 15 organization plugins include a local MCP runtime, usage skills and CLI; Google Workspace cez gog is a skill-only wrapper for the user's own gog CLI, with no MCP. The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
+MCP projects. The 15 organization plugins include a local MCP runtime, usage skills and CLI; Google Workspace cez gog and ŽRSR are skill-only wrappers, with no bundled MCP. ŽRSR requires a separately configured MCP connection. The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
 
 Read the [local runtime acceptance record](docs/local-runtime.md) for the CRZ
 pilot and the remaining rollout.
@@ -17,7 +17,7 @@ codex plugin add crz@lawoss --json
 codex plugin list
 ```
 
-Each plugin registers its bundled local stdio MCP and includes CLI access. See the [CRZ installation example](plugins/crz/README.md) and [full rollout and coverage](docs/full-rollout.md). No source-repository access is required for the packaged runtime. Node.js and npm remain prerequisites.
+The 15 runtime plugins register their bundled local stdio MCP and include CLI access. Skill-only plugins do not register a server. See the [CRZ installation example](plugins/crz/README.md) and [full rollout and coverage](docs/full-rollout.md). No source-repository access is required for the packaged runtime. Node.js and npm remain prerequisites.
 
 ## Distribution boundary
 
@@ -37,7 +37,7 @@ listed MCP servers. The marketplace is public. Maintainer source repositories re
 
 CRZ · CZ Agents · DISQ · EUR-Lex · Finančná správa · Judikáty · Kalkulačky ·
 ORSR · Obchodný vestník · RPO · RPVS · Register úpadcov · RÚZ · Slov-Lex · ÚVO ·
-Google Workspace cez gog.
+Google Workspace cez gog · Živnostenský register SR (skill-only).
 
 `lawoss-catalog.json` carries the LAWOSS metadata: categories by jurisdiction
 (Slovakia, Czechia), General, and bundles (`sk-zaklad`, provisional `cz-zaklad`),
