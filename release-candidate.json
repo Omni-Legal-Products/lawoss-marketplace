@@ -1,8 +1,8 @@
 {
-  "plugin": "ru",
+  "plugin": "uvo",
   "plugin_version": "1.2.0",
-  "catalog_commit": "2a00995cc4808a60d5d02408a1eed698c03e52ea",
-  "source_repository": "Omni-Legal-Products/mcp-register-upadcov",
-  "source_commit": "fa3233cbd9414230b0ac076c09b4e40d322e2668",
-  "runtime_manifest_sha256": "f4935138b80c6c55d8de68ae4bfcb3424bbebb1847fda09c30a96ed7861108ad"
+  "catalog_commit": "e1fb267b40fedf0c9fcb39d345f915aa9eabbe0b",
+  "source_repository": "Omni-Legal-Products/mcp-uvo",
+  "source_commit": "d0138206b55338fcc82e63b31b658430751ef55f",
+  "runtime_manifest_sha256": "255b977d8c333af193378e246da4d6af78bda8723f28423cfee715345c04c49a"
 }
