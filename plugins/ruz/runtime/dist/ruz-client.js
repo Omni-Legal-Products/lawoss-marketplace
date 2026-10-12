@@ -1,3 +1,5 @@
+const ID_PAGE_SIZE = 100;
+const MAX_ID_PAGES = 10;
 /**
  * RÚZ serves its outage page as HTML with **HTTP 200**, so res.ok says nothing.
  * Feeding that to JSON.parse surfaced `Unexpected token '<', "<!DOCTYPE "...`,
@@ -32,6 +34,7 @@ export class RuzClient {
     fetchImpl;
     timeoutMs;
     templateCache = new Map();
+    codelistCache = new Map();
     constructor(opts = {}) {
         this.base = opts.baseUrl ?? DEFAULT_BASE;
         this.webBase = opts.webBaseUrl ?? DEFAULT_WEB_BASE;
@@ -53,13 +56,38 @@ export class RuzClient {
             clearTimeout(t);
         }
     }
-    async findEntityIdsByIco(ico) {
-        const r = await this.getJson(`/uctovne-jednotky?ico=${encodeURIComponent(ico)}&zmenene-od=2000-01-01&pokracovat-za-id=0&max-zaznamov=20`);
-        return r.id ?? [];
+    findEntityIdsByIco(ico) {
+        return this.findEntityIds(`ico=${encodeURIComponent(ico)}`);
     }
-    async findEntityIdsByDic(dic) {
-        const r = await this.getJson(`/uctovne-jednotky?dic=${encodeURIComponent(dic)}&zmenene-od=2000-01-01&pokracovat-za-id=0&max-zaznamov=20`);
-        return r.id ?? [];
+    findEntityIdsByDic(dic) {
+        return this.findEntityIds(`dic=${encodeURIComponent(dic)}`);
+    }
+    /**
+     * Every id for an IČO/DIČ filter. The list is paged by id; `existujeDalsieId`
+     * says another page follows (continue after the last id received). Ignoring
+     * it silently truncated the list at the page size.
+     */
+    async findEntityIds(filter) {
+        const ids = [];
+        let after = 0;
+        for (let page = 0; page < MAX_ID_PAGES; page++) {
+            const r = await this.getJson(`/uctovne-jednotky?${filter}&zmenene-od=2000-01-01&pokracovat-za-id=${after}&max-zaznamov=${ID_PAGE_SIZE}`);
+            const batch = r.id ?? [];
+            ids.push(...batch);
+            if (!r.existujeDalsieId || batch.length === 0)
+                return ids;
+            after = batch[batch.length - 1];
+        }
+        throw new Error(`RÚZ API vrátilo pre ${filter} viac ako ${MAX_ID_PAGES * ID_PAGE_SIZE} účtovných jednotiek; zoznam je neúplný.`);
+    }
+    /** Codelist (`velkosti-organizacie`, `pravne-formy`), fetched once per client. */
+    async getCodelist(name) {
+        const cached = this.codelistCache.get(name);
+        if (cached)
+            return cached;
+        const c = await this.getJson(`/${name}`);
+        this.codelistCache.set(name, c);
+        return c;
     }
     getEntity(id) {
         return this.getJson(`/uctovna-jednotka?id=${id}`);

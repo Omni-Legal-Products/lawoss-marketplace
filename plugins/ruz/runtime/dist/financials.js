@@ -45,13 +45,20 @@ export function cellValue(reportTable, templateTable, rowPosition, col) {
 }
 /** Six DD indicators. Label regexes target statutory Úč POD wording. */
 const INDICATORS = [
+    // Tržby = goods + own products + services. Úč POD 2-01 (id 22, to 2013) and
+    // Úč MÚJ (id 687) carry products and services on one row ("vlastných výrobkov
+    // a služieb"); Úč POD from 2014 (id 699) splits them into r.04 "vlastných
+    // výrobkov" and r.05 "služieb". Matching only the combined wording summed
+    // r.03 alone on 699, so a services company reported no revenue at all.
+    // A row matched by two patterns is counted once (see extractIndicators).
     {
         key: "revenue",
         label: "Tržby",
         table: "vzas",
         match: [
             /^Tržby z predaja tovaru/i,
-            /^Tržby z predaja vlastných výrobkov a služieb/i,
+            /^Tržby z predaja vlastných výrobkov/i,
+            /^Tržby z predaja služieb/i,
         ],
     },
     {
@@ -137,22 +144,23 @@ export function extractIndicators(report, template) {
         if (!reportKinds.has(def.table))
             continue; // indicator belongs to a different report
         let sum = null;
-        let firstRow = null;
+        const rows = [];
         if (hasData) {
             for (const p of paired) {
                 if (p.kind !== def.table || !p.report)
                     continue;
                 const idx = buildRowIndex(p.template);
                 const col = currentColumn(p.template);
+                const used = new Set();
                 for (const re of def.match) {
                     const row = idx.matchByLabel(re);
-                    if (!row)
+                    if (!row || used.has(row.position))
                         continue;
+                    used.add(row.position);
                     const v = cellValue(p.report, p.template, row.position, col);
                     if (v !== null) {
                         sum = (sum ?? 0) + v;
-                        if (firstRow === null)
-                            firstRow = row.cisloRiadku;
+                        rows.push(row.cisloRiadku);
                     }
                 }
             }
@@ -161,7 +169,8 @@ export function extractIndicators(report, template) {
             key: def.key,
             label: def.label,
             value: hasData ? sum : null,
-            cisloRiadku: firstRow,
+            cisloRiadku: rows[0] ?? null,
+            rows,
             available: hasData && sum !== null,
         });
     }
@@ -185,20 +194,39 @@ export function extractIndicators(report, template) {
  * label regexes have anything to match, so even a VÚ POD filing that did carry
  * cells could not be read without a per-template row-number map.
  */
-export function attachmentHintFor(templateName) {
-    const name = (templateName ?? "").toLowerCase();
+export function attachmentHintFor(templateNames) {
+    const names = (Array.isArray(templateNames) ? templateNames : [templateNames ?? ""]).map((n) => n.toLowerCase());
+    const any = (pred) => names.some(pred);
     const base = "Použi ruz_list_attachments + ruz_download_attachment a čítaj PDF.";
-    if (name.includes("vybraných údajov") || name.includes("vu pod") || name.includes("vú pod")) {
+    // A statement often bundles several reports (e.g. VÚ POD + IFRS + auditor's
+    // report). The financial statement itself decides the reason, so IFRS wins.
+    if (any(isIfrs)) {
+        return ("IFRS závierka — RÚZ pre ňu nezverejňuje štruktúrovaný obsah, preto sú všetky ukazovatele " +
+            `available: false (nie sú to nuly). ${base}`);
+    }
+    if (any(isVuPod)) {
         return ("Výkaz vybraných údajov (VÚ POD) nemá v RÚZ zverejnený štruktúrovaný obsah " +
             "a jeho riadky nie sú pomenované, takže ukazovatele z neho nemožno odvodiť. " + base);
     }
-    if (name.includes("ifrs")) {
-        return `IFRS závierka — RÚZ pre ňu nezverejňuje štruktúrovaný obsah. ${base}`;
-    }
-    if (name.includes("audítor") || name.includes("auditor") || name.includes("správa")) {
+    if (names.length > 0 && names.every((n) => n !== "" && isAncillary(n))) {
         return `Ide o správu, nie o výkaz — štruktúrované dáta neobsahuje. ${base}`;
     }
     return `Štruktúrované dáta nie sú pre túto závierku v RÚZ dostupné. ${base}`;
+}
+const NON_PUBLIC_HINT = "Výkazy tejto závierky sú v neverejnej časti RÚZ (pristupnostDat: Neverejné) — register nezverejňuje " +
+    "ani čísla, ani PDF prílohy.";
+const isIfrs = (n) => n.includes("ifrs");
+const isVuPod = (n) => n.includes("vybraných údajov") || n.includes("vu pod") || n.includes("vú pod");
+/** Reports that accompany a statement but carry no figures of their own. */
+const isAncillary = (n) => n.includes("audítor") || n.includes("auditor") || n.includes("správa") ||
+    n.includes("oznámenie") || n.includes("poznámky");
+/** Name the statement's main report when none of them carries figures. */
+function mainTemplateName(names) {
+    const lower = (n) => n.toLowerCase();
+    return (names.find((n) => isIfrs(lower(n))) ??
+        names.find((n) => isVuPod(lower(n))) ??
+        names.find((n) => !isAncillary(lower(n))) ??
+        names[0]);
 }
 function yearFromPeriod(s) {
     const p = s.obdobieDo ?? s.obdobieOd ?? "";
@@ -211,11 +239,16 @@ export function assembleYear(stmt, reports) {
     // Seed every key so the response shape never depends on the template.
     const all = emptyIndicators();
     let anyStructured = false;
-    let templateName;
+    // Templates the figures were read from (2009–2013 filings split súvaha and
+    // výsledovka into two reports). Taking the first report's template labelled
+    // Alza's Úč POD figures as "Správa audítora".
+    const sourceTemplates = [];
+    const templateNames = [];
     for (const { report, template } of reports) {
         if ((report.obsah?.tabulky?.length ?? 0) > 0)
             anyStructured = true;
-        templateName = templateName ?? template.nazov;
+        if (template.nazov)
+            templateNames.push(template.nazov);
         for (const ind of extractIndicators(report, template)) {
             // Keep the first available value per key; otherwise keep the placeholder.
             const existing = all.find((x) => x.key === ind.key);
@@ -223,9 +256,15 @@ export function assembleYear(stmt, reports) {
                 all.push(ind);
             else if (!existing.available && ind.available) {
                 Object.assign(existing, ind);
+                if (template.nazov && !sourceTemplates.includes(template.nazov))
+                    sourceTemplates.push(template.nazov);
             }
         }
     }
+    // RÚZ keeps some reports in its non-public part (pristupnostDat "Neverejné"):
+    // neither figures nor attachments are published, so pointing at the PDF
+    // would send the caller to an empty list.
+    const allNonPublic = reports.length > 0 && reports.every(({ report }) => report.pristupnostDat === "Neverejné");
     // Derived: leverage = liabilities / assets.
     const liabilities = all.find((x) => x.key === "liabilities");
     const assets = all.find((x) => x.key === "assets");
@@ -239,10 +278,19 @@ export function assembleYear(stmt, reports) {
         year: yearFromPeriod(stmt),
         periodOd: stmt.obdobieOd,
         periodDo: stmt.obdobieDo,
+        statementId: stmt.id,
+        typ: stmt.typ,
+        datumPodania: stmt.datumPodania,
+        datumSchvalenia: stmt.datumSchvalenia,
         consolidated: stmt.konsolidovana ?? false,
-        templateName,
+        templateName: sourceTemplates.length > 0 ? sourceTemplates.join(" + ") : mainTemplateName(templateNames),
+        templateNames,
         structuredDataAvailable: anyStructured,
-        attachmentHint: anyStructured ? undefined : attachmentHintFor(templateName),
+        attachmentHint: anyStructured
+            ? undefined
+            : allNonPublic
+                ? NON_PUBLIC_HINT
+                : attachmentHintFor(templateNames),
         indicators: all,
     };
 }
