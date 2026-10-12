@@ -5,7 +5,7 @@
     {
       "name": "crz",
       "repository": "Omni-Legal-Products/mcp-crz",
-      "commit": "f4cc8bf0c4560f3ee50205dd9f7452b415197ffa",
+      "commit": "d733296b3b22abdf3650e6c152accd11657e5e60",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },

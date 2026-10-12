@@ -24,14 +24,39 @@ na konečných užívateľov výhod RPVS a na právny predpis Slov-Lex.
 
 ## Odporúčaný postup
 
-1. `crz_search` zúži vec, obdobie a strany.
+1. `crz_search` zúži vec, obdobie a strany. Ďalšiu stranu pýtaj s
+   `page: next_page` **a** `offset: next_offset`.
 2. `crz_get_contract` overí metadáta a identitu záznamu.
 3. `crz_contract_to_markdown` načíta podporovaný text a upozornenia.
-4. `crz_extract_clauses` vyberie relevantné ustanovenia.
+4. `crz_extract_clauses` vyberie relevantné ustanovenia; prečítaj `warnings`.
 5. `crz_find_similar_contracts` rozšíri porovnávaciu vzorku.
 
-Na monitoring použi `crz_recent`, ulož `max_id` a pri ďalšej kontrole ho odovzdaj
-do `crz_whats_new` ako `since_id`.
+Zmluvy subjektu: `crz_search` s `ico` (obe strany zmluvy). Len jedna strana:
+`ico_dodavatel` alebo `ico_objednavatel`.
+
+Na monitoring použi `crz_recent`, ulož `max_datum` a pri ďalšej kontrole ho
+odovzdaj do `crz_whats_new` ako `since_date`; duplicity odfiltruj podľa id.
+Pri `truncated: true` zúž filter alebo zvýš `max_pages`.
+
+## Pasce
+
+- **Chýbajúca kategória v `crz_extract_clauses` neznamená, že zmluva také
+  ustanovenie nemá.** Heuristika triedi podľa nadpisov článkov; `warnings`
+  hovorí, ktoré kategórie nenašla a či text obsahuje napríklad „zmluvnú
+  pokutu“ mimo rozpoznaného nadpisu.
+- **`since_id` samo nezaručí úplnosť.** CRZ triedi podľa dátumu zverejnenia a
+  id nie sú pridelené v poradí zverejnenia. Spoľahlivý vodoznak je
+  `since_date`; `complete: true` dostaneš len s ním. `truncated: true`
+  znamená neúplný výsledok, nie „nič nové“.
+- **`ico` sa pýta na obe strany** (dodávateľ aj objednávateľ) a zdvojnásobí
+  počet dopytov na CRZ. Riadok hovorí v `ico_zhoda`, kde IČO sedí. Strana N
+  je zlúčená strana N oboch dopytov (až 40 riadkov, zoradené podľa dátumu).
+- **Dátumy** `YYYY-MM-DD` alebo `DD.MM.YYYY`; iný zápis vráti chybu (nikdy sa
+  ticho nevypne filter).
+- **Počet strán CRZ neuvádza.** `total_pages_hint` je len vtedy, keď je
+  presný; inak `total_pages_at_least` (dolná hranica okna stránkovania).
+- **Dodatky a stav zmluvy** parser zatiaľ nečíta ako samostatné polia; ak ich
+  CRZ zobrazí, objavia sa v `ine_polia` a vo `warnings`.
 
 ## Bezpečné používanie výsledkov
 
