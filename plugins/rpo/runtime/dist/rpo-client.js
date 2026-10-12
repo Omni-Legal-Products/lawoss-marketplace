@@ -218,11 +218,69 @@ function terminationNote(d) {
     }
     return `${base} Názov a sídlo sú posledné zapísané hodnoty, platné do nameValidTo/addressValidTo.`;
 }
+/**
+ * RPO occasionally repeats a deposit as a byte-identical record: ESET (IČO
+ * 31333532) carried one partner's 30 800 EUR deposit twice, so the deposits
+ * summed to 170 800 EUR against a 140 000 EUR capital, while ORSR lists it
+ * once. An s.r.o. partner holds a single share, so an identical repeat is a
+ * source artefact; it is counted once and the merge is reported, not hidden.
+ */
+function dedupeDeposits(deposits) {
+    const seen = new Set();
+    const out = [];
+    for (const x of deposits) {
+        const key = JSON.stringify([x.name, x.amount, x.currency, x.validFrom, x.validTo]);
+        if (seen.has(key))
+            continue;
+        seen.add(key);
+        out.push(x);
+    }
+    return { deposits: out, removed: deposits.length - out.length };
+}
+/** Compare valid deposits with the valid registered capital; undefined when they agree or cannot be compared. */
+function depositMismatch(deposits, equities) {
+    const open = deposits.filter((x) => !x.validTo && typeof x.amount === "number");
+    const capital = equities.filter((e) => !e.validTo && typeof e.value === "number");
+    if (open.length === 0 || capital.length !== 1)
+        return undefined;
+    const { value, currency } = capital[0];
+    if (open.some((x) => x.currency !== currency))
+        return undefined;
+    const sum = open.reduce((acc, x) => acc + x.amount, 0);
+    if (Math.abs(sum - value) < 0.01)
+        return undefined;
+    return `Súčet platných vkladov (${round2(sum)} ${currency}) nesúhlasí so základným imaním ` +
+        `(${round2(value)} ${currency}) — údaj RPO je neúplný alebo nekonzistentný, over ho v ORSR.`;
+}
+function round2(n) {
+    return (Math.round(n * 100) / 100).toString();
+}
+function joinNotes(...notes) {
+    const present = notes.filter((n) => Boolean(n));
+    return present.length > 0 ? present.join(" ") : undefined;
+}
 export function normalizeSearch(res) {
     return (res.results ?? []).map(toSummaryView);
 }
 /** Map a full /entity/{id} detail record into a structured, current-resolved view. */
 export function toDetailView(d) {
+    const equities = (d.equities ?? []).map((e) => defined({
+        value: e.value,
+        valuePaid: e.valuePaid,
+        currency: e.currency?.code ?? e.currency?.value,
+        validFrom: e.validFrom,
+        validTo: e.validTo,
+    }));
+    const { deposits, removed } = dedupeDeposits((d.deposits ?? []).map((x) => defined({
+        name: x.personName?.formatedName ?? x.fullName,
+        amount: x.amount,
+        currency: x.currency?.code ?? x.currency?.value,
+        validFrom: x.validFrom,
+        validTo: x.validTo,
+    })));
+    const depositNote = joinNotes(removed > 0
+        ? `RPO uvádza ${removed === 1 ? "1 vklad" : `${removed} vklady`} dvakrát ako totožný záznam; v 'deposits' je každý raz.`
+        : undefined, depositMismatch(deposits, equities));
     const statutoryBodies = (d.statutoryBodies ?? []).map((s) => ({
         name: s.personName?.formatedName ?? s.companyName,
         role: s.stakeholderType?.value,
@@ -270,13 +328,7 @@ export function toDetailView(d) {
             validTo: s.validTo,
         })),
         authorizations: (d.authorizations ?? []).map(dated),
-        equities: (d.equities ?? []).map((e) => defined({
-            value: e.value,
-            valuePaid: e.valuePaid,
-            currency: e.currency?.code ?? e.currency?.value,
-            validFrom: e.validFrom,
-            validTo: e.validTo,
-        })),
+        equities,
         shares: (d.shares ?? []).map((s) => defined({
             type: s.shareType?.value,
             form: s.shareForm,
@@ -287,20 +339,14 @@ export function toDetailView(d) {
             validFrom: s.validFrom,
             validTo: s.validTo,
         })),
-        deposits: (d.deposits ?? []).map((x) => defined({
-            name: x.personName?.formatedName ?? x.fullName,
-            amount: x.amount,
-            currency: x.currency?.code ?? x.currency?.value,
-            validFrom: x.validFrom,
-            validTo: x.validTo,
-        })),
+        deposits,
         otherLegalFacts: (d.otherLegalFacts ?? []).map(dated),
         predecessors: d.predecessors.map(toRelatedEntity),
         successors: d.successors.map(toRelatedEntity),
         mainActivity: d.statisticalCodes?.mainActivity?.value,
         esa2010: d.statisticalCodes?.esa2010?.value,
         dbModificationDate: d.dbModificationDate,
-        ...defined({ note: terminationNote(d) }),
+        ...defined({ note: joinNotes(terminationNote(d), depositNote) }),
     };
 }
 function toRelatedEntity(r) {

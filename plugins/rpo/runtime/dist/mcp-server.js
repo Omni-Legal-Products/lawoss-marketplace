@@ -8,7 +8,7 @@ export function createRpoMcpServer() {
     const client = new RpoClient();
     const server = new McpServer({
         name: "rpo-mcp",
-        version: "0.2.0",
+        version: "0.2.1",
     });
     // -- rpo_search ----------------------------------------------------------
     const searchInputSchema = {

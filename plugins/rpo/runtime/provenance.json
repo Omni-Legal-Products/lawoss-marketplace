@@ -1,17 +1,17 @@
 {
   "repository": "Omni-Legal-Products/mcp-rpo",
-  "commit": "53033548a30a105e45b8a5a883632f420612581b",
+  "commit": "3a0231cbb9b594d9adda08c640d3b345635d6169",
   "configSha256": "136a442920a0a4b827ae56bb2bb8a3c8a595df38073fcd198c0cfe9bea47a151",
   "files": {
     "LICENSE": "e817eae564f66f52a13c3cf26d530f096b92c58c250459c6d0737c932064f6c0",
-    "dist/mcp-server.js": "cffbfb74061307389ff44b2679b3c1d4613a80ec0a8ffdf2ca0d2ea4ecef6f6b",
+    "dist/mcp-server.js": "ec3a104afd35677c02904c05263f82ddc24d0800316f0997c5dfab3e4916459c",
     "dist/ranking.js": "ebf1465a3c765f184a94f8076ac19995cec5f53bd3b6f8ca0cc89bf12cf1a322",
     "dist/redaction.js": "9363a3dafdaf2d9a040a76a273cd949f72c912980e7706b9cba85aa05df99fa4",
-    "dist/rpo-client.js": "28498de892aa2107bf40d5e7fa08563184577c58f171e933a0e775c9dd700231",
+    "dist/rpo-client.js": "7acb780402e74fdd41e205b981e11d66329c1df3de9c1151456cec1d4267eb2d",
     "dist/scalars.js": "1e28a01ed1bc7427204641e4d8ae2c6f67a2c5c01a1ca9de63cc4d653ff07f7d",
     "dist/server.js": "2a924e0843a4a23ee1652705592868931d441f83c9d9708b6f4c6955b5fece37",
     "dist/types.js": "f27d088e7ea57790e1dcd94ba5508bbe55bec69c5e6ae1e48126069a212ff346",
-    "package-lock.json": "4a0842d604c869ae8f3f74a9e08b38ff68026097edad25714af5cf913a1eaf31",
-    "package.json": "dcf85fac9b156d63dfe50c379d0c9f6ba03ebd94b9b04b8de4eb4434a17d1721"
+    "package-lock.json": "243e5ae8f3ff9c7ad8e9151a0826bc74fe5b243e70a29bd18d3b07ee4dc87685",
+    "package.json": "d819a5c83a4027e9626ba6db07a0b132645f50015531a63eb1014975788a55ab"
   }
 }
