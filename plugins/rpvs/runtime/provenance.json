@@ -1,16 +1,16 @@
 {
   "repository": "Omni-Legal-Products/mcp-rpvs",
-  "commit": "baaae3d0c980991f945687bdfa203b4b5b74c382",
+  "commit": "ef900abda5dd3dca2c3991c62df87b8bcc5b1cde",
   "configSha256": "e3f1ea720838af98d93a45dd7c465d09d58bca079cabe1697327619c2c72bbf6",
   "files": {
     "LICENSE": "23b4190bffe915190350e98723ab3fb71d88fdfbafc9863c818b710ab72840e8",
     "dist/history.js": "57afee7f13452ef73ddf834a9621c8b0408c5769d9878a6bf6a92411cea7a4b7",
-    "dist/mcp-server.js": "3da3a6039fe98e6b13727a2a7d466cb9659160d0614ae339b18755655067eb15",
+    "dist/mcp-server.js": "dd79f63b50d9df2fdd19029d22fc2b5aea481f9908dc181d17ab6b7e8aa2c146",
     "dist/redaction.js": "9bf14fda16633fdd4aecb90027d7b293c0449d15e9ace4c9b3170107e80774ca",
-    "dist/rpvs-client.js": "719dabcde926f4573ac9fea677e9810549e653aeef90feacc7e5b55637ad29f2",
+    "dist/rpvs-client.js": "399df61fc4a345aa81b41a910e8826393875329e8959711a990a2325a7fac01b",
     "dist/server.js": "9ebc557bc743e88fb5ab32b36bb5d26bf077a24ec5629c1555a802c9c6466e25",
-    "dist/types.js": "19b468a7a4425bc6b5a318773c1e29d521c4e711155452e08c9a3bc2055ef55f",
-    "package-lock.json": "a42a41e5c0eb259c7c972f8dee9deeb2f6489567e7b038f64713a4c2ae9496e9",
-    "package.json": "be0244278f905b4f563841e33bf03006c8fde75d64deacabda8f158b28a95b54"
+    "dist/types.js": "821f91fc6575aa66721e1eecc874d5b07f0b0947bcdc326c1656771dc257312e",
+    "package-lock.json": "8522535cfdfb4ebf4991861efca57e30870c2d725d13bb93d758bfebbaefaac6",
+    "package.json": "bb9f73a15db12c1c96446832a8be482348f4dc1d08cdbacd324791bcfb4e023a"
   }
 }
