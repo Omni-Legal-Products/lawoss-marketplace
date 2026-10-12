@@ -4,8 +4,7 @@
 // priamo v JSON tela odpovede).
 import { z } from "zod";
 import { looseBoolean, looseNumber } from "./scalars.js";
-import { ecbVekUpozornenie, vypocitajUrok } from "../domain/urok.js";
-import { daysBetween, todayIso } from "../domain/dates.js";
+import { vypocitajUrok } from "../domain/urok.js";
 import { vypocitajTrovy } from "../domain/trovy.js";
 import { vypocitajSudnyPoplatok, zoznamPoloziek } from "../domain/poplatky.js";
 import { vypocitajTrovyExekucie } from "../domain/exekucia.js";
@@ -111,9 +110,7 @@ export function registerTools(server, tablesFn = getTables) {
         inputSchema: {
             polozkaId: z.string().optional().describe("ID položky sadzobníka (povinné)."),
             hodnotaSporu: looseNumber(z.number().nonnegative()).optional().describe("Hodnota sporu v EUR — vyžaduje sa pri percentuálnych položkách."),
-            obchodnaVec: looseBoolean()
-                .optional()
-                .describe("Či ide o obchodnú vec (obchodnoprávny spor, napr. B2B) — pri položke 1a zvyšuje strop poplatku z 25 000 € na 50 000 €. Nejde o konanie vo veciach registra."),
+            obchodnaVec: looseBoolean().optional().describe("Či ide o vec obchodného registra (ovplyvňuje maximálnu sadzbu)."),
             epodanie: looseBoolean().optional().describe("Či bol návrh podaný elektronicky (nárok na zľavu, ak nie je vylúčená)."),
             instancia: z
                 .enum(["odvolanie", "dovolanie", "kasacnaStaznost"])
@@ -144,30 +141,18 @@ export function registerTools(server, tablesFn = getTables) {
                 .describe("Výška vymáhaného nároku ku dňu vydania poverenia na vykonanie exekúcie (limit odmeny podľa § 197 ods. 1 EP)."),
             zastavene: looseBoolean()
                 .optional()
-                .describe("Či ide o zastavenie exekúcie (aj pri vymožené = 0). Plná náhrada paušálnych výdavkov patrí, len ak dôvod ukončenia nenastal do uplynutia lehoty na podanie návrhu na zastavenie s odkladným účinkom — inak zadaj aj inyDovodUkonceniaVLehote: true (50 %, § 22 ods. 2)."),
-            inyDovodUkonceniaVLehote: looseBoolean()
-                .optional()
-                .describe("Či do uplynutia lehoty na podanie návrhu na zastavenie exekúcie s odkladným účinkom nastal iný dôvod na ukončenie exekúcie — paušálne výdavky potom 50 % (§ 22 ods. 2 vyhl. 68/2017 Z. z.)."),
-            datumPlnenia: z
-                .string()
-                .optional()
-                .describe("Dátum plnenia (dodania služby exekútora), YYYY-MM-DD — určuje sadzbu DPH (do 31. 12. 2024 20 %, od 1. 1. 2025 23 %). Ak chýba, použije sa dnešná sadzba a pri konaní začatom pred 2025 príde warning."),
+                .describe("Či ide o zastavenie exekúcie — pri zastavení patrí plná náhrada paušálnych výdavkov aj pri vymožené = 0."),
         },
     }, (input) => wrap("trovy_exekucie", () => vypocitajTrovyExekucie(input, tablesFn())));
     server.registerTool("sadzby_info", {
         title: "Sadzby a snapshoty dát",
         description: "Audit tabuliek sadzieb: záznamy ECB, roky výpočtového základu a snapshoty (verzia, zdroj, dátum) všetkých " +
-            "dátových tabuliek použitých kalkulačkami — na overenie, z akých dát bol výpočet urobený. ecbVekDni a " +
-            "upozornenia[] hlásia, ak je tabuľka ECB staršia než 14 dní.",
+            "dátových tabuliek použitých kalkulačkami — na overenie, z akých dát bol výpočet urobený.",
         inputSchema: {},
     }, () => wrap("sadzby_info", () => {
         const tables = tablesFn();
-        const dnes = todayIso();
-        const upozornenie = ecbVekUpozornenie(tables.ecb, dnes);
         return {
             ecb: tables.ecb,
-            ecbVekDni: dnes > tables.ecb.coverage.to ? daysBetween(tables.ecb.coverage.to, dnes) : 0,
-            upozornenia: upozornenie ? [upozornenie] : [],
             vypoctovyZaklad: tables.vypoctovyZaklad,
             snapshoty: [
                 tables.ecb.snapshot,

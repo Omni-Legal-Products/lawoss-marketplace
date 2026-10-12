@@ -1,8 +1,8 @@
 {
-  "version": "2026-10-12",
-  "fetchedAt": "2026-10-12",
-  "source": "zak. 71/1992 Zb. o sudnych poplatkoch, znenie ucinne od 17. 8. 2026 (novela zak. 29/2026 Z. z.) - § 6, § 7, § 7a, § 11c a Sadzobnik (priloha c. 1) - https://static.slov-lex.sk/static/SK/ZZ/1992/71/20260817.html",
-  "_comment": "Sadzobnik (Priloha zakona) nie je dostupny cez slov-lex MCP get_version (vracia iba paragrafy). Povodne bol overeny doslovnou citaciou z www.zakonypreludi.sk a hranicnym testom starsieho znenia (znenie-20230701 vs znenie-20240401). 2026-10-09 (audit K2) bol porovnany s konsolidovanymi zneniami Slov-Lex 20260612 (novela 69/2026 Z. z.) a 20260817 (novela 29/2026 Z. z.): polozky 1, 6, 7a a 13 a § 6, § 7a, § 11c sa nezmenili; zmenila sa polozka 17 a pribudli 17b a 17c (vyrez je v tests/fixtures/sadzobnik-polozka-17.json). Historicke znenia nie su v tomto subore modelovane - hodnoty su AKTUALNE k 2026-10-12.",
+  "version": "2026-08-06",
+  "fetchedAt": "2026-08-06",
+  "source": "zak. 71/1992 Zb. o sudnych poplatkoch, znenie ucinne od 12. 6. 2026 (§ 6, § 7, § 7a, § 11c) - slov-lex MCP; Sadzobnik sudnych poplatkov (Priloha) - https://www.zakonypreludi.sk/zz/1992-71",
+  "_comment": "Sadzobnik (Priloha zakona) nie je dostupny cez slov-lex MCP get_version (vracia iba paragrafy), preto bol overeny doslovnou citaciou z www.zakonypreludi.sk a hranicnym testom starsieho znenia (znenie-20230701 vs znenie-20240401). Hodnoty su AKTUALNE k 2026-08-06; historicke znenia nie su v tomto subore modelovane.",
   "zaklad": {
     "zaokruhlenie": "naCeleEuroNadol",
     "zaklad": "§ 7 ods. 11 zak. 71/1992 Zb.: 'Zaklad poplatku sa zaokruhluje na cele euro nadol.'"
@@ -23,7 +23,7 @@
     ],
     "neuplatniSa": [
       "poplatky vyberane v exekucnom konani (§ 6 ods. 5)",
-      "poplatky v konaniach vo veciach obchodneho registra (§ 6 ods. 5)",
+      "poplatky vo veciach obchodneho registra (§ 6 ods. 5)",
       "poplatky urcene za pocet zacatych stran, ak sa ukon vykonava v elektronickej podobe (§ 6 ods. 4)",
       "poplatok za navrh na vydanie platobneho rozkazu v upominacom konani (§ 11c ods. 1)"
     ],
@@ -130,7 +130,7 @@
     },
     {
       "id": "17a1",
-      "nazov": "Obchodny register (registracia) - z navrhu na prvozapis akciovej spolocnosti",
+      "nazov": "Obchodny register - z navrhu na prvy zapis akciovej spolocnosti",
       "vypocet": { "typ": "pevnaSuma", "suma": 550 },
       "citacia": "polozka 17 pism. a) bod 1 sadzobnika: '550 eur'",
       "epodanieVylucene": true,
@@ -138,7 +138,7 @@
     },
     {
       "id": "17a2",
-      "nazov": "Obchodny register (registracia) - z navrhu na prvozapis inych pravnickych osob",
+      "nazov": "Obchodny register - z navrhu na prvy zapis inych pravnickych osob",
       "vypocet": { "typ": "pevnaSuma", "suma": 220 },
       "citacia": "polozka 17 pism. a) bod 2 sadzobnika: '220 eur'",
       "epodanieVylucene": true,
@@ -146,7 +146,7 @@
     },
     {
       "id": "17a3",
-      "nazov": "Obchodny register (registracia) - z navrhu na prvozapis organizacnej zlozky podniku pravnickej osoby",
+      "nazov": "Obchodny register - z navrhu na prvy zapis organizacnej zlozky podniku pravnickej osoby",
       "vypocet": { "typ": "pevnaSuma", "suma": 220 },
       "citacia": "polozka 17 pism. a) bod 3 sadzobnika: '220 eur'",
       "epodanieVylucene": true,
@@ -154,7 +154,7 @@
     },
     {
       "id": "17a4",
-      "nazov": "Obchodny register (registracia) - z navrhu na prvozapis podniku alebo organizacnej zlozky podniku zahranicnej osoby",
+      "nazov": "Obchodny register - z navrhu na prvy zapis podniku alebo organizacnej zlozky podniku zahranicnej osoby",
       "vypocet": { "typ": "pevnaSuma", "suma": 220 },
       "citacia": "polozka 17 pism. a) bod 4 sadzobnika: '220 eur'",
       "epodanieVylucene": true,
@@ -177,45 +177,20 @@
       "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.). Poznamka 1 k polozke 17: v jednom poplatku je zahrnuty akykolvek pocet navrhov na zapis zmeny alebo doplnenie udajov tykajucich sa jednej zapisanej osoby obsiahnutych v jednom navrhu. Poznamky 4-7: poplatok sa neplati napr. pri doplneni/zmene udajov o konecnom uzivatelovi vyhod alebo pri zmene priezviska po uzavreti manzelstva."
     },
     {
-      "id": "17-kvalifikovane-namietky",
-      "nazov": "Obchodny register - za podanie kvalifikovanych namietok",
-      "vypocet": { "typ": "pevnaSuma", "suma": 50 },
-      "citacia": "polozka 17 sadzobnika (bez pismena, za pism. c)): 'Za podanie kvalifikovanych namietok 50 eur'",
-      "epodanieVylucene": true,
-      "_comment": "Nova sadzba v zneni zak. 29/2026 Z. z. (od 17. 8. 2026); v konsolidovanom texte nema pismenove oznacenie. Je pod nadpisom polozky 17 'V konaniach vo veciach obchodneho registra' -> e-zlava sa NEUPLATNI (§ 6 ods. 5)."
-    },
-    {
-      "id": "17-kvalifikovany-podnet",
-      "nazov": "Obchodny register - za podanie kvalifikovaneho podnetu na vseobecne zosuladenie udajov",
-      "vypocet": { "typ": "pevnaSuma", "suma": 50 },
-      "citacia": "polozka 17 sadzobnika (bez pismena, za pism. c)): 'Za podanie kvalifikovaneho podnetu na vseobecne zosuladenie udajov 50 eur'",
-      "epodanieVylucene": true,
-      "_comment": "Nova sadzba v zneni zak. 29/2026 Z. z. (od 17. 8. 2026); v konsolidovanom texte nema pismenove oznacenie. Je pod nadpisom polozky 17 'V konaniach vo veciach obchodneho registra' -> e-zlava sa NEUPLATNI (§ 6 ods. 5)."
-    },
-    {
       "id": "17d",
-      "nazov": "Veci pravnickych osob - z navrhu akcionara na poverenie na zvolanie valneho zhromazdenia (polozka 17b pism. a))",
+      "nazov": "Obchodny register - z navrhu akcionara na poverenie na zvolanie valneho zhromazdenia",
       "vypocet": { "typ": "pevnaSuma", "suma": 140 },
-      "citacia": "polozka 17b pism. a) sadzobnika v zneni zak. 29/2026 Z. z. (od 17. 8. 2026): '140 eur'",
+      "citacia": "polozka 17 pism. d) sadzobnika: '140 eur'",
       "epodanieVylucene": true,
-      "epodanieNejasne": "Od 17. 8. 2026 (zak. 29/2026 Z. z.) je tento poplatok v samostatnej Polozke 17b 'V konaniach vo veciach pravnickych osob', nie v polozke 17 'V konaniach vo veciach obchodneho registra'. § 6 ods. 5 vylucuje e-zlavu len v konaniach vo veciach obchodneho registra; kalkulacka drzi doterajsi konzervativny vyklad (bez zlavy) - ci sa vylucenie uplatni, je pravna otazka.",
-      "_comment": "Id '17d' zostava kvoli spatnej kompatibilite (do 16. 8. 2026 polozka 17 pism. d)). Rozhodnutie o predvolenom vyklade e-zlavy: konzervativne bez zlavy + warning (pouzivatel 2026-10-09)."
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
     },
     {
       "id": "17e",
-      "nazov": "Veci pravnickych osob - z navrhu na predlzenie lehoty pred vymazom obchodnej spolocnosti alebo druzstva (polozka 17b pism. b))",
+      "nazov": "Obchodny register - z navrhu na predlzenie lehoty pred vymazom obchodnej spolocnosti alebo druzstva",
       "vypocet": { "typ": "pevnaSuma", "suma": 140 },
-      "citacia": "polozka 17b pism. b) sadzobnika v zneni zak. 29/2026 Z. z. (od 17. 8. 2026): '140 eur'",
+      "citacia": "polozka 17 pism. e) sadzobnika: '140 eur'",
       "epodanieVylucene": true,
-      "epodanieNejasne": "Od 17. 8. 2026 (zak. 29/2026 Z. z.) je tento poplatok v samostatnej Polozke 17b 'V konaniach vo veciach pravnickych osob', nie v polozke 17 'V konaniach vo veciach obchodneho registra'. § 6 ods. 5 vylucuje e-zlavu len v konaniach vo veciach obchodneho registra; kalkulacka drzi doterajsi konzervativny vyklad (bez zlavy) - ci sa vylucenie uplatni, je pravna otazka.",
-      "_comment": "Id '17e' zostava kvoli spatnej kompatibilite (do 16. 8. 2026 polozka 17 pism. e)). Rozhodnutie o predvolenom vyklade e-zlavy: konzervativne bez zlavy + warning (pouzivatel 2026-10-09)."
-    },
-    {
-      "id": "17c-namietka-zaujatosti",
-      "nazov": "Za vznesenie namietky zaujatosti stranou alebo ucastnikom",
-      "vypocet": { "typ": "pevnaSuma", "suma": 100 },
-      "citacia": "polozka 17c sadzobnika v zneni zak. 29/2026 Z. z. (od 17. 8. 2026): '100 eur'",
-      "_comment": "Do 16. 8. 2026 to bola polozka 17a. Id '17c' v tomto subore oznacuje polozku 17 pism. c), preto ma tato polozka samostatne id."
+      "_comment": "Zlava za e-podanie sa vo veciach obchodneho registra NEUPLATNI (§ 6 ods. 5 zak. 71/1992 Zb.)."
     }
   ],
   "neoverene": [

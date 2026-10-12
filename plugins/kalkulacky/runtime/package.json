@@ -1,7 +1,7 @@
 {
   "name": "kalkulacky-sk-mcp",
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -15,7 +15,6 @@
     "start:http": "node dist/src/server-http.js",
     "refresh:rates": "tsx scripts/refresh-rates.ts",
     "refresh:rates:prod": "node dist/scripts/refresh-rates.js",
-    "refresh:rates:repo": "tsx scripts/refresh-rates.ts --repo",
     "smoke:http": "tsx scripts/smoke-http.ts",
     "smoke:http:prod": "node dist/scripts/smoke-http.js"
   },
