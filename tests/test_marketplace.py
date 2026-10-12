@@ -46,7 +46,7 @@ class MarketplaceValidationTest(unittest.TestCase):
         self.assertEqual(codex["name"], "lawoss")
         self.assertEqual(codex["interface"], {"displayName": "LAWOSS Marketplace"})
         ledger = json.loads((ROOT / "releases.json").read_text())
-        self.assertEqual(len(codex["plugins"]), 16)
+        self.assertEqual(len(codex["plugins"]), 17)
         self.assertEqual(
             set(plugin["name"] for plugin in codex["plugins"]),
             set(record["name"] for record in ledger["releases"]) | set(record["name"] for record in ledger["inRepoSkills"]),

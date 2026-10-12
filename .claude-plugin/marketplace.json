@@ -179,6 +179,17 @@
       "tags": [
         "lawoss-category:general"
       ]
+    },
+    {
+      "name": "zrsr",
+      "source": "./plugins/zrsr",
+      "description": "Živnostenský register SR: skill pre samostatne pripojený MCP, bez pribaleného servera.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk"
+      ]
     }
   ]
 }

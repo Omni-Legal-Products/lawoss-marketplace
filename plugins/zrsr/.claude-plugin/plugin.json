@@ -1,0 +1,10 @@
+{
+  "name": "zrsr",
+  "version": "0.1.0",
+  "description": "Živnostenský register SR: skill pre samostatne pripojený MCP, bez pribaleného servera.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}
