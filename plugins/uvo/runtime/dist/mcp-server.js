@@ -2,10 +2,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import packageJson from "../package.json" with { type: "json" };
 import { looseNumber } from "./scalars.js";
-import { DEFAULT_UVO_BASE_URL, MAX_PAGES, MAX_ROWS, MAX_TEXT_FIELD_BYTES, UvoClient, UvoSourceError } from "./uvo-client.js";
+import { DEFAULT_UVO_BASE_URL, MAX_PAGES, MAX_ROWS, MAX_SEARCH_PAGE, MAX_TEXT_FIELD_BYTES, UvoClient, UvoSourceError } from "./uvo-client.js";
 import { createRequestRateLimiter } from "./rate-limiter.js";
 import { safeError, safeLog } from "./redaction.js";
 import { uvoGetNoticeInputSchema, uvoSearchInputSchema } from "./types.js";
+/** Rows per source page used by uvo_get_contracting_authority (verified live 2026-10-12: limit=50). */
+const AUTHORITY_PAGE_SIZE = 50;
 export function createUvoMcpServer(options = {}) {
     const client = options.client ?? new UvoClient();
     const canonicalOrigin = client.canonicalOrigin ?? DEFAULT_UVO_BASE_URL;
@@ -18,7 +20,7 @@ export function createUvoMcpServer(options = {}) {
         throw new UvoSourceError("UVO_HTTP", "MCP request rate limit exceeded."); };
     server.registerTool("uvo_search", {
         title: "UVO Search",
-        description: "Vyhľadá verejné zákazky v oficiálnom zdroji ÚVO. Výsledok je technický výpis verejného zdroja, nie právny záver; truncated a warnings určujú limity úplnosti.",
+        description: "Vyhľadá verejné zákazky v oficiálnom zdroji ÚVO (20 riadkov na stranu, ďalšia strana cez page). resultCount je celkový počet záznamov podľa zdroja, returnedCount počet riadkov strany. contractType: TOVARY, SLUZBY, PRACE, SUHRNY (staré tovary/sluzby/stavebne prace sa mapujú). Výpadok zdroja je chyba, nie prázdny výsledok. Výsledok je technický výpis verejného zdroja, nie právny záver; truncated a warnings určujú limity úplnosti.",
         inputSchema: uvoSearchInputSchema,
     }, async (args) => {
         try {
@@ -32,7 +34,7 @@ export function createUvoMcpServer(options = {}) {
     });
     server.registerTool("uvo_get_notice", {
         title: "UVO Notice Detail",
-        description: "Načíta verejný HTML detail oznámenia z oficiálneho zdroja ÚVO podľa číselného noticeId; sourceUrl je kanonická verejná adresa.",
+        description: "Načíta verejný HTML detail oznámenia z oficiálneho zdroja ÚVO podľa číselného noticeId: klasické formuláre (formFamily=classic) aj eForms (formFamily=eforms). estimatedValue je predpokladaná hodnota, finalValue konečná hodnota oznámenia o výsledku, awardedTo úspešný uchádzač (klasické formuláre). Chýbajúce pole a warnings over na sourceUrl, kanonickej verejnej adrese.",
         inputSchema: uvoGetNoticeInputSchema,
     }, async (args) => {
         try {
@@ -47,7 +49,7 @@ export function createUvoMcpServer(options = {}) {
     });
     server.registerTool("uvo_get_contracting_authority", {
         title: "UVO Contracting Authority",
-        description: "Stránkuje verejné zákazky podľa presne osemmiestneho IČO. Najviac 20 strán a 2 000 riadkov; truncated vždy oznamuje, že zdroj môže obsahovať ďalšie výsledky.",
+        description: "Stránkuje verejné zákazky podľa presne osemmiestneho IČO po 50 riadkoch, najviac 20 strán; contractCount je celkový počet zákaziek podľa zdroja, contracts najnovších limit zákaziek. truncated vždy oznamuje, že zdroj obsahuje ďalšie výsledky.",
         inputSchema: {
             ico: z.string().min(1).max(32).describe("IČO, presne 8 ASCII číslic."),
             limit: looseNumber(z.number().int().min(1).max(MAX_ROWS)).optional().describe("Maximum vrátených riadkov, 1 až 2 000."),
@@ -86,12 +88,12 @@ function validateSearchArgs(args) {
 function searchEnvelope(result, retrievedAt, canonicalOrigin) {
     const results = result.results.map((row) => sanitizeRow(row, canonicalOrigin));
     const resultCount = boundedCount(result.resultCount, results.length);
-    const page = boundedPage(result.page ?? result.pagination.page);
+    const page = boundedPage(result.page ?? result.pagination.page, MAX_SEARCH_PAGE);
     const pagination = sanitizePagination(result.pagination, page);
     const truncated = Boolean(result.truncated || pagination.hasNext || resultCount > results.length);
     return {
         ok: true, source: "UVO", retrievedAt: retrievedAt.toISOString(), sourceValidated: true,
-        results, resultCount, pagination, page, pageSize: boundedPageSize(result.pageSize), truncated,
+        results, resultCount, returnedCount: results.length, pagination, page, pageSize: boundedPageSize(result.pageSize), truncated,
         truncationReason: truncated ? boundedString(result.truncationReason ?? "source_has_more_rows") : null,
         warnings: (result.warnings ?? []).map((warning) => boundedString(warning)),
     };
@@ -102,21 +104,32 @@ function noticeEnvelope(detail, retrievedAt, canonicalOrigin) {
         nuts: optionalString(detail.contractingAuthority.nuts), country: optionalString(detail.contractingAuthority.country), email: optionalString(detail.contractingAuthority.email),
         url: optionalString(detail.contractingAuthority.url), authorityType: optionalString(detail.contractingAuthority.authorityType), mainActivity: optionalString(detail.contractingAuthority.mainActivity),
     });
-    const estimated = detail.subject.estimatedValue;
-    if (estimated && estimated.amount !== null && !Number.isFinite(estimated.amount))
-        throw new UvoSourceError("UVO_SCHEMA", "UVO estimated value is invalid.");
     const subject = compact({
         title: optionalString(detail.subject.title), referenceNumber: optionalString(detail.subject.referenceNumber), mainCpv: optionalString(detail.subject.mainCpv),
+        mainCpvLabel: optionalString(detail.subject.mainCpvLabel),
         additionalCpv: detail.subject.additionalCpv.slice(0, 256).map((value) => boundedString(value)), shortDescription: optionalString(detail.subject.shortDescription),
-        estimatedValue: estimated ? { amount: estimated.amount, currency: estimated.currency === null ? null : boundedString(estimated.currency), vat: estimated.vat === null ? null : boundedString(estimated.vat) } : undefined,
-        placeNuts: optionalString(detail.subject.placeNuts),
+        estimatedValue: money(detail.subject.estimatedValue), finalValue: money(detail.subject.finalValue),
+        placeNuts: optionalString(detail.subject.placeNuts), placeNutsLabel: optionalString(detail.subject.placeNutsLabel),
     });
+    const awardedTo = detail.awardedTo?.slice(0, 256).map((operator) => compact({
+        name: optionalString(operator.name), ico: optionalString(operator.ico), address: optionalString(operator.address), country: optionalString(operator.country),
+    }));
+    if (detail.formFamily !== "classic" && detail.formFamily !== "eforms")
+        throw new UvoSourceError("UVO_SCHEMA", "UVO notice form family is invalid.");
     const notice = compact({
-        noticeId: validateNoticeId(detail.noticeId), noticeCode: optionalString(detail.noticeCode), vestnikNumber: optionalString(detail.vestnikNumber),
-        publishedDate: optionalString(detail.publishedDate), noticeType: optionalString(detail.noticeType), procedureType: optionalString(detail.procedureType), contractType: optionalString(detail.contractType),
-        contractingAuthority: authority, subject, relatedZakazkaId: optionalString(detail.relatedZakazkaId), sourceUrl: canonicalNoticeUrl(detail.sourceUrl, detail.noticeId, canonicalOrigin),
+        noticeId: validateNoticeId(detail.noticeId), formFamily: detail.formFamily, noticeCode: optionalString(detail.noticeCode), vestnikNumber: optionalString(detail.vestnikNumber),
+        publishedDate: optionalString(detail.publishedDate), noticeType: optionalString(detail.noticeType), noticeSubtype: optionalString(detail.noticeSubtype),
+        procedureType: optionalString(detail.procedureType), contractType: optionalString(detail.contractType),
+        contractingAuthority: authority, subject, awardedTo, relatedZakazkaId: optionalString(detail.relatedZakazkaId), sourceUrl: canonicalNoticeUrl(detail.sourceUrl, detail.noticeId, canonicalOrigin),
     });
-    return { ok: true, source: "UVO", retrievedAt: retrievedAt.toISOString(), sourceValidated: true, notice, warnings: [] };
+    return { ok: true, source: "UVO", retrievedAt: retrievedAt.toISOString(), sourceValidated: true, notice, warnings: (detail.warnings ?? []).map((warning) => boundedString(warning)) };
+}
+function money(value) {
+    if (!value)
+        return undefined;
+    if (value.amount !== null && !Number.isFinite(value.amount))
+        throw new UvoSourceError("UVO_SCHEMA", "UVO estimated value is invalid.");
+    return { amount: value.amount, currency: value.currency === null ? null : boundedString(value.currency), vat: value.vat === null ? null : boundedString(value.vat) };
 }
 async function authorityEnvelope(client, ico, limit, now, canonicalOrigin) {
     const requestedLimit = Math.min(limit, MAX_ROWS);
@@ -124,10 +137,13 @@ async function authorityEnvelope(client, ico, limit, now, canonicalOrigin) {
     let page = 1;
     let sourceCount = 0;
     let sourceComplete = false;
-    let pagination = { page: 1, hasNext: false, nextParam: null };
+    let pagination = { page: 1, hasNext: false, nextParam: null, totalPages: null };
+    const warnings = new Set();
     while (page <= MAX_PAGES && rows.size < requestedLimit && rows.size < MAX_ROWS) {
-        const result = await client.search({ ico, page });
+        const result = await client.search({ ico, page, pageSize: AUTHORITY_PAGE_SIZE });
         sourceCount = Math.max(sourceCount, boundedCount(result.resultCount, result.results.length));
+        for (const warning of result.warnings ?? [])
+            warnings.add(boundedString(warning));
         pagination = sanitizePagination(result.pagination, page);
         for (const row of result.results) {
             const safe = sanitizeRow(row, canonicalOrigin);
@@ -153,7 +169,7 @@ async function authorityEnvelope(client, ico, limit, now, canonicalOrigin) {
         else
             truncationReason = "source_has_more_rows";
     }
-    return { ok: true, source: "UVO", retrievedAt: now().toISOString(), sourceValidated: true, ico, contracts, contractCount: sourceCount, pagination, returnedCount: contracts.length, truncated, truncationReason, warnings: [] };
+    return { ok: true, source: "UVO", retrievedAt: now().toISOString(), sourceValidated: true, ico, contracts, contractCount: sourceCount, pagination, returnedCount: contracts.length, truncated, truncationReason, warnings: [...warnings] };
 }
 function sanitizeRow(row, canonicalOrigin) {
     if (!/^\d+$/.test(row.zakazkaId) || (row.authorityProfileId && !/^\d+$/.test(row.authorityProfileId)))
@@ -187,9 +203,12 @@ function sanitizePagination(value, expectedPage) {
     if (value.page !== expectedPage || typeof value.hasNext !== "boolean")
         throw new UvoSourceError("UVO_SCHEMA", "UVO pagination is invalid.");
     const nextParam = value.nextParam;
-    if ((value.hasNext && nextParam !== `pageNo=${expectedPage + 1}`) || (!value.hasNext && nextParam !== null))
+    if ((value.hasNext && nextParam !== `page=${expectedPage + 1}`) || (!value.hasNext && nextParam !== null))
         throw new UvoSourceError("UVO_SCHEMA", "UVO pagination is invalid.");
-    return { page: expectedPage, hasNext: value.hasNext, nextParam };
+    const totalPages = value.totalPages ?? null;
+    if (totalPages !== null && (!Number.isSafeInteger(totalPages) || totalPages < 1))
+        throw new UvoSourceError("UVO_SCHEMA", "UVO pagination is invalid.");
+    return { page: expectedPage, hasNext: value.hasNext, nextParam, totalPages };
 }
 function validateNoticeId(value) { if (!/^[1-9]\d{0,15}$/.test(value))
     throw new UvoSourceError("UVO_SCHEMA", "UVO notice identifier is invalid."); return value; }
@@ -200,7 +219,7 @@ function boundedString(value) { if (typeof value !== "string")
 function optionalString(value) { return value === undefined ? undefined : boundedString(value); }
 function boundedCount(value, minimum) { if (!Number.isSafeInteger(value) || value < minimum)
     throw new UvoSourceError("UVO_SCHEMA", "UVO source count is invalid."); return value; }
-function boundedPage(value) { if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PAGES)
+function boundedPage(value, maximum = MAX_PAGES) { if (!Number.isSafeInteger(value) || value < 1 || value > maximum)
     throw new UvoSourceError("UVO_SCHEMA", "UVO source page is invalid."); return value; }
 function boundedPageSize(value) { if (!Number.isSafeInteger(value) || value < 0 || value > MAX_ROWS)
     throw new UvoSourceError("UVO_SCHEMA", "UVO source page size is invalid."); return value; }
