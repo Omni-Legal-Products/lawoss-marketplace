@@ -1,6 +1,6 @@
 {
   "repository": "Omni-Legal-Products/mcp-judikaty-sk",
-  "commit": "5889b7296859a347242a9cf89cf996e2058557c1",
+  "commit": "72ddb64454c35e72cabc75dbee249e90e42512b6",
   "configSha256": "3656934325781457cc00a73ccdaa981d5df1292279f57a9c87727ec806a74fdb",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
@@ -60,7 +60,7 @@
     "dist/src/providers/ustavny/mapper.js": "01e98bb7bfc84b522527d888b6a6a6d2a5724eef48306d0a4d3e3991e56b0c8f",
     "dist/src/providers/ustavny/provider.js": "8ac9703a2b98a98e9d1548b58f0f27f82681a86b63d94c76ed857a5b1a0cea79",
     "dist/src/providers/ustavny/schemas.js": "30297c384613028647d91890a7ab3ee5eca173a1d8b5935f53748489396d14c9",
-    "dist/src/server/config.js": "043e788b6f817919023f6a513de9c8a599d3a6e294e8730c9959383ade23dbd9",
+    "dist/src/server/config.js": "1481f84aab923c4a736b1a37e28d7754ad14cd72fbdc77f424fa0a264552d316",
     "dist/src/server/factory.js": "bc83eec3278fe9bd74d0e02ece270c096ce82392f6f692a7525a7a18da79818f",
     "dist/src/server/index.js": "e1f063c3a887512c0322116159ac5ba90f6468ec23bccde1041d29bf8dee0588",
     "dist/src/server/node-version.js": "9b5461d7f1e824e8f86a4b9d652a7e286fed33b345807d8760caece1cf9c5d2e",
@@ -107,7 +107,7 @@
     "dist/src/tools/search-decisions.js": "4691965ab054ec9c32f73799056bdea5a9f9261ae6c6ccb60aa0338c54938a04",
     "dist/src/tools/treatment-index-stats.js": "42238b33ed5c7fdd56e1f483ed414456231154ad490b6986e47bbca11f9a0ecb",
     "dist/src/tools/whole-decision-tool-payload.js": "79821342bb90b84e0acb2dafafc019bf8342da5544e76afc084177bc3a8cc068",
-    "package-lock.json": "b36cea70eb1b96d10ee4f45278ff5627010bbf33f1c210f118bb5cb36a864e4b",
-    "package.json": "8cfb86cb47088d5865a63f2a0ccdfb3fd68370318ccfff33ab0feac9fa98f108"
+    "package-lock.json": "1fa08f50e24ecf17f577ce485352cd618313b24fe69ecde68b5306b07a3d2505",
+    "package.json": "4a11fb6919cadf03b0c55b44a48bc745a710aab0573ee74eda40c9a7d779ef09"
   }
 }
