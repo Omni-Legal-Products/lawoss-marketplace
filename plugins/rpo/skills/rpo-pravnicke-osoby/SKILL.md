@@ -89,6 +89,10 @@ Server je iba na čítanie.
   bývalých členov orgánov, dozornej rady, prokuristov aj zrušené činnosti — pri
   Slovenských elektrárňach okolo 180 kB JSON (bez histórie okolo 30 kB). Pýtaj
   si ju, len keď otázka naozaj stojí na priebehu zmien.
+- **Vklady v RPO nemusia sedieť s imaním.** RPO niekedy zopakuje vklad ako
+  totožný záznam (ESET: 7 záznamov na 6 spoločníkov). Server totožný záznam
+  započíta raz a v `note` to uvedie; ak súčet platných vkladov ani tak nesedí
+  so základným imaním, `note` to povie — vtedy ber vklady z ORSR.
 - **HTTP 5xx neznamená automaticky široký dopyt.** Môže ísť aj o výpadok
   registra; „nenašlo sa“ z chybovej odpovede netvrď.
 
