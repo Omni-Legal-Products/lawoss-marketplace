@@ -31,7 +31,15 @@ over, výpočet ide priamo do žaloby.
 1. **Na vyčíslenie:** volaj priamo daný nástroj (`urok_z_omeskania`,
    `trovy_pravneho_zastupenia`, `sudny_poplatok`, `trovy_exekucie`) s presnými dátumami.
 2. **Na overenie tabuliek:** `sadzby_info` pred tým, než sa výsledok použije v podaní —
-   ukáže verziu a dátum dát, z ktorých výpočet vychádza.
+   ukáže verziu a dátum dát, z ktorých výpočet vychádza; `ecbVekDni` a `upozornenia[]`
+   povedia, či je tabuľka ECB staršia než 14 dní (najmä lokálne stdio a tímové vydanie,
+   ktoré nemajú produkčný refresh).
+3. **Trovy exekúcie pri zastavení:** vždy zadaj `inyDovodUkonceniaVLehote` (true = dôvod
+   ukončenia nastal do uplynutia lehoty na návrh na zastavenie → paušál 50 %, § 22 ods. 2).
+   Pri `platitelDph` zadaj `datumPlnenia` — DPH bola do 31. 12. 2024 20 %, od 2025 23 %.
+4. **Úrok 2009 – 1/2013 so `sposob: "najvyhodnejsi"`:** polročný spôsob (§ 3 ods. 2
+   nar. vl. 87/1995) sa vyberie len ak sa sadzba ECB počas omeškania zmenila; pozri
+   `alternativy[].podmienkaZmenyEcbSplnena`.
 
 ## Pasce
 
@@ -42,11 +50,23 @@ over, výpočet ide priamo do žaloby.
   a dátum tabuliek).** Oboje patrí do podania spolu s výsledkom — inak sa výpočet
   nedá spätne overiť.
 - **Sadzobník súdnych poplatkov pokrýva len najčastejšie položky**, nie celú prílohu
-  zákona.
+  zákona, a len znenie od 17. 8. 2026 (zák. 29/2026 Z. z.).
+- **Id položky ≠ číslo položky sadzobníka.** `17b` = položka 17 písm. b) (zmena právnej
+  formy), kým `17d`/`17e` sú od 17. 8. 2026 **Položka 17b** písm. a)/b) sadzobníka (VZ
+  akcionára, predĺženie lehoty pred výmazom). Do podania cituj `citacia` z výstupu, nie id.
+- **E-zľava pri `17d`/`17e` je sporná.** Nástroj vráti 140 € bez zľavy (konzervatívne)
+  a vo `warnings` uvedie, že pri opačnom výklade § 6 ods. 5 by to bolo 90 € — rozhodni
+  vedome.
+- **Varovanie o ECB berie do úvahy dátum, ku ktorému sa sadzba hľadá.** Ak warning hovorí,
+  že tabuľka pokrýva len do určitého dňa, výsledok môže byť nesprávny — over sadzbu ECB.
+- **`trovy_exekucie` bez `datumPlnenia` počíta DPH dnešnou sadzbou** a pri konaní
+  začatom pred 2025 to hlási vo `warnings`; bez `inyDovodUkonceniaVLehote` pri zastavení
+  počíta plný paušál s warningom.
 - **Detekcia cestovného a náhrady za stratu času v trovách je heuristika** nad
   voliteľným textovým poľom `druh` — pri nevyplnenom poli upozornenie nepríde.
 - **Právne konštanty sa menia len commitom**, nie automatickým refreshom; refresh
-  aktualizuje iba priebežné sadzby (napr. ECB).
+  aktualizuje iba priebežné sadzby (napr. ECB). Lokálne vydanie nemá automatický
+  refresh — sadzby ECB sú také, aké má vydanie; sleduj `upozornenia[]` v `sadzby_info`.
 - **E-zľava pod zákonné minimum poplatku je interpretácia projektu**, nie doslovné
   znenie predpisu — zákon interakciu zľavy s minimom nerieši. Zdokumentované v
   README (Známe limity) a golden test presne tento prípad počíta (12,50 € z
