@@ -54,7 +54,7 @@
     {
       "name": "orsr",
       "repository": "Omni-Legal-Products/mcp-orsr",
-      "commit": "e2901bea9baaf574d5a834256d918604717a7dca",
+      "commit": "d31637dd2ad4a5e8b14ef1ab202663f08acddedb",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
