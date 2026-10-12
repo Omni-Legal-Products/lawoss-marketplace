@@ -1539,11 +1539,19 @@ const RELATION_COLUMNS = "id, source_provider, source_id, source_ref, source_ref
     "target_ref, target_ref_norm, relation, disposition, target_date, confidence, extracted_at, " +
     "disposition_updated_at";
 /**
- * Before-images of every row the justice orientation repair changed or deleted, keyed
- * by repair run, so an applied repair can be undone exactly. For an update, `after_*`
- * holds the columns the repair wrote; every other column it left as logged. Rollback
- * restores a row only while it still matches that post-repair state. Created on first
- * use by the repair itself: ordinary server start-up never touches the schema for it.
+ * Before-images of every row a relation repair changed or deleted, keyed by repair run,
+ * so an applied repair can be undone exactly. For an update, `after_*` holds the
+ * columns the repair wrote; every other column it left as logged. Rollback restores a
+ * row only while it still matches that post-repair state. Created on first use by the
+ * repair itself: ordinary server start-up never touches the schema for it.
+ *
+ * The justice orientation repair writes the five reference columns (`after_source_ref`
+ * .. `after_target_ref_norm`, any of which may legitimately be NULL). The outcome
+ * re-extraction (`applyRelationOutcomeChanges`) also writes `after_disposition` and
+ * `after_confidence`; NULL there means "not changed, compare with the before-image".
+ * Those two columns were added after the table already existed in production, so they
+ * are added in place when missing: ADD COLUMN with a NULL default only rewrites the
+ * schema, never the table.
  */
 function ensureRelationRepairLog(db) {
     db.exec(`CREATE TABLE IF NOT EXISTS decision_relations_repair_log (
@@ -1557,6 +1565,8 @@ function ensureRelationRepairLog(db) {
        after_source_court TEXT,
        after_target_ref TEXT,
        after_target_ref_norm TEXT,
+       after_disposition TEXT,
+       after_confidence REAL,
        id INTEGER NOT NULL,
        source_provider TEXT NOT NULL,
        source_id TEXT NOT NULL,
@@ -1575,6 +1585,22 @@ function ensureRelationRepairLog(db) {
      );
      CREATE INDEX IF NOT EXISTS idx_relations_repair_log_run
        ON decision_relations_repair_log(repair_run, log_id);`);
+    const columns = new Set(db.prepare("PRAGMA table_info(decision_relations_repair_log)").all().map((column) => column.name));
+    for (const [name, type] of [
+        ["after_disposition", "TEXT"],
+        ["after_confidence", "REAL"]
+    ]) {
+        if (columns.has(name))
+            continue;
+        try {
+            db.exec(`ALTER TABLE decision_relations_repair_log ADD COLUMN ${name} ${type};`);
+        }
+        catch (error) {
+            // Another job process added it between the check and the ALTER.
+            if (!(error instanceof Error && /duplicate column/i.test(error.message)))
+                throw error;
+        }
+    }
 }
 /**
  * Like `runInTransaction`, but takes the write lock up front (BEGIN IMMEDIATE), so a
@@ -1695,6 +1721,8 @@ export async function pruneJusticeRelations(rows, repairRun) {
 /**
  * Undo one page of a repair run, newest log entry first: each logged row is put back
  * exactly as it was (same id and columns), whether the repair updated or deleted it.
+ * Serves every pass that logs into `decision_relations_repair_log`: the justice
+ * orientation repair and prune, and the outcome re-extraction.
  *
  * Newer data always wins. An updated row that no longer matches what the repair left
  * (the disposition enricher found its outcome, the indexer upserted it, it was
@@ -1703,7 +1731,7 @@ export async function pruneJusticeRelations(rows, repairRun) {
  * is counted as a conflict. Both are left for a human. Dry run (apply false) only
  * counts. Restored entries are stamped, so a finished rollback has nothing left to do.
  */
-export async function rollbackJusticeAppellateRepairBatch(input) {
+export async function rollbackRelationRepairBatch(input) {
     const handle = await getHandle();
     ensureRelationRepairLog(handle.db);
     const entries = handle.db
@@ -1723,6 +1751,9 @@ export async function rollbackJusticeAppellateRepairBatch(input) {
         return result;
     // The row exactly as the repair left it: `after_*` for what it wrote, the logged
     // before-image for every column it did not touch. `IS` compares NULLs as equal.
+    // Disposition and confidence fall back to the before-image when their `after_*` is
+    // NULL (every justice repair entry); the reference columns never do, because the
+    // justice repair may legitimately have written NULL there (e.g. an unknown court).
     const unchanged = handle.db.prepare(`SELECT 1 FROM decision_relations d
      JOIN decision_relations_repair_log l ON l.log_id = ?
      WHERE d.id = l.id
@@ -1730,8 +1761,8 @@ export async function rollbackJusticeAppellateRepairBatch(input) {
        AND d.source_ref IS l.after_source_ref AND d.source_ref_norm IS l.after_source_ref_norm
        AND d.source_court IS l.after_source_court AND d.target_ref IS l.after_target_ref
        AND d.target_ref_norm IS l.after_target_ref_norm AND d.target_court IS l.target_court
-       AND d.relation IS l.relation AND d.disposition IS l.disposition
-       AND d.target_date IS l.target_date AND d.confidence IS l.confidence
+       AND d.relation IS l.relation AND d.disposition IS COALESCE(l.after_disposition, l.disposition)
+       AND d.target_date IS l.target_date AND d.confidence IS COALESCE(l.after_confidence, l.confidence)
        AND d.extracted_at IS l.extracted_at AND d.disposition_updated_at IS l.disposition_updated_at`);
     const idTaken = handle.db.prepare("SELECT 1 FROM decision_relations WHERE id = ?");
     const clash = handle.db.prepare(`SELECT 1 FROM decision_relations
@@ -1765,6 +1796,150 @@ export async function rollbackJusticeAppellateRepairBatch(input) {
     else
         restore();
     return result;
+}
+/** The name the justice repair has always used; same function. */
+export const rollbackJusticeAppellateRepairBatch = rollbackRelationRepairBatch;
+const reextractStatements = new WeakMap();
+/**
+ * Prepared once per connection: the diagnostic visits hundreds of thousands of sources.
+ * Takes the database explicitly so the read-only diagnostic can run it against a copy.
+ */
+function reextractStatementsFor(db) {
+    const cached = reextractStatements.get(db);
+    if (cached)
+        return cached;
+    let newestLabel;
+    try {
+        newestLabel = db.prepare(`SELECT role, role_confidence, outcome, outcome_confidence
+       FROM relation_model_labels
+       WHERE source_provider = ? AND source_id = ? AND target_ref_norm = ?
+       ORDER BY labelled_at DESC, label_run DESC
+       LIMIT 1`);
+    }
+    catch (error) {
+        if (!(error instanceof Error && /no such table/i.test(error.message)))
+            throw error;
+        newestLabel = null;
+    }
+    const statements = {
+        // Walks idx_relations_source(source_provider, source_id) in order.
+        listSources: db.prepare(`SELECT source_id FROM decision_relations
+       WHERE source_provider = ? AND source_id > ? AND disposition <> 'ine'
+       GROUP BY source_id ORDER BY source_id LIMIT ?`),
+        // Justice: only outcomes the text enricher wrote; the rest came from portal metadata.
+        listJusticeSources: db.prepare(`SELECT source_id FROM decision_relations
+       WHERE source_provider = 'justice' AND source_id > ? AND disposition <> 'ine'
+         AND disposition_updated_at IS NOT NULL
+       GROUP BY source_id ORDER BY source_id LIMIT ?`),
+        sourceRows: db.prepare(`SELECT id, target_ref_norm, disposition, confidence, source_ref, disposition_updated_at
+       FROM decision_relations WHERE source_provider = ? AND source_id = ? ORDER BY id`),
+        newestLabel,
+        nsudText: db.prepare("SELECT text FROM decisions WHERE id = ?"),
+        providerText: db.prepare("SELECT text FROM provider_texts WHERE provider = ? AND id = ?")
+    };
+    reextractStatements.set(db, statements);
+    return statements;
+}
+/**
+ * One keyset page of source ids that have at least one stored outcome (a justice
+ * outcome only when the text enricher wrote it), in source_id order.
+ */
+export function selectReextractSources(db, input) {
+    const statements = reextractStatementsFor(db);
+    const rows = (input.provider === "justice"
+        ? statements.listJusticeSources.all(input.afterSourceId, input.limit)
+        : statements.listSources.all(input.provider, input.afterSourceId, input.limit));
+    return rows.map((row) => row.source_id);
+}
+/** Every stored relation of one source, mentions included, with its newest label. */
+export function selectReextractSourceRows(db, provider, sourceId) {
+    const statements = reextractStatementsFor(db);
+    const rows = statements.sourceRows.all(provider, sourceId);
+    return rows.map((row) => {
+        // Mentions are never re-evaluated, so their labels are not looked up.
+        const label = row.disposition === "ine" || !statements.newestLabel
+            ? undefined
+            : statements.newestLabel.get(provider, sourceId, row.target_ref_norm);
+        return {
+            id: row.id,
+            targetRefNorm: row.target_ref_norm,
+            disposition: row.disposition,
+            confidence: row.confidence,
+            sourceRef: row.source_ref,
+            dispositionUpdatedAt: row.disposition_updated_at,
+            label: label
+                ? {
+                    role: label.role,
+                    roleConfidence: label.role_confidence,
+                    outcome: label.outcome,
+                    outcomeConfidence: label.outcome_confidence
+                }
+                : null
+        };
+    });
+}
+/**
+ * The stored text a source's relations were extracted from: NS `decisions.text`,
+ * otherwise the provider's `provider_texts` row, whatever it holds. Null when none.
+ */
+export function selectReextractSourceText(db, provider, sourceId) {
+    const statements = reextractStatementsFor(db);
+    const row = (provider === "nsud" ? statements.nsudText.get(sourceId) : statements.providerText.get(provider, sourceId));
+    return row?.text ?? null;
+}
+export async function listReextractSources(input) {
+    const handle = await getHandle();
+    return selectReextractSources(handle.db, input);
+}
+export async function readReextractSourceRows(provider, sourceId) {
+    const handle = await getHandle();
+    return selectReextractSourceRows(handle.db, provider, sourceId);
+}
+export async function readReextractSourceText(provider, sourceId) {
+    const handle = await getHandle();
+    return selectReextractSourceText(handle.db, provider, sourceId);
+}
+/**
+ * Write re-extracted outcomes in one immediate transaction, logging each row's
+ * before-image under `repairRun` first, so `rollbackRelationRepairBatch` restores it.
+ *
+ * Only `disposition` and `confidence` change. `target_court`, `extracted_at` and
+ * `disposition_updated_at` stay as they are: a fresh timestamp would make the weekly
+ * report list thousands of old rows as new outcomes. The log entry's reference
+ * `after_*` columns copy the row's current values (they are not changed, and copying
+ * keeps a NULL `source_ref` exact), `after_disposition`/`after_confidence` the new ones.
+ *
+ * A row is written only while it still has the provider, target, disposition and
+ * confidence the planner read; the check is the log insert's own WHERE, so nothing is
+ * logged or written on stale data, and such a row is counted as `changedOrDisappeared`.
+ */
+export async function applyRelationOutcomeChanges(changes, repairRun) {
+    const counts = { appliedIds: [], changedOrDisappeared: 0 };
+    if (changes.length === 0)
+        return counts;
+    const handle = await getHandle();
+    ensureRelationRepairLog(handle.db);
+    const logRow = handle.db.prepare(`INSERT INTO decision_relations_repair_log
+       (repair_run, action, logged_at, after_source_ref, after_source_ref_norm, after_source_court,
+        after_target_ref, after_target_ref_norm, after_disposition, after_confidence, ${RELATION_COLUMNS})
+     SELECT ?, 'update', ?, source_ref, source_ref_norm, source_court, target_ref, target_ref_norm, ?, ?,
+            ${RELATION_COLUMNS}
+     FROM decision_relations
+     WHERE id = ? AND source_provider = ? AND target_ref_norm = ? AND disposition = ? AND confidence = ?`);
+    const update = handle.db.prepare("UPDATE decision_relations SET disposition = ?, confidence = ? WHERE id = ?");
+    const loggedAt = new Date().toISOString();
+    runInImmediateTransaction(handle.db, () => {
+        for (const change of changes) {
+            const logged = logRow.run(repairRun, loggedAt, change.newDisposition, change.newConfidence, change.id, change.sourceProvider, change.targetRefNorm, change.oldDisposition, change.oldConfidence);
+            if (Number(logged.changes) !== 1) {
+                counts.changedOrDisappeared += 1;
+                continue;
+            }
+            update.run(change.newDisposition, change.newConfidence, change.id);
+            counts.appliedIds.push(change.id);
+        }
+    });
+    return counts;
 }
 /** relation_scan_log key recording that the orientation repair re-fetched a decision. */
 export const JUSTICE_REFETCH_SCAN_PROVIDER = "justice-refetch";

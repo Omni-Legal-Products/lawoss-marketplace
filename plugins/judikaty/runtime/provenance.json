@@ -1,6 +1,6 @@
 {
   "repository": "Omni-Legal-Products/mcp-judikaty-sk",
-  "commit": "69b0b94c6220237b5aa735a3d946f45917caf3f7",
+  "commit": "20d3c7ff54ddd70c6a7538831fdd39fa3bfbc38e",
   "configSha256": "3656934325781457cc00a73ccdaa981d5df1292279f57a9c87727ec806a74fdb",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
@@ -48,7 +48,7 @@
     "dist/src/providers/nsud/form-decision-ingest.js": "c4b955124232bd79ddfbd598eb00fd40304361f7dc784c1d2667f598a916b3c8",
     "dist/src/providers/nsud/form-decision-store.js": "0de8f0e1510773d139f5c0bf21bdbef806f8207de21a849f387560765551847b",
     "dist/src/providers/nsud/fts-queries.js": "01cdd0eed827dba4b126be6e2a19acc006578e2bc449975f767140b42af7c072",
-    "dist/src/providers/nsud/law-index-store.js": "2ac6fba0b1b710aac4aa0283aab64effb68b0f2119e80f9ed79ea0497e51702c",
+    "dist/src/providers/nsud/law-index-store.js": "ee41f38e6e5680a2a6533785d642ff37901a016daba96934479bfea40cb83697",
     "dist/src/providers/nsud/mapper.js": "d137d4ba9ff02d90ea0d17ea9feb2ba68f77a66238dd3f623bfde2696992a566",
     "dist/src/providers/nsud/provider.js": "4e6c64cf0e048ce1c5eea809eed9127e2a786a7723bd3c549b6293acea3067c9",
     "dist/src/providers/nsud/query-worker-client.js": "74421256e4772dbacbaf3506a41d7a1cc99665d25c035f22e019b7c1f077e5bd",
@@ -108,7 +108,7 @@
     "dist/src/tools/search-decisions.js": "4691965ab054ec9c32f73799056bdea5a9f9261ae6c6ccb60aa0338c54938a04",
     "dist/src/tools/treatment-index-stats.js": "42238b33ed5c7fdd56e1f483ed414456231154ad490b6986e47bbca11f9a0ecb",
     "dist/src/tools/whole-decision-tool-payload.js": "79821342bb90b84e0acb2dafafc019bf8342da5544e76afc084177bc3a8cc068",
-    "package-lock.json": "9da86f62e549a00f68e73324665e0a8481a110f94f5e992e49fa2e6bb7da365a",
-    "package.json": "7d227cabe9474618e0c6f576a17a7b00390a6992c54fee89dac50e96a874f276"
+    "package-lock.json": "a13617f347571247f05c2ee066cb5c7ad019de4355f5027c4e57eaeffee8e51b",
+    "package.json": "79de96329f3e198eab72a02f42d7b4380e0ae743b066af4e45704da3789ab2ca"
   }
 }
