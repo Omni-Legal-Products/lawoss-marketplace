@@ -31,7 +31,7 @@
       "name": "disq",
       "source": "./plugins/disq",
       "description": "Diskvalifikácie osôb: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -42,7 +42,7 @@
       "name": "eurlex-celex",
       "source": "./plugins/eurlex-celex",
       "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.1",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:general",
@@ -130,7 +130,7 @@
       "name": "ru",
       "source": "./plugins/ru",
       "description": "Register úpadcov: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -141,7 +141,7 @@
       "name": "ruz",
       "source": "./plugins/ruz",
       "description": "Register účtovných závierok: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -152,7 +152,7 @@
       "name": "slovlex",
       "source": "./plugins/slovlex",
       "description": "Slov-Lex – právne predpisy SR: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -163,7 +163,7 @@
       "name": "uvo",
       "source": "./plugins/uvo",
       "description": "Verejné obstarávanie – ÚVO: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",

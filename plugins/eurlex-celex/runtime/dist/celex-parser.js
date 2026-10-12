@@ -27,9 +27,19 @@ export function parseCelex(celex) {
     const documentNumber = typeMatch[2];
     const suffix = typeMatch[3] || undefined;
     const sectorDescription = getSectorDescription(sector);
-    const documentTypeDescription = getDocTypeDescription(sector, documentType);
+    const knownType = getKnownDocTypeDescription(sector, documentType);
+    const documentTypeDescription = knownType ?? getDocTypeDescription(sector, documentType);
     const isConsolidated = sector === "0";
-    const humanReadable = buildHumanReadable(sector, year, documentType, documentNumber, documentTypeDescription, isConsolidated);
+    const corrigendum = suffix?.match(/^R\((\d+)\)$/);
+    const memberState = sector === "7" ? suffix?.match(/^([A-Z]{3})_/)?.[1] : undefined;
+    const warnings = knownType ? [] : [`Document type code "${documentType}" is not in the known CELEX code list for sector ${sector}; verify the number with eurlex_celex_validate.`];
+    let humanReadable = buildHumanReadable(sector, year, documentType, documentNumber, documentTypeDescription, isConsolidated);
+    if (sector === "7") {
+        humanReadable = `National measure${memberState ? ` of ${memberState}` : ""} transposing ${humanReadable}`;
+    }
+    if (corrigendum) {
+        humanReadable = `Corrigendum ${corrigendum[1]} to ${humanReadable}`;
+    }
     return {
         valid: true,
         parsed: {
@@ -42,7 +52,10 @@ export function parseCelex(celex) {
             documentNumber,
             suffix: suffix || undefined,
             isConsolidated,
+            ...(corrigendum ? { isCorrigendum: true } : {}),
+            ...(memberState ? { memberState } : {}),
             humanReadable,
+            ...(warnings.length ? { warnings } : {}),
         }
     };
 }
@@ -63,6 +76,15 @@ function getSectorDescription(sector) {
     };
     return map[sector] ?? `Sector ${sector}`;
 }
+function getKnownDocTypeDescription(sector, docType) {
+    if (sector === "6" || sector === "8")
+        return CELEX_CASE_LAW_TYPES[docType];
+    if (sector === "5")
+        return CELEX_PREP_TYPES[docType] ?? CELEX_ACT_TYPES[docType];
+    if (sector === "E")
+        return CELEX_EFTA_TYPES[docType];
+    return CELEX_ACT_TYPES[docType];
+}
 function getDocTypeDescription(sector, docType) {
     if (sector === "6" || sector === "8") {
         return CELEX_CASE_LAW_TYPES[docType] ?? `Case law document type ${docType}`;
@@ -81,10 +103,11 @@ function buildHumanReadable(sector, year, docType, docNumber, docTypeDesc, isCon
     // Case law: use case number format, not "No X/Year"
     if (sector === "6" || sector === "8") {
         const courtPrefix = docType.startsWith("C") ? "C-" : docType.startsWith("T") ? "T-" : docType.startsWith("F") ? "F-" : "";
-        return `${docTypeDesc} in Case ${courtPrefix}${num}/${year}`;
+        // Official case numbers use a two-digit year: C-362/14
+        return `${docTypeDesc} in Case ${courtPrefix}${num}/${year.slice(2)}`;
     }
     if (sector === "E") {
-        return `${docTypeDesc} — Case E-${num}/${year} (EFTA Court)`;
+        return `${docTypeDesc} — Case E-${num}/${year.slice(2)} (EFTA Court)`;
     }
     const prefix = isConsolidated ? "Consolidated " : "";
     return `${prefix}${docTypeDesc} No ${num}/${year}`;

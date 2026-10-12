@@ -1,7 +1,7 @@
 {
   "name": "eurlex-celex-mcp-server",
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for EUR-Lex/CELEX EU legislation database",
   "type": "module",
   "main": "dist/server.js",
@@ -12,7 +12,7 @@
     "prepare": "npm run build",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run tests/celex-parser.test.ts tests/eurlex-client.test.ts tests/catalog-contract.test.ts",
+    "test": "vitest run tests/celex-parser.test.ts tests/eurlex-client.test.ts tests/catalog-contract.test.ts tests/cellar-regression.test.ts tests/export-regression.test.ts",
     "test:live": "vitest run tests/eurlex-client.live.test.ts --reporter=verbose",
     "test:tools": "vitest run tests/tools.live.test.ts --reporter=verbose",
     "audit:production": "npm audit --omit=dev",

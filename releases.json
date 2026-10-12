@@ -19,14 +19,14 @@
     {
       "name": "disq",
       "repository": "Omni-Legal-Products/mcp-diskvalifikacie",
-      "commit": "3f941db176277ed2ae178ea8d43d6dda28679f64",
+      "commit": "b6d3d3033717af94d0fe876bcd64a3c479866df4",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
     {
       "name": "eurlex-celex",
       "repository": "Omni-Legal-Products/mcp-eurlex",
-      "commit": "466477ced88093e91d931da4ef9af10b613ac4f8",
+      "commit": "3c397229e0615e1d8c80a554c37ed7e07fd6c5a6",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
@@ -82,28 +82,28 @@
     {
       "name": "ru",
       "repository": "Omni-Legal-Products/mcp-register-upadcov",
-      "commit": "d8a3a47a9dc4636478a9b1c5de7979fdaff21e4e",
+      "commit": "fa3233cbd9414230b0ac076c09b4e40d322e2668",
       "branch": "codex/rollout-fix-ru",
       "distribution": "local-mcp-skill-cli"
     },
     {
       "name": "ruz",
       "repository": "Omni-Legal-Products/mcp-ruz",
-      "commit": "780624b04b7e0dd833ec657b8af29a4f5bdaa991",
+      "commit": "629e917b0db60fdc83f478cc40f42b1d591485bf",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
     {
       "name": "slovlex",
       "repository": "Omni-Legal-Products/mcp-slovlex",
-      "commit": "3a7686c07e904315c0ed9f1d2fe0ea4b482f5bad",
+      "commit": "bcc73f5dcc6d323600ecba72ddc61d18a77046eb",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
     {
       "name": "uvo",
       "repository": "Omni-Legal-Products/mcp-uvo",
-      "commit": "1f64371888d3d27f384b3faae61e37af732092bb",
+      "commit": "d0138206b55338fcc82e63b31b658430751ef55f",
       "branch": "codex/rollout-fix-uvo",
       "distribution": "local-mcp-skill-cli"
     }
