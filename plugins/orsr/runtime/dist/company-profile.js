@@ -1,25 +1,21 @@
+export const DATE_SEMANTICS = "od/do = obdobie platnosti zápisu v registri (dátum zápisu a výmazu), nie trvanie funkcie. " +
+    "Trvanie funkcie či účasti je v functionCreationDate (vznik) a functionTerminationDate (skončenie); " +
+    "null znamená, že register tento údaj neuvádza. registryDeletionRecord=true je výmazový záznam " +
+    "(od je deň po výmaze, do deň výmazu), funkcia v ňom skončila k functionTerminationDate.";
 export function buildCompanyProfile(searchItem, extractFull, documents) {
     const cb = extractFull?.legalPerson?.corporateBody ?? {};
     const lp = extractFull?.legalPerson ?? {};
     const statutoryAll = mapPersonTimeline(cb?.statutoryBody);
     const stakeholderAll = mapStakeholders(cb?.stakeholder);
     const ownership = computeOwnershipFromDeposits(cb?.deposits);
+    const equity = mapEquity(cb?.equity);
     const predecessorEntities = stakeholderAll
         .filter((s) => includesInsensitive(s.typeCode ?? "", "predchod") || includesInsensitive(s.type ?? "", "predchod"))
         .map((s) => ({ name: s.name, ico: s.ico, od: s.od, do: s.do, current: s.current }));
     const legalFactsMentions = mapLegalFactsMentions(cb?.otherLegalFacts);
     return {
-        subject: {
-            nameCurrent: currentName(cb?.corporateBodyFullName) ?? searchItem?.corporateBodyFullName ?? null,
-            ico: normalizeIco(searchItem?.registrationNumber) ?? extractIcoFromLegalPerson(lp) ?? null,
-            fileReference: searchItem?.fileReference?.formattedValueSpaced ??
-                extractFull?.fileReference?.formattedValueSpaced ??
-                null,
-            courtName: extractFull?.courtName ?? null,
-            legalForm: stringify(extractFull?.legalForm),
-            dataSyncDate: stringify(extractFull?.dataSyncDate),
-            addressCurrent: formatAddress(pickCurrent(lp?.physicalAddress)) ?? stringify(searchItem?.physicalAddress),
-        },
+        subject: buildSubject(searchItem, extractFull),
+        dateSemantics: DATE_SEMANTICS,
         nameHistory: mapSimpleHistory(cb?.corporateBodyFullName),
         statutoryBody: {
             current: statutoryAll.filter((x) => x.current),
@@ -31,6 +27,10 @@ export function buildCompanyProfile(searchItem, extractFull, documents) {
             current: stakeholderAll.filter((x) => x.current),
             historical: stakeholderAll.filter((x) => !x.current),
             all: sortTimeline(stakeholderAll),
+        },
+        equity: {
+            current: equity.find((x) => x.current) ?? null,
+            history: equity,
         },
         ownership,
         shares: {
@@ -52,23 +52,91 @@ export function buildCompanyProfile(searchItem, extractFull, documents) {
 }
 export function buildCompanyBasicProfile(searchItem, extract) {
     const cb = extract?.legalPerson?.corporateBody ?? {};
-    const lp = extract?.legalPerson ?? {};
     const executivesCurrent = mapPersonTimeline(cb?.statutoryBody).filter((x) => x.current);
     const stakeholdersCurrent = mapStakeholders(cb?.stakeholder).filter((x) => x.current);
     return {
-        subject: {
-            nameCurrent: currentName(cb?.corporateBodyFullName) ?? searchItem?.corporateBodyFullName ?? null,
-            ico: normalizeIco(searchItem?.registrationNumber) ?? extractIcoFromLegalPerson(lp) ?? null,
-            fileReference: searchItem?.fileReference?.formattedValueSpaced ??
-                extract?.fileReference?.formattedValueSpaced ??
-                null,
-            courtName: extract?.courtName ?? null,
-            legalForm: stringify(extract?.legalForm),
-            dataSyncDate: stringify(extract?.dataSyncDate),
-            addressCurrent: formatAddress(pickCurrent(lp?.physicalAddress)) ?? stringify(searchItem?.physicalAddress),
-        },
+        subject: buildSubject(searchItem, extract),
+        dateSemantics: DATE_SEMANTICS,
+        equityCurrent: mapEquity(cb?.equity).find((x) => x.current) ?? null,
         executivesCurrent,
         stakeholdersCurrent,
+    };
+}
+function buildSubject(searchItem, payload) {
+    const cb = payload?.legalPerson?.corporateBody ?? {};
+    const lp = payload?.legalPerson ?? {};
+    const terminationDate = toDateOrNull(cb?.termination);
+    const legalStatusEvents = mapLegalStatusEvents(cb?.legalStatusEvents);
+    const terminated = terminationDate !== null || legalStatusEvents.some((e) => e.current && normalizeText(e.type ?? "") === "vymaz");
+    const names = Array.isArray(cb?.corporateBodyFullName) ? cb.corporateBodyFullName : [];
+    const addresses = Array.isArray(lp?.physicalAddress) ? lp.physicalAddress : [];
+    // The search row only describes the subject as it was last registered, so it
+    // may stand in for a current value of a live company, never of a deleted one.
+    const searchName = terminated ? null : stringify(searchItem?.corporateBodyFullName);
+    const searchAddress = terminated ? null : stringify(searchItem?.physicalAddress);
+    return {
+        nameCurrent: stringify(names.find((n) => n?.current)?.value) ?? searchName,
+        nameLastRegistered: stringify(latestRecord(names)?.value) ?? stringify(searchItem?.corporateBodyFullName),
+        ico: normalizeIco(searchItem?.registrationNumber) ?? extractIcoFromLegalPerson(lp) ?? null,
+        fileReference: searchItem?.fileReference?.formattedValueSpaced ??
+            payload?.fileReference?.formattedValueSpaced ??
+            null,
+        courtName: payload?.courtName ?? null,
+        legalForm: stringify(payload?.legalForm),
+        legalFormName: stringify((Array.isArray(cb?.legalForm) ? cb.legalForm.find((x) => x?.current) : null)?.item?.codelistItem?.itemName),
+        dataSyncDate: stringify(payload?.dataSyncDate),
+        addressCurrent: formatAddress(addresses.find((a) => a?.current)) ?? searchAddress,
+        addressLastRegistered: formatAddress(latestRecord(addresses)),
+        establishmentDate: toDateOrNull(cb?.establishment),
+        terminated,
+        terminationDate,
+        legalStatus: stringify(cb?.legalStatus) ?? codelistLabel(cb?.legalStatus),
+        legalStatusEvents,
+    };
+}
+function mapLegalStatusEvents(items) {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+    return items.map((item) => ({
+        type: stringify(item?.type),
+        date: toDateOrNull(item?.dateTime),
+        text: stringify(item?.text),
+        od: toDateOrNull(item?.effectiveFrom),
+        current: Boolean(item?.current),
+    }));
+}
+function mapEquity(items) {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+    const out = items.map((item) => ({
+        value: item?.equityValueSpecified === false ? null : numberOrNull(item?.equityValue),
+        paid: item?.equityValuePaidSpecified === false ? null : numberOrNull(item?.equityValuePaid),
+        currency: codelistLabel(item?.currency),
+        od: toDateOrNull(item?.effectiveFrom),
+        do: item?.effectiveToSpecified ? toDateOrNull(item?.effectiveTo) : null,
+        current: Boolean(item?.current),
+    }));
+    return [...sortTimeline(out)].reverse();
+}
+/** Codelist values come either as a plain string ({item: "EUR"}) or nested ({item: {codelistItem: {itemName}}}). */
+function codelistLabel(value) {
+    return stringify(value?.item) ?? stringify(value?.item?.codelistItem?.itemName);
+}
+function latestRecord(items) {
+    return [...items].sort((a, b) => String(b?.effectiveFrom ?? "").localeCompare(String(a?.effectiveFrom ?? "")))[0] ?? null;
+}
+function recordDates(item) {
+    const od = toDateOrNull(item?.effectiveFrom);
+    const doDate = item?.effectiveToSpecified ? toDateOrNull(item?.effectiveTo) : null;
+    return {
+        od,
+        do: doDate,
+        functionCreationDate: toDateOrNull(item?.functionCreationDate),
+        functionTerminationDate: toDateOrNull(item?.functionTerminationDate),
+        registryDeletionRecord: od !== null && doDate !== null && od > doDate,
+        current: Boolean(item?.current),
     };
 }
 function normalizeIco(value) {
@@ -109,11 +177,9 @@ function mapPersonTimeline(items) {
     const out = items.map((item) => ({
         name: personOrCompanyName(item?.personData),
         function: stringify(item?.function),
-        od: toDateOrNull(item?.effectiveFrom ?? item?.functionCreationDate),
-        do: item?.effectiveToSpecified ? toDateOrNull(item?.effectiveTo ?? item?.functionTerminationDate) : null,
-        current: Boolean(item?.current),
+        ...recordDates(item),
     }));
-    return dedupeByKey(out, (x) => `${x.name}|${x.function}|${x.od}|${x.do}|${x.current}`);
+    return dedupeByKey(out, (x) => `${x.name}|${x.function}|${x.od}|${x.do}|${x.functionCreationDate}|${x.functionTerminationDate}|${x.current}`);
 }
 function mapStakeholders(items) {
     if (!Array.isArray(items)) {
@@ -124,11 +190,9 @@ function mapStakeholders(items) {
         typeCode: stringify(item?.stakeholderType?.item?.codelistItem?.itemCode),
         name: personOrCompanyName(item?.personData),
         ico: extractIco(item?.personData?.id),
-        od: toDateOrNull(item?.effectiveFrom ?? item?.functionCreationDate),
-        do: item?.effectiveToSpecified ? toDateOrNull(item?.effectiveTo ?? item?.functionTerminationDate) : null,
-        current: Boolean(item?.current),
+        ...recordDates(item),
     }));
-    return dedupeByKey(out, (x) => `${x.type}|${x.name}|${x.ico}|${x.od}|${x.do}|${x.current}`);
+    return dedupeByKey(out, (x) => `${x.type}|${x.name}|${x.ico}|${x.od}|${x.do}|${x.functionCreationDate}|${x.functionTerminationDate}|${x.current}`);
 }
 function computeOwnershipFromDeposits(deposits) {
     const empty = [];
@@ -146,31 +210,47 @@ function computeOwnershipFromDeposits(deposits) {
         if (!dep?.current) {
             continue;
         }
-        const currency = stringify(dep?.currency?.item?.codelistItem?.itemName) ?? "UNKNOWN";
-        const value = numberOrNull(dep?.depositPayedValue ?? dep?.depositValue);
+        const currency = codelistLabel(dep?.currency) ?? "UNKNOWN";
+        // Percentages are shares of the subscribed contributions; mixing paid and
+        // subscribed amounts across deposits would put them on different bases.
+        const subscribed = numberOrNull(dep?.depositValue);
+        const paid = numberOrNull(dep?.depositPayedValue);
+        const value = subscribed ?? paid;
         if (value === null) {
             continue;
         }
         const stakeholderNames = Array.isArray(dep?.stakeholder)
             ? dep.stakeholder.filter((s) => s?.current).map((s) => stringify(s?.value)).filter(Boolean)
             : [];
-        for (const stakeholder of stakeholderNames) {
-            if (!byCurrency.has(currency)) {
-                byCurrency.set(currency, new Map());
-            }
-            const map = byCurrency.get(currency);
-            map.set(stakeholder, (map.get(stakeholder) ?? 0) + value);
+        if (stakeholderNames.length === 0) {
+            continue;
         }
+        // A contribution held jointly is one holding, not one per co-owner —
+        // crediting the full amount to each of them would exceed 100 %.
+        const coOwned = stakeholderNames.length > 1;
+        const holder = stakeholderNames.join("; ");
+        if (!byCurrency.has(currency)) {
+            byCurrency.set(currency, new Map());
+        }
+        const map = byCurrency.get(currency);
+        const prev = map.get(holder);
+        map.set(holder, {
+            value: (prev?.value ?? 0) + value,
+            paidValue: prev && prev.paidValue === null ? null : paid === null ? null : (prev?.paidValue ?? 0) + paid,
+            coOwned,
+        });
     }
     const out = [];
     for (const [currency, map] of byCurrency.entries()) {
-        const total = [...map.values()].reduce((acc, n) => acc + n, 0);
-        for (const [stakeholder, value] of map.entries()) {
+        const total = [...map.values()].reduce((acc, n) => acc + n.value, 0);
+        for (const [stakeholder, holding] of map.entries()) {
             out.push({
                 stakeholder,
                 currency: currency === "UNKNOWN" ? null : currency,
-                value,
-                percent: total > 0 ? round2((value / total) * 100) : null,
+                value: holding.value,
+                paidValue: holding.paidValue,
+                coOwned: holding.coOwned,
+                percent: total > 0 ? round2((holding.value / total) * 100) : null,
             });
         }
     }
@@ -180,7 +260,8 @@ function computeOwnershipFromDeposits(deposits) {
         contributions: out,
         not_beneficial_ownership: true,
         provenance: "current deposits contribution amounts",
-        note: "Percenta su podiely na aktualnych prispevkoch, nie beneficial ownership. ORSR nemusi obsahovat uplne/priame percento vlastnictva.",
+        note: "Percenta su podiely na aktualnych upisanych vkladoch (value), nie beneficial ownership; splatena cast je v paidValue. " +
+            "coOwned=true znamena jeden vklad v spoluvlastnictve uvedenych spolocnikov. ORSR nemusi obsahovat uplne/priame percento vlastnictva.",
     };
 }
 function mapShares(shares) {
@@ -194,7 +275,7 @@ function mapShares(shares) {
         sharesAmount: numberOrNull(item?.sharesAmount),
         shareNominalValue: numberOrNull(item?.shareNominalValue),
         transferability: stringify(item?.sharesTransferability),
-        currency: stringify(item?.currency?.item?.codelistItem?.itemName),
+        currency: codelistLabel(item?.currency),
         od: toDateOrNull(item?.effectiveFrom),
         do: item?.effectiveToSpecified ? toDateOrNull(item?.effectiveTo) : null,
         current: Boolean(item?.current),
@@ -266,19 +347,6 @@ function mapLegalFactsMentions(otherLegalFacts) {
         }
     }
     return sortTimeline(out);
-}
-function currentName(names) {
-    if (!Array.isArray(names)) {
-        return null;
-    }
-    const current = names.find((n) => n?.current && typeof n?.value === "string");
-    return stringify(current?.value) ?? stringify(names.find((n) => typeof n?.value === "string")?.value);
-}
-function pickCurrent(addresses) {
-    if (!Array.isArray(addresses)) {
-        return null;
-    }
-    return addresses.find((a) => a?.current) ?? addresses[0] ?? null;
 }
 function formatAddress(address) {
     if (!address || typeof address !== "object") {
