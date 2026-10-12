@@ -11,6 +11,8 @@ Source: `Omni-Legal-Products/mcp-ruz` commit `629e917b0db60fdc83f478cc40f42b1d59
 - Catalog: 42 Python tests, `scripts/validate.py`, `claude plugin validate --strict` and instruction mirrors passed.
 - Packaged runtime smoke (stdio from an unrelated working directory, `scripts/run.mjs mcp`, live RÚZ read, 2026-10-12): 8 tools. Bratislava 2025 equity 1 264 077 601.67 (r. 116) and revenue 27 230 309.41. Slovensko.Digital assets 120 360 and profit 3 443. Alza unchanged at 617 457 271. `ruz_get_report` returns brutto 143 844 758 and korekcia 17 218 338.
 
+- Isolated Git-marketplace acceptance (2026-10-12, separate `CODEX_HOME`): `scripts/update_plugins.py --apply` updated an installed `ruz@lawoss` from 1.1.0 to the merged 1.2.0 on `main` and then to 1.3.0 from `release/ruz-1.3.0`. The installed runtime answered live reads, and the same updater rolled the plugin back to 1.2.0 from `main`.
+
 Not run: the Codex plugin-creator validator. The installed plugin-creator (0.1.26) ships no `validate_plugin.py`.
 
 Tests establish behavior for the captured responses and a selected live read. They do not establish accounting or legal correctness of the indicator definitions.
