@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { normalizeCelex } from "./celex-parser.js";
-import { getRelatedDocuments, searchFullText, eliToCelex, celexToEli } from "./eurlex-client.js";
+import { findRelatedDocuments, searchFullText, eliToCelex, celexToEli, normalizeEli } from "./eurlex-client.js";
 export function registerSearchTools(server) {
     // ── eurlex_related_find ─────────────────────────────────────────────────
     server.registerTool("eurlex_related_find", {
         title: "Find Related Legal Documents",
-        description: `Find EU legal documents related to a given act — including acts it cites, acts that cite it, amendments, transpositions into national law, and repeals.
+        description: `Find EU legal documents related to a given act — its legal basis, acts based on it, amendments, national transposition measures, and repeals — from the EUR-Lex CELLAR relationship data.
 
 Use this to understand the legislative context of a regulation or directive, find national transposition measures, or trace the legal basis chain.
 
@@ -16,21 +16,23 @@ Args:
   - response_format ("markdown" | "json"): Output format (default: "markdown")
 
 Returns:
-  List of related documents with:
-  - celexNumber: CELEX of the related document
-  - relationship: type of relationship
-  - title: document title (English, if available)
-  - dateDocument: document date
+  - documents: related documents (celexNumber, relationship, title in English if available — national measures carry their national-language title —, dateDocument)
+  - totals: number of related documents per relationship according to CELLAR
+  - truncated: true if more related documents exist than returned (raise limit or filter by relationship)
 
 Relationship types:
-  - "cites": acts that this document references as legal basis
-  - "cited_by": acts that reference this document
-  - "transposes": directives this act transposes into national law
-  - "transposed_by": national measures transposing this directive
-  - "repeals" / "repealed_by": repeal relationships
+  - "cites": acts this document names as its legal basis (CELLAR "based on"; not every citation)
+  - "cited_by": acts adopted on the basis of this document
+  - "amends" / "amended_by": amendment relationships
+  - "transposes": directives a national measure (CELEX sector 7) transposes
+  - "transposed_by": national measures transposing this directive, as notified to EUR-Lex
+  - "repeals" / "repealed_by": repeal relationships (implicit repeals are marked)
+
+With relationship="all", results are shared round-robin across relationship types, so check totals.
 
 Examples:
-  - GDPR related documents: celex="32016R0679" → legal basis treaties, repealed directive 95/46/EC
+  - GDPR: celex="32016R0679", relationship="repeals" → Directive 95/46/EC
+  - Directive 95/46/EC: celex="31995L0046", relationship="repealed_by" → GDPR
   - Unfair Terms Directive transpositions: celex="31993L0013", relationship="transposed_by"`,
         inputSchema: z.object({
             celex: z.string().min(6).describe("CELEX number (e.g., '32016R0679')"),
@@ -47,27 +49,28 @@ Examples:
             openWorldHint: true,
         },
     }, async ({ celex, relationship, limit, response_format }) => {
-        let docs = await getRelatedDocuments(celex, limit).catch(err => {
+        const result = await findRelatedDocuments(celex, relationship, limit).catch(err => {
             throw new Error(`Failed to find related documents: ${err.message}`);
         });
-        if (relationship !== "all") {
-            docs = docs.filter(d => d.relationship === relationship);
-        }
+        const docs = result.documents;
+        const structured = { documents: docs, count: docs.length, totals: result.totals, truncated: result.truncated };
         if (response_format === "json") {
             return {
-                content: [{ type: "text", text: JSON.stringify({ documents: docs, count: docs.length }, null, 2) }],
-                structuredContent: { documents: docs, count: docs.length },
+                content: [{ type: "text", text: JSON.stringify(structured, null, 2) }],
+                structuredContent: structured,
             };
         }
         const normalized = normalizeCelex(celex);
+        const totalsText = Object.entries(result.totals).map(([rel, n]) => `${rel}: ${n}`).join(", ");
         const lines = [
             `## Related Documents: ${normalized}`,
             relationship !== "all" ? `*Filtered by: ${relationship}*` : "",
-            `*${docs.length} document(s) found*`,
+            `*${docs.length} document(s) shown${result.truncated ? " — more exist, see totals" : ""}*`,
+            totalsText ? `*Totals in EUR-Lex (CELLAR): ${totalsText}*` : "",
             "",
         ].filter(Boolean);
         if (!docs.length) {
-            lines.push("*No related documents found for this filter.*");
+            lines.push(`*EUR-Lex (CELLAR) records no ${relationship === "all" ? "" : `"${relationship}" `}relationships for this document.*`);
         }
         // Group by relationship type
         const grouped = {};
@@ -79,16 +82,20 @@ Examples:
             cites: "📎", cited_by: "🔗", amends: "✏️", amended_by: "📝",
             transposes: "🇪🇺", transposed_by: "🏛️", repeals: "❌", repealed_by: "🔴",
         };
+        const relLabel = {
+            cites: "LEGAL BASIS (cites)", cited_by: "ADOPTED ON THIS BASIS (cited_by)",
+        };
         for (const [rel, relDocs] of Object.entries(grouped)) {
-            lines.push(`### ${relEmoji[rel] ?? "📄"} ${rel.replace(/_/g, " ").toUpperCase()} (${relDocs.length})`);
+            const total = result.totals[rel];
+            lines.push(`### ${relEmoji[rel] ?? "📄"} ${relLabel[rel] ?? rel.replace(/_/g, " ").toUpperCase()} (${relDocs.length}${total !== undefined && total > relDocs.length ? ` of ${total}` : ""})`);
             for (const d of relDocs) {
-                lines.push(`- **${d.celexNumber}**${d.dateDocument ? ` (${d.dateDocument})` : ""}${d.title ? ` — ${d.title}` : ""}`);
+                lines.push(`- **${d.celexNumber}**${d.dateDocument ? ` (${d.dateDocument})` : ""}${d.title ? ` — ${d.title}` : ""}${d.note ? ` *(${d.note})*` : ""}`);
             }
             lines.push("");
         }
         return {
             content: [{ type: "text", text: lines.join("\n") }],
-            structuredContent: { documents: docs, count: docs.length },
+            structuredContent: structured,
         };
     });
     // ── eurlex_search_full_text ─────────────────────────────────────────────
@@ -189,7 +196,7 @@ Errors:
 ELI is the modern European standard for identifying legislation across member states. Use this to translate between the two identification systems, or to find the canonical ELI URI for a known CELEX number.
 
 Args:
-  - identifier (string): Either a CELEX number (e.g., "32016R0679") or an ELI URI (e.g., "http://data.europa.eu/eli/reg/2016/679/oj")
+  - identifier (string): Either a CELEX number (e.g., "32016R0679") or an ELI URI (e.g., "http://data.europa.eu/eli/reg/2016/679/oj"; https:// and http://publications.europa.eu/resource/eli/... are accepted too)
   - direction ("auto" | "celex_to_eli" | "eli_to_celex"): Conversion direction (default: "auto" — detected from input format)
 
 Returns:
@@ -203,8 +210,9 @@ Examples:
   - ELI to CELEX: "http://data.europa.eu/eli/reg/2016/679/oj" → "32016R0679"
 
 Errors:
-  - "No ELI found" if document has no ELI registered
-  - "No CELEX found" if ELI does not resolve to a CELEX number`,
+  - "No ELI found" if EUR-Lex returned no ELI for the CELEX number (older acts, case law and many non-legislative documents have none)
+  - "No CELEX found" if the ELI does not resolve to a CELEX number
+  - "Unrecognized ELI" if the identifier is not an EU ELI URI`,
         inputSchema: z.object({
             identifier: z.string().min(6).describe("CELEX number or ELI URI"),
             direction: z.enum(["auto", "celex_to_eli", "eli_to_celex"]).default("auto").describe("Conversion direction (default: 'auto')"),
@@ -228,11 +236,17 @@ Errors:
             if (!output) {
                 return {
                     isError: true,
-                    content: [{ type: "text", text: `No ELI found for CELEX: ${identifier}. Not all documents have an ELI registered.` }],
+                    content: [{ type: "text", text: `No ELI found for CELEX: ${identifier}. EUR-Lex (CELLAR) returned no ELI for this document; check the CELEX number with eurlex_celex_validate.` }],
                 };
             }
         }
         else {
+            if (!normalizeEli(identifier)) {
+                return {
+                    isError: true,
+                    content: [{ type: "text", text: `Unrecognized ELI: ${identifier}. Expected an EU ELI such as http://data.europa.eu/eli/reg/2016/679/oj` }],
+                };
+            }
             output = await eliToCelex(identifier).catch(err => {
                 throw new Error(`CELEX lookup failed: ${err.message}`);
             });
@@ -244,7 +258,7 @@ Errors:
             }
         }
         const celex = actualDirection === "celex_to_eli" ? identifier : output;
-        const eli = actualDirection === "celex_to_eli" ? output : identifier;
+        const eli = actualDirection === "celex_to_eli" ? output : (normalizeEli(identifier) ?? identifier);
         const result = {
             input: identifier,
             output,

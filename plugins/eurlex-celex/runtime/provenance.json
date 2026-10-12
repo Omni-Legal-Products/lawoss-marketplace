@@ -1,18 +1,18 @@
 {
   "repository": "Omni-Legal-Products/mcp-eurlex",
-  "commit": "466477ced88093e91d931da4ef9af10b613ac4f8",
+  "commit": "3c397229e0615e1d8c80a554c37ed7e07fd6c5a6",
   "configSha256": "3e53c460727fda17b358aceb5f26ea6d73b46c6e47139eb8c2ade323a2ab9c29",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
     "dist/cache.js": "9b2eb0241910f1b326ef64af7a9d28768cedc114688b88f17d7d0549a0dd7622",
-    "dist/celex-parser.js": "99ef9a848dc59fe2db415220bd663d5ec5cf1b72429a06c0f25dedae4fc19439",
-    "dist/citation-tools.js": "f9a940762ef1fe90250433e2089478e2eeb7cf5af4fae5888935a23cb7c6f3c2",
-    "dist/constants.js": "930769b21d6212653b89c54b1c0a50f8a4343486341fa0ae17134da1541f3b75",
-    "dist/document-tools.js": "bcf505de70293f9ae675e252ad22e8cb4c16e6021f9b0441d33c57180dfd7c97",
-    "dist/eurlex-client.js": "327f393e06a3fb79da05aea6c91b8ccbd1447c83a558ce4c13c7b8021d4a51c7",
-    "dist/search-tools.js": "08006661ccb6dc56ee3a659f0cc77ceec01dc62aba3467ce64d057045dbb20b5",
+    "dist/celex-parser.js": "4f2dcbdc89c7ec2c954f82046c1fa2bbdc89ee7d8243970741fbee32fc346b2b",
+    "dist/citation-tools.js": "54722a22d3f314f49725b4b5539a8057abfd88eea60dd8615206fb7ef93582f3",
+    "dist/constants.js": "2622d2c4e5359c4b95aaff162ca2097d1643bde6e70dabe08575db0ad8b2934a",
+    "dist/document-tools.js": "bd2e864e7e51d524c3712265a220614edb277ce37ffc79b8aa5cd3fc19fff625",
+    "dist/eurlex-client.js": "941e7ddb3c219a2cb8c3f33fa2c29ffd443da3a70d652f631a7a6d51c2453a98",
+    "dist/search-tools.js": "52f1693344e055db98d68318e2c7297b82f3f2fb48eb776ca7f2cca7b950aa07",
     "dist/server.js": "20d0e62bc071238c902cc042bec1bf758c4747b6f8d25053db3b559d8dc981bc",
-    "package-lock.json": "b15f6b71e679099f4e9b57f21c52015bc8a91d0a1886af489afe2bd1c7631c1f",
-    "package.json": "b3d9db5c04d4706101efab71d2440e12956a3b96188a50394e6182fc3dae2bb7"
+    "package-lock.json": "a1eaac63388fb3281b1bc7cb1449eb793613f935e67c2d46e1954e9ef229b2ec",
+    "package.json": "3869f4c028651afd7a4c56b92b84c533b1bbf7ed88866a18c0df304a8ae098cb"
   }
 }

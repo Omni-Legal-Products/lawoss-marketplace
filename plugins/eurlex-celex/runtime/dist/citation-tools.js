@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parseCelex, normalizeCelex } from "./celex-parser.js";
-import { getMetadata, checkCitationAtDate } from "./eurlex-client.js";
+import { getMetadata, checkCitationAtDate, OPEN_ENDED_VALIDITY } from "./eurlex-client.js";
 export function registerCitationTools(server) {
     // ── eurlex_celex_parse ──────────────────────────────────────────────────
     server.registerTool("eurlex_celex_parse", {
@@ -22,15 +22,18 @@ Returns:
   - documentTypeDescription: human-readable type
   - documentNumber: sequence number
   - isConsolidated: true if sector 0 (consolidated legislation)
+  - isCorrigendum: true for corrigenda (suffix "R(nn)")
+  - memberState: country code of a national transposition measure (sector 7)
   - humanReadable: full description (e.g., "Regulation No 679/2016")
+  - warnings: present if the type code is not in the known code list (format-only check; it does not prove the document exists — use eurlex_celex_validate)
 
 Examples:
   - "32016R0679" → GDPR: Regulation 679/2016 (Sector 3, Acts)
   - "32000L0060" → Water Framework Directive: Directive 60/2000
-  - "61994J0415" → EU Court case judgment
+  - "62014CJ0362" → Judgment of the Court of Justice in Case C-362/14
 
 Errors:
-  - Returns error if CELEX number format is invalid`,
+  - Returns error if the CELEX number cannot be parsed (unknown sector, bad year, no type/number)`,
         inputSchema: z.object({
             celex: z.string().min(6).describe("CELEX number to parse (e.g., '32016R0679')"),
         }),
@@ -58,7 +61,10 @@ Errors:
             `**Document type:** ${p.documentType} — ${p.documentTypeDescription}`,
             `**Document number:** ${parseInt(p.documentNumber, 10)}`,
             p.suffix ? `**Suffix:** ${p.suffix}` : "",
+            p.isCorrigendum ? `**Corrigendum:** Yes` : "",
+            p.memberState ? `**Member State (national measure):** ${p.memberState}` : "",
             `**Consolidated:** ${p.isConsolidated ? "Yes (sector 0)" : "No"}`,
+            ...(p.warnings ?? []).map(w => `**⚠️ Warning:** ${w}`),
         ].filter(Boolean).join("\n");
         return {
             content: [{ type: "text", text }],
@@ -159,7 +165,7 @@ Errors:
 
 Critical for legal documents, court submissions, and compliance assessments where the applicable version of law at a specific point in time must be established.
 
-This tool does not treat the document/adoption date as entry into force. If EUR-Lex does not return enough historical validity metadata, or the requested date is in the future, the result is unknown rather than a guessed yes/no answer. Entry into force is also distinct from application; confirm applicability in the act's official text.
+This tool does not treat the document/adoption date as entry into force. If EUR-Lex does not return enough historical validity metadata, or the requested date is in the future, the result is unknown rather than a guessed yes/no answer. Phased acts have several entry-into-force dates in EUR-Lex; the earliest is used as the lower bound and the later ones are listed. Entry into force is also distinct from application; confirm applicability in the act's official text.
 
 Args:
   - celex (string): CELEX number of the act to check (e.g., "32016R0679")
@@ -171,15 +177,17 @@ Returns:
   - checkDate: the date that was checked
   - wasValid: boolean | null — true/false only when the returned validity dates support it; null means unknown
   - validityStatus: "in_force" | "not_in_force" | "unknown" | "not_found"
-  - dateDocument: when the act was signed/adopted
-  - dateEntryIntoForce: the explicit EUR-Lex entry-into-force date, when available
-  - dateEndValidity: when the act expired (if it did)
-  - currentStatus: current in-force status
+  - dateDocument: when the act was signed/adopted (never used as the effective date)
+  - dateEntryIntoForce: the earliest explicit EUR-Lex entry-into-force date, when available
+  - datesEntryIntoForce: all entry-into-force dates recorded by EUR-Lex
+  - dateEndValidity: end-of-validity date; "9999-12-31" is the EUR-Lex placeholder for "no end date"
+  - currentStatus: current in-force status (not historical)
   - note: human-readable explanation
 
 Examples:
-  - GDPR on 2018-01-01 → wasValid: true when EUR-Lex returns its 24 May 2016 entry-into-force date; this does not assert that every provision was already applicable
-  - A document with only an adoption date → wasValid: null, validityStatus: "unknown"
+  - GDPR on 2016-05-01 → wasValid: false (adopted 27 April 2016, entered into force 24 May 2016)
+  - GDPR on 2018-01-01 → wasValid: true (in force since 24 May 2016; this does not assert that every provision already applied — the GDPR applies from 25 May 2018)
+  - Any date in the future → wasValid: null, validityStatus: "unknown"
 
 Errors:
   - Returns wasValid: null and validityStatus: "not_found" if the document is not found`,
@@ -218,14 +226,22 @@ Errors:
                 ? "NO — act was not in force"
                 : result.validityStatus === "not_found"
                     ? "UNKNOWN — document not found"
-                    : "UNKNOWN — insufficient historical validity metadata";
+                    : result.checkDate > new Date().toISOString().slice(0, 10)
+                        ? "UNKNOWN — the date is in the future"
+                        : "UNKNOWN — insufficient historical validity metadata";
+        const endValidity = result.dateEndValidity === OPEN_ENDED_VALIDITY
+            ? "none recorded (open-ended)"
+            : result.dateEndValidity;
         const lines = [
             `## ${icon} Citation Check: ${result.celexNumber} on ${result.checkDate}`,
             "",
             `**Historical status on ${result.checkDate}:** ${historicalStatus}`,
             result.dateDocument ? `**Document/adoption date (not used as effective date):** ${result.dateDocument}` : "",
             result.dateEntryIntoForce ? `**Entry into force:** ${result.dateEntryIntoForce}` : "",
-            result.dateEndValidity ? `**End of validity:** ${result.dateEndValidity}` : "",
+            result.datesEntryIntoForce && result.datesEntryIntoForce.length > 1
+                ? `**All entry-into-force dates in EUR-Lex:** ${result.datesEntryIntoForce.join(", ")}`
+                : "",
+            endValidity ? `**End of validity:** ${endValidity}` : "",
             `**Current EUR-Lex status (not historical):** ${result.currentStatus}`,
             "",
             `**Note:** ${result.note}`,

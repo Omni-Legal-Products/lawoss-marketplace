@@ -222,14 +222,13 @@ export function scoreLpCandidate(lpTitle, lpTypeKod, lawId, lawTitleTokens) {
     const title = normalizeForSearch(lpTitle);
     if (!title)
         return 0;
-    const citation = normalizeForSearch(`c. ${lawId}`);
-    const lawIdNorm = normalizeForSearch(lawId);
     let score = 0;
     // Strongest signal: amendment titles cite the law as "č. N/RRRR".
     // Weaker fallback: the bare "N/RRRR" appears without the "č." prefix.
-    if (title.includes(citation))
+    // Word boundaries keep "95/2003" from matching inside "595/2003".
+    if (citesLaw(title, lawId))
         score += 6;
-    else if (title.includes(lawIdNorm))
+    else if (lawIdRegex(lawId).test(title))
         score += 3;
     if (lawTitleTokens.length) {
         const matched = lawTitleTokens.filter((t) => title.includes(t)).length;
@@ -245,8 +244,20 @@ export function scoreLpCandidate(lpTitle, lpTypeKod, lawId, lawTitleTokens) {
         score += 3;
     return score;
 }
+function lawIdRegex(lawId) {
+    const [number, year] = lawId.split("/");
+    return new RegExp(`(?<![0-9])${number}\\s*/\\s*${year}(?![0-9])`);
+}
+// True when an (accent-normalized) title cites the law as "č. N/RRRR".
+function citesLaw(title, lawId) {
+    return new RegExp(`c\\.\\s*${lawIdRegex(lawId).source}`).test(title);
+}
 export function chooseConfidentLpCandidate(candidates) {
-    const [top, second] = candidates;
+    // Only a material that matches the law by subject and dates from the law's own
+    // legislative period can be its original LP. An amendment ("novela") or a
+    // material that merely cites the law has a different explanatory report.
+    const eligible = candidates.filter((c) => c.relation === undefined || c.relation === "predmet");
+    const [top, second] = eligible;
     // Exact subject overlap (6) plus the law material type (3) is the intended
     // strong path for a new law whose future collection number is absent.
     if (!top || top.score < 9)
@@ -392,16 +403,17 @@ export async function extractExplanatoryReportText(documentUuid, options = {}) {
         hasMore,
     };
 }
+const LP_LIST_TIMEOUT_MS = 60_000;
 export async function findLpCandidatesForLaw(law, limit = 5) {
     const { number, year } = parseLawNumberYear(law);
     const lawId = `${number}/${year}`;
     // Fetch the law's official title so we can match LP materials by subject, not
     // only by the Zbierka number. A brand-new law's LP title contains its name
     // (e.g. "Návrh zákona o medzinárodnej ochrane…"), never the future ZZ number.
-    let lawTitleTokens = [];
+    let lawTitle;
     try {
         const doc = await getRozsireneByCislo(lawId);
-        lawTitleTokens = significantTitleTokens(doc.nazov);
+        lawTitle = doc.nazov;
     }
     catch {
         // Law metadata not found — fall back to number/citation matching only.
@@ -412,15 +424,20 @@ export async function findLpCandidatesForLaw(law, limit = 5) {
     let materials = legislativneMaterialyCache.get(cacheKey);
     if (!materials) {
         const url = `${API_BASE}/external/elegislativa/legislativne-materialy`;
-        materials = await httpGetJson(url);
+        // The endpoint returns ~800 kB and regularly takes 10–20 s.
+        materials = await httpGetJson(url, { timeoutMs: LP_LIST_TIMEOUT_MS });
         legislativneMaterialyCache.set(cacheKey, materials);
     }
-    const scored = (materials ?? [])
+    return rankLpCandidates(materials ?? [], lawId, lawTitle, limit);
+}
+// Ranks eLegislatíva materials against a law. The source list only contains
+// current materials, so an old law's original LP is usually absent and the
+// matches are amendments; each candidate carries that relation explicitly.
+export function rankLpCandidates(materials, lawId, lawTitle, limit, tokens = significantTitleTokens(lawTitle)) {
+    const lawYear = Number(lawId.split("/")[1]);
+    const scored = materials
         .filter((m) => (m.cisloLegislativnehoMaterialu ?? "").startsWith("LP/"))
-        .map((m) => ({
-        item: m,
-        score: scoreLpCandidate(m.nazov, m.typ?.kod ?? "", lawId, lawTitleTokens),
-    }))
+        .map((m) => ({ item: m, score: scoreLpCandidate(m.nazov, m.typ?.kod ?? "", lawId, tokens) }))
         .filter((x) => x.score > 0)
         .sort((a, b) => {
         if (b.score !== a.score)
@@ -428,13 +445,24 @@ export async function findLpCandidatesForLaw(law, limit = 5) {
         return (b.item.zaciatokStadia ?? "").localeCompare(a.item.zaciatokStadia ?? "");
     })
         .slice(0, Math.max(1, Math.min(20, limit)));
-    return scored.map((x) => ({
-        lp: x.item.cisloLegislativnehoMaterialu ?? "",
-        title: x.item.nazov ?? "",
-        type: x.item.typ?.nazov ?? "",
-        stage: x.item.stadium?.hodnota ?? "",
-        score: x.score,
-    }));
+    return scored.map((x) => {
+        const lp = x.item.cisloLegislativnehoMaterialu ?? "";
+        const lpYear = Number(lp.split("/")[1]);
+        // A law's own bill cannot cite the law's future Zbierka number.
+        const relation = citesLaw(normalizeForSearch(x.item.nazov), lawId)
+            ? "novela"
+            : lpYear >= lawYear - 2 && lpYear <= lawYear
+                ? "predmet"
+                : "predmet-mimo-obdobia";
+        return {
+            relation,
+            lp,
+            title: x.item.nazov ?? "",
+            type: x.item.typ?.nazov ?? "",
+            stage: x.item.stadium?.hodnota ?? "",
+            score: x.score,
+        };
+    });
 }
 const RSS_URL = "https://vyhladavanie.slov-lex.sk/rss/predpisZbierky";
 const recentCache = new LRUCache({
