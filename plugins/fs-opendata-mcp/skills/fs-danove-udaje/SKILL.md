@@ -30,6 +30,20 @@ visible in `sections.corporateIncomeTax` and does not gate clean or enter
 `summary.incomplete`. Read `summary.status`, `findings` and `incomplete`; preserve
 findings even when another mandatory section is incomplete.
 
+Pitfalls:
+
+- `ds_dphz` is the list of payers for whom grounds for cancelling the VAT
+  registration arose. They are still registered; never call it a cancelled
+  registration. Read `cancellationGroundsPublished` / `cancellationGrounds`.
+- `isDeregistered` covers only deleted payers (`ds_dphv`) and may be `null`:
+  unknown, not "no" — see `unverifiedLists`.
+- A debtor no-hit means the exact names in `searchedNames` are absent from the
+  list version in `validity.listUpdateDates`; it is not proof of no arrears. A
+  hit is a name match only — compare the address. Passing only `ico` lets the
+  tool resolve the name the Financial Administration uses.
+- Quote the list date from `validity.listUpdateDates`, not today's date.
+- `FS_AUTH` means the local `FS_API_KEY` is missing or rejected, not a source outage.
+
 These are public-source checks, not tax or legal advice. Use ORSR for corporate
 identity and authority, RÚZ for financial statements, and the relevant
 insolvency source for insolvency proceedings.
