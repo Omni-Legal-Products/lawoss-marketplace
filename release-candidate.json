@@ -1,8 +1,8 @@
 {
-  "plugin": "crz",
-  "plugin_version": "1.5.0",
-  "catalog_commit": "0fe5e3fd3aab141474b8884e36858d91ba0ac0d5",
-  "source_repository": "Omni-Legal-Products/mcp-crz",
-  "source_commit": "d733296b3b22abdf3650e6c152accd11657e5e60",
-  "runtime_manifest_sha256": "8de3b96f3dda739ac2c729e559327c397d90db79db671f39fbea9dadef11dcdd"
+  "plugin": "disq",
+  "plugin_version": "1.2.0",
+  "catalog_commit": "17ae358aa039884954c5c7842d8bcb4bf013f1ac",
+  "source_repository": "Omni-Legal-Products/mcp-diskvalifikacie",
+  "source_commit": "6a344054abe53c6ce315d9b434aaea48ff56f7e5",
+  "runtime_manifest_sha256": "b89e54e6f963824d42d2d764d692a1d470588cb5ed3359a29df373f212a17a16"
 }
