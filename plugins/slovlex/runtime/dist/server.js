@@ -3,7 +3,7 @@ import { z } from "zod";
 import path from "node:path";
 import { extractExplanatoryReportText, findLpCandidatesForLaw, getExplanatoryReportsByLp, getPortalHtml, getRecentPredpisy, getRozsireneByCislo, getRozsireneByIri, getVersionIriForDate, parseLawBaseIri, searchNavrhy, searchRozsirene, selectExplanatoryReport, chooseConfidentLpCandidate, describeVersionValidity, } from "./slovlex.js";
 import { formatReadMarkdownWindowResult, formatSavedMarkdownResult, readMarkdownFileWindow, resolveConfiguredExportRoot, writeMarkdownFile, } from "./export-files.js";
-import { extractCrossLawReferences, extractFootnoteDefinitions, extractParagraphReferences, extractParagrafFromPortalHtml, hasPendingChange, renderParagraf, renderWholeLawTextChunk, resolveFootnoteReferences, sliceWindow, unnumberedOdsekCitationHint, } from "./portal.js";
+import { extractCrossLawReferences, extractFootnoteDefinitions, extractFootnoteMarkers, extractLinkedParagraphReferences, extractParagraphReferences, extractParagrafFromPortalHtml, findQuotedParagraf, hasPendingChange, renderParagraf, renderWholeLawTextChunk, resolveFootnoteReferences, sliceWindow, unnumberedOdsekCitationHint, } from "./portal.js";
 function textResult(text) {
     return { content: [{ type: "text", text }] };
 }
@@ -37,10 +37,23 @@ function formatCrossLawRefNote(ref, reason) {
     const para = ref.paragraph ? `§ ${ref.paragraph} ` : "";
     return `${para}zákona č. ${ref.number}/${ref.year}${aliasLabel} — ${reason}`;
 }
+// Returns the rendered paragraph, or a short reason when it cannot be shown.
 async function fetchCrossLawParagraph(ref, date) {
+    const baseIri = `/SK/ZZ/${ref.year}/${ref.number}`;
+    let versionIri;
+    let resolvedDate;
     try {
-        const baseIri = `/SK/ZZ/${ref.year}/${ref.number}`;
-        const { versionIri, date: resolvedDate } = await getVersionIriForDate(baseIri, date);
+        ({ versionIri, date: resolvedDate } = await getVersionIriForDate(baseIri, date));
+    }
+    catch (error) {
+        // Slov-Lex answered, but has no consolidated version for that date
+        // (typically a repealed law such as 328/1991).
+        if (/Nenašlo sa znenie/.test(error.message)) {
+            return { reason: `Slov-Lex k ${date ?? "dnešnému dňu"} nemá znenie tohto predpisu (mohol byť zrušený)` };
+        }
+        return { reason: "nepodarilo sa stiahnuť (chyba spojenia so Slov-Lex)" };
+    }
+    try {
         const portalHtml = await getPortalHtml(versionIri);
         const lawDoc = await getRozsireneByIri(versionIri).catch(() => null);
         const lawTitle = lawDoc?.nazov ?? `zákon č. ${ref.number}/${ref.year}`;
@@ -52,24 +65,24 @@ async function fetchCrossLawParagraph(ref, date) {
             .filter(Boolean)
             .join("\n");
         if (!ref.paragraph) {
-            return `${header}\n(odkaz iba na celý zákon; pre konkrétny paragraf zavolaj get_paragraph)`;
+            return { text: `${header}\n(odkaz iba na celý zákon; pre konkrétny paragraf zavolaj get_paragraph)` };
         }
         const extracted = extractParagrafFromPortalHtml(portalHtml, ref.paragraph);
         if (!extracted) {
-            return `${header}\n(§ ${ref.paragraph} sa v zákone nenašiel)`;
+            return { text: `${header}\n(§ ${ref.paragraph} sa v zákone nenašiel)` };
         }
         const text = renderParagraf(extracted.$, extracted.$par);
-        return `${header}\n${text}`;
+        return { text: `${header}\n${text}` };
     }
     catch {
-        return null;
+        return { reason: "nepodarilo sa stiahnuť (chyba spojenia so Slov-Lex)" };
     }
 }
 export function createSlovLexMcpServer() {
     const exportRoot = resolveConfiguredExportRoot(process.env);
     const server = new McpServer({
         name: "slov-lex-mcp",
-        version: "1.3.3",
+        version: "1.3.4",
     });
     server.tool("get_law", "Získa základné informácie o zákone podľa čísla a roku (napr. 595/2003).", {
         number: z.string().describe("Číslo zákona"),
@@ -92,7 +105,7 @@ export function createSlovLexMcpServer() {
             .join("\n");
         return textResult(out);
     });
-    server.tool("get_version", "Získa znenie zákona. DÔLEŽITÉ: Bez parametra 'date' vráti AKTUÁLNE platné znenie (k dnešnému dňu). Ak je text dlhý, vracia sa po oknách (offset_chars + max_chars). Keď je v hlavičke MCP_WINDOW_COMPLETE: false a potrebuješ úplné/komplexné posúdenie, zavolaj tool znova s offset_chars=MCP_NEXT_OFFSET.", {
+    server.tool("get_version", "Získa znenie zákona vrátane nadpisov častí/hláv, príloh (napr. sadzobníkov) a poznámok pod čiarou; prílohy, ktoré Slov-Lex má len v PDF, uvedie ako odkaz. DÔLEŽITÉ: Bez parametra 'date' vráti AKTUÁLNE platné znenie (k dnešnému dňu). Ak je text dlhý, vracia sa po oknách (offset_chars + max_chars). Keď je v hlavičke MCP_WINDOW_COMPLETE: false a potrebuješ úplné/komplexné posúdenie, zavolaj tool znova s offset_chars=MCP_NEXT_OFFSET.", {
         law: z.string().describe("Číslo zákona (napr. '595/2003') alebo IRI"),
         date: z.string().optional().describe("Dátum znenia YYYY-MM-DD. Bez tohto parametra = dnešný dátum. Pre historické prípady zadaj relevantný dátum (napr. '2023-12-31' pre rok 2023). Funguje aj budúci dátum pre už vyhlásené novely s neskoršou účinnosťou (pozri riadok 'Nasledujúce znenie' v hlavičke)."),
         max_chars: positiveInteger().optional().describe("Max počet znakov (default: 20000)"),
@@ -122,9 +135,9 @@ export function createSlovLexMcpServer() {
             .join("\n");
         return textResult(`${header}\n\n${rendered.text}`);
     });
-    server.tool("get_paragraph", "Získa konkrétny paragraf zo zákona. DÔLEŽITÉ: Bez parametra 'date' vráti AKTUÁLNE platné znenie (k dnešnému dňu). Pre historické prípady použi parameter 'date'. Predvolene zahrnie aj paragrafy, na ktoré sa text priamo odkazuje v rámci toho istého zákona. Voliteľne (include_cross_law_references=true) sleduje aj odkazy na iné zákony – inline (napr. „§ 5 zákona č. 461/2003 Z. z.“), kódexy (Zákonník práce, Občiansky zákonník, …) aj odkazy v poznámkach pod čiarou. Veľké paragrafy sa vracajú po oknách (offset_chars + max_chars). Keď je v hlavičke MCP_WINDOW_COMPLETE: false a potrebuješ celý text, zavolaj tool znova s offset_chars=MCP_NEXT_OFFSET.", {
+    server.tool("get_paragraph", "Získa konkrétny paragraf (alebo článok, napr. „Čl. 5“ Ústavy) zo zákona. DÔLEŽITÉ: Bez parametra 'date' vráti AKTUÁLNE platné znenie (k dnešnému dňu). Pre historické prípady použi parameter 'date'. Predvolene zahrnie aj paragrafy, na ktoré sa text priamo odkazuje v rámci toho istého zákona (nejednoznačné „§ N“ vo vete, ktorá cituje iný zákon, vynechá – text si over). Predvolene (include_cross_law_references=true) sleduje aj odkazy na iné zákony – inline (napr. „§ 5 zákona č. 461/2003 Z. z.“), kódexy (Zákonník práce, Občiansky zákonník, …) aj odkazy v poznámkach pod čiarou. Veľké paragrafy sa vracajú po oknách (offset_chars + max_chars). Keď je v hlavičke MCP_WINDOW_COMPLETE: false a potrebuješ celý text, zavolaj tool znova s offset_chars=MCP_NEXT_OFFSET.", {
         law: z.string().describe("Číslo zákona (napr. '595/2003') alebo IRI"),
-        paragraph: z.string().describe("Číslo paragrafu (napr. '3' alebo '§3')"),
+        paragraph: z.string().describe("Číslo paragrafu (napr. '3' alebo '§3') alebo článku (napr. 'Čl. 5' pre Ústavu, 'Čl. I' v novele)"),
         date: z.string().optional().describe("Dátum znenia YYYY-MM-DD. Bez tohto parametra = dnešný dátum. Pre historické prípady zadaj relevantný dátum. Funguje aj budúci dátum pre už vyhlásené novely s neskoršou účinnosťou."),
         include_linked_paragraphs: z.boolean().optional().describe("Ak true (default), pridá aj paragrafy, na ktoré sa vyžiadaný paragraf priamo odkazuje v tom istom zákone."),
         include_cross_law_references: z.boolean().optional().describe("Ak true (default), pripojí aj relevantné paragrafy z INÝCH zákonov, na ktoré sa text/poznámky odkazujú."),
@@ -146,12 +159,27 @@ export function createSlovLexMcpServer() {
         const offsetChars = offset_chars ?? 0;
         const extracted = extractParagrafFromPortalHtml(portalHtml, paragraph);
         if (!extracted) {
+            const quoted = findQuotedParagraf(portalHtml, paragraph);
+            if (quoted) {
+                const label = /^§/.test(paragraph.trim()) ? paragraph.trim() : `§ ${paragraph.trim()}`;
+                const target = quoted.targetLaw ? `zákon č. ${quoted.targetLaw}` : "iný zákon (pozri úvodnú vetu článku)";
+                return textResult([
+                    `${label} nie je vlastným ustanovením predpisu ${law} (IRI: ${versionIri}).`,
+                    `V ${law} je ${label} iba citovaný text novelizačného bodu v ${quoted.article || "článku"}; tento článok novelizuje ${target}.`,
+                    quoted.targetLaw
+                        ? `Pre jeho platné znenie zavolaj get_paragraph s law=${quoted.targetLaw} (a date od účinnosti novely); novelizačný bod nájdeš cez get_version pre ${law}.`
+                        : `Novelizačný bod nájdeš cez get_version pre ${law}.`,
+                ].join("\n"));
+            }
             return textResult(`Nenašiel som ${paragraph} v ${law} (IRI: ${versionIri}).`);
         }
         const paraText = renderParagraf(extracted.$, extracted.$par);
         const requestedRef = paragraph.replace(/^§/i, "").trim();
         const linkedRefs = includeLinkedParagraphs
-            ? extractParagraphReferences(paraText).filter((ref) => ref !== requestedRef)
+            ? Array.from(new Set([
+                ...extractLinkedParagraphReferences(extracted.$, extracted.$par),
+                ...extractParagraphReferences(paraText),
+            ])).filter((ref) => ref !== requestedRef.toLowerCase())
             : [];
         const linkedSections = [];
         for (const ref of linkedRefs.slice(0, maxLinked)) {
@@ -165,15 +193,15 @@ export function createSlovLexMcpServer() {
         if (includeCrossLaw) {
             const inlineRefs = extractCrossLawReferences(paraText);
             const footnotes = extractFootnoteDefinitions(portalHtml);
-            const footnoteRefs = resolveFootnoteReferences(paraText, footnotes);
+            const footnoteRefs = resolveFootnoteReferences(extractFootnoteMarkers(extracted.$, extracted.$par), footnotes);
             const allRefs = dedupeCrossLawRefs([...inlineRefs, ...footnoteRefs].filter((r) => !(r.number === selfNumber && r.year === selfYear)));
             for (const ref of allRefs.slice(0, maxCrossLaw)) {
                 const fetched = await fetchCrossLawParagraph(ref, date);
-                if (!fetched) {
-                    crossLawNotes.push(formatCrossLawRefNote(ref, "nepodarilo sa stiahnuť"));
+                if ("reason" in fetched) {
+                    crossLawNotes.push(formatCrossLawRefNote(ref, fetched.reason));
                     continue;
                 }
-                crossLawSections.push(fetched);
+                crossLawSections.push(fetched.text);
             }
             if (allRefs.length > maxCrossLaw) {
                 crossLawNotes.push(`… a ďalších ${allRefs.length - maxCrossLaw} odkazov (zvýš max_cross_law_refs alebo zavolaj get_paragraph pre konkrétny zákon).`);
@@ -259,7 +287,7 @@ export function createSlovLexMcpServer() {
         resolve_lp: z
             .boolean()
             .optional()
-            .describe("Ak je zadaný iba law, skúsi mapovanie zákon -> LP (pomalšie, default false)."),
+            .describe("Ak je zadaný iba law, skúsi mapovanie zákon -> LP (pomalé, zoznam eLegislatívy sa sťahuje až ~60 s; default false). eLegislatíva obsahuje len aktuálne materiály – pri staršom zákone nájde spravidla len novely, nie pôvodnú dôvodovú správu, a automaticky ich nevyberie."),
         include_history: z
             .boolean()
             .optional()
@@ -269,6 +297,7 @@ export function createSlovLexMcpServer() {
         const includeHistory = include_history ?? false;
         const maxResults = max_results ?? 6;
         let resolvedLp = lp?.trim() ?? "";
+        let resolvedFromLaw;
         if (!resolvedLp) {
             if (!law?.trim()) {
                 return textResult("Zadaj buď 'lp' (odporúčané), alebo 'law'.");
@@ -278,16 +307,26 @@ export function createSlovLexMcpServer() {
             }
             const candidates = await findLpCandidatesForLaw(law, 5);
             if (!candidates.length) {
-                return textResult(`Nenašiel som LP kandidátov pre ${law}. Skús zadať LP priamo (napr. LP/2025/50).`);
+                return textResult(`Nenašiel som LP kandidátov pre ${law} v zozname eLegislatívy (obsahuje len aktuálne materiály, staršie legislatívne procesy v ňom nie sú). Skús zadať LP priamo (napr. LP/2025/50).`);
             }
             const selected = chooseConfidentLpCandidate(candidates);
             if (!selected) {
+                const relationLabel = (relation) => relation === "novela"
+                    ? "NOVELA tohto zákona (dôvodová správa vysvetľuje novelu, nie pôvodný zákon)"
+                    : relation === "predmet-mimo-obdobia"
+                        ? "iba čiastočná zhoda slov názvu, materiál nie je z obdobia prijatia zákona"
+                        : "zhoda s názvom zákona";
                 const ranked = candidates
-                    .map((candidate, index) => `${index + 1}. ${candidate.lp} — skóre ${candidate.score}: ${candidate.title}`)
+                    .map((candidate, index) => `${index + 1}. ${candidate.lp} — ${relationLabel(candidate.relation)}; skóre ${candidate.score}: ${candidate.title}`)
                     .join("\n");
-                return textResult(`Mapovanie ${law} → LP nie je dostatočne jednoznačné. Vyber kandidáta explicitne cez 'lp'.\n\n${ranked}`);
+                const onlyAmendments = candidates.every((c) => c.relation === "novela");
+                const intro = onlyAmendments
+                    ? `Pôvodný legislatívny proces zákona ${law} sa v zozname eLegislatívy nenachádza (zoznam obsahuje len aktuálne materiály). Nižšie sú iba novely; ich dôvodové správy nie sú dôvodovou správou k zákonu ${law}.`
+                    : `Mapovanie ${law} → LP nie je dostatočne jednoznačné.`;
+                return textResult(`${intro} Ak chceš niektorý materiál, zadaj ho explicitne cez 'lp'.\n\n${ranked}`);
             }
             resolvedLp = selected.lp;
+            resolvedFromLaw = `LP určené automaticky z názvu zákona ${law} (zhoda predmetu, skóre ${selected.score}) – over, že ide o návrh tohto zákona.`;
         }
         const data = await getExplanatoryReportsByLp(resolvedLp, {
             includeHistory,
@@ -313,6 +352,7 @@ export function createSlovLexMcpServer() {
         const header = [
             `LP: ${data.lp}`,
             data.title ? `Materiál: ${data.title}` : null,
+            resolvedFromLaw ?? null,
             `Počet dôvodových správ: ${data.reports.length}`,
         ]
             .filter(Boolean)
@@ -374,10 +414,10 @@ export function createSlovLexMcpServer() {
             .join("\n");
         return textResult(`${header}\n\n${extracted.text}`);
     });
-    server.tool("save_law_markdown", "Uloží znenie zákona/vyhlášky k dátumu do Markdown súboru na filesystem servera.", {
+    server.tool("save_law_markdown", "Uloží znenie zákona/vyhlášky k dátumu (vrátane príloh a poznámok pod čiarou) do Markdown súboru na filesystem servera. Pri dlhom predpise text skráti na max_chars a v hlavičke to uvedie.", {
         law: z.string().describe("Číslo zákona (napr. 595/2003) alebo IRI."),
         date: z.string().optional().describe("Dátum YYYY-MM-DD (default: dnes)."),
-        max_chars: positiveInteger().max(300000).optional().describe("Max počet znakov textu (default: 50000)."),
+        max_chars: positiveInteger().max(2000000).optional().describe("Max počet znakov textu (default: 50000, max 2000000). Predpisy s prílohami bývajú dlhé (napr. 145/1995 ≈ 443000 znakov) – pri MCP_TEXT_TRUNCATED: true zvýš."),
         output_path: z.string().optional().describe("Cesta k výstupnému .md súboru na filesysteme servera (default: ./exports/laws/...)."),
     }, async ({ law, date, max_chars, output_path }) => {
         const { baseIri, number, year } = parseLawBaseIri(law);
