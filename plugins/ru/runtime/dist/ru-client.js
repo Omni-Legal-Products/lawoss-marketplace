@@ -4,7 +4,9 @@ const DEFAULT_BASE = "https://replik.justice.sk/ru-verejnost-web";
 const HOME_PATH = "/";
 const SEARCH_PATH = "/pages/searchKonanie.xhtml";
 const DETAIL_PATH = "/pages/konanieDetail.xhtml";
-const USER_AGENT = "register-upadcov-mcp/0.1";
+const USER_AGENT = "register-upadcov-mcp/0.2";
+/** The register renders a fixed 15 rows per search page. */
+const SOURCE_PAGE_SIZE = 15;
 const MAX_RESPONSE_BYTES = 512 * 1024;
 const MAX_QUERY_BYTES = 256;
 const MAX_UPSTREAM_CONCURRENCY = 4;
@@ -108,57 +110,11 @@ function stripTags(html) {
         .trim();
 }
 /**
- * Read the javax.faces.ViewState token from a JSF page. The hidden input has
- * id "j_id1:javax.faces.ViewState:0" (and name "javax.faces.ViewState").
- * Pure: operates on an HTML string. Throws if absent.
+ * Parse the result total out of a search page. The current page renders
+ * `Počet výsledkov: <span id="…:total" class="highlight">1212</span>`; the
+ * number sits inside a tag, so tags are stripped before matching (ported from
+ * the LAWOSS release, d8a3a47). Pure. Returns null when no total is shown.
  */
-export function parseViewState(html) {
-    // <input type="hidden" name="javax.faces.ViewState" id="j_id1:javax.faces.ViewState:0" value="...">
-    const tagRe = /<input[^>]*name=["']javax\.faces\.ViewState["'][^>]*>/i;
-    const tag = tagRe.exec(html)?.[0];
-    if (tag) {
-        const m = /value=["']([\s\S]*?)["']/i.exec(tag);
-        if (m)
-            return decodeHtmlEntities(m[1]);
-    }
-    // Partial-response form: <update id="...javax.faces.ViewState...">..CDATA..</update>
-    const upd = /<update id=["'][^"']*javax\.faces\.ViewState[^"']*["']>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/update>/i.exec(html);
-    if (upd)
-        return decodeHtmlEntities(upd[1].trim());
-    throw new Error("Nepodarilo sa získať javax.faces.ViewState z RU stránky (zlyhala session/handshake alebo zmena stránky?).");
-}
-/**
- * Discover the auto-generated id of the search-box "type" select inside
- * searchBoxForm (Mojarra generates e.g. searchBoxForm:j_idt61). Pure.
- * Returns the field name (without "_input") or null if not found.
- */
-export function discoverSearchBoxTypeField(html) {
-    const m = /name=["'](searchBoxForm:j_idt\d+)_input["']/i.exec(html);
-    return m ? m[1] : null;
-}
-/** Read the selected search type value, e.g. KONANIE, from the generated select. */
-export function discoverSearchBoxTypeValue(html, field) {
-    const selectRe = new RegExp(`<select[^>]*name=["']${escapeRegExp(field)}_input["'][^>]*>([\\s\\S]*?)<\\/select>`, "i");
-    const select = selectRe.exec(html)?.[1];
-    if (!select)
-        return null;
-    const selected = /<option[^>]*value=["']([^"']+)["'][^>]*selected=["']selected["'][^>]*>/i.exec(select);
-    if (selected)
-        return decodeHtmlEntities(selected[1]);
-    const first = /<option[^>]*value=["']([^"']+)["'][^>]*>/i.exec(select);
-    return first ? decodeHtmlEntities(first[1]) : null;
-}
-/**
- * Extract the CDATA payload of the konanieList partial-AJAX update.
- * Pure. Returns the inner HTML (the <li> rows) or the input unchanged if it is
- * already plain row HTML.
- */
-export function extractKonanieListCdata(xml) {
-    const re = /<update id=["']searchKonanieForm:konanieList["']>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/update>/i;
-    const m = re.exec(xml);
-    return m ? m[1] : xml;
-}
-/** Parse 'Počet výsledkov: N' out of a search page / partial response. Pure. */
 export function parsePocetVysledkov(html) {
     const text = decodeHtmlEntities(html.replace(/<!\[CDATA\[|\]\]>/g, " ").replace(/<[^>]*>/g, "\n"));
     const m = /Po[čc]et v[ýy]sledkov\s*:?\s*([0-9]+(?:[^\S\r\n]+[0-9]{3})*)/i.exec(text);
@@ -167,35 +123,76 @@ export function parsePocetVysledkov(html) {
     const n = parseInt(m[1].replace(/\s+/g, ""), 10);
     return Number.isFinite(n) ? n : null;
 }
-const DETAIL_BASE = `${DEFAULT_BASE}${DETAIL_PATH}`;
+/** True when the source explicitly answered that nothing matched the query. Pure. */
+export function isNoResultsPage(html) {
+    return /Nenašli\s+sa\s+žiadne\s+konania/i.test(stripTags(html));
+}
+/** Current page number from the "N/M" page marker, or null when the marker is absent. Pure. */
+export function parseCurrentPage(html) {
+    const m = /oznacenieStranky["'][^>]*>\s*<span[^>]*>\s*(\d+)\s*\/\s*\d+/i.exec(html);
+    return m ? parseInt(m[1], 10) : null;
+}
+/** Text of an inline fragment: inline emphasis joins without a space ("<em>s.r.o</em>." → "s.r.o."). */
+function inlineText(html) {
+    return stripTags(html.replace(/<\/?(?:em|strong|b|i)\b[^>]*>/gi, ""));
+}
+/** "--" is how the register prints a missing value. */
+function nullIfDash(s) {
+    const t = (s ?? "").trim();
+    return t.length === 0 || /^-+$/.test(t) ? null : t;
+}
 /**
- * Parse the konanieList rows (the CDATA-wrapped <li> blocks of the partial
- * render) into structured search rows. Pure: operates on an HTML string.
- *
- * Row anchor shape:
- *   <a ... href="/ru-verejnost-web/pages/konanieDetail.xhtml?konanieId=NNN&amp;back=true" ...>
- *     Surname Name (DD.MM.YYYY) - <type> - Konkurz č. <spZn></a>
- * PO rows carry "IČO: NNNNNNNN" instead of a birthdate.
+ * Parse the result rows of a search page. Each row is an
+ * `<li class="mspacerTop pt10 pb10">` with a heading link
+ * ("Name (IČO: N) - Konkurz č. 2K/10/2026") followed by `div.row` blocks:
+ * status | date, court; "Posledný oznam vo VO:"; "Správca:" or "Likvidátor:".
+ * Pure: operates on an HTML string.
  */
-export function parseSearchRows(html, baseUrl = DEFAULT_BASE) {
-    const body = extractKonanieListCdata(html);
+export function parseSearchRows(html, baseUrl = DEFAULT_BASE, prebiehajuce = null) {
     const rows = [];
-    const anchorRe = /<a[^>]*href=["']([^"']*konanieDetail\.xhtml\?[^"']*konanieId=\d+[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    let m;
-    while ((m = anchorRe.exec(body)) !== null) {
-        const href = decodeHtmlEntities(m[1]);
-        const konanieId = parseKonanieId(href);
+    const blocks = html.split(/<li\s+class=["']mspacerTop pt10 pb10["'][^>]*>/i).slice(1);
+    for (const raw of blocks) {
+        const block = raw.split(/<\/li>/i)[0];
+        const anchor = /<a[^>]*href=["']([^"']*konanieDetail\.xhtml\?[^"']*)["'][^>]*>([\s\S]*?)<\/a>/i.exec(block);
+        if (!anchor)
+            continue;
+        const konanieId = parseKonanieId(decodeHtmlEntities(anchor[1]));
         if (!konanieId)
             continue;
-        const label = stripTags(m[2]);
-        const parsed = parseRowLabel(label);
-        // The trustee may appear in a sibling <div class="spravca">Správca: ...</div>.
-        // Stop at the next row (<li) so we don't pull the following row's trustee.
-        let after = body.slice(anchorRe.lastIndex, anchorRe.lastIndex + 600);
-        const nextLi = after.search(/<li[\s>]/i);
-        if (nextLi >= 0)
-            after = after.slice(0, nextLi);
-        const spravca = /Spr[áa]vca\s*:?\s*([^<]+)/i.exec(stripTags(after))?.[1]?.trim() ?? null;
+        const parsed = parseRowLabel(inlineText(anchor[2]));
+        let stav = null;
+        let stavDatum = null;
+        let sud = null;
+        let poslednyOznamVo = null;
+        let spravca = null;
+        let likvidator = null;
+        const cellRe = /<div\s+class=["']col-xs-3["'][^>]*>([\s\S]*?)<\/div>\s*<div\s+class=["']col-xs-9[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi;
+        let cell;
+        while ((cell = cellRe.exec(block)) !== null) {
+            const label = inlineText(cell[1]);
+            const value = inlineText(cell[2]);
+            if (/^Posledn[ýy] oznam/i.test(label)) {
+                const m = /^(\d{1,2}\.\d{1,2}\.\d{4})\s*(?:-\s*(.*))?$/.exec(value);
+                poslednyOznamVo = m
+                    ? { datum: m[1], typ: nullIfDash(m[2]) }
+                    : value
+                        ? { datum: null, typ: value }
+                        : null;
+            }
+            else if (/^Spr[áa]vca\s*:/i.test(label)) {
+                spravca = nullIfDash(value);
+            }
+            else if (/^Likvid[áa]tor\s*:/i.test(label)) {
+                likvidator = nullIfDash(value);
+            }
+            else if (!label.endsWith(":") && stav === null) {
+                // Status row: "<stav>" | "<date or -->, <court>".
+                stav = nullIfDash(label);
+                const ci = value.indexOf(",");
+                stavDatum = nullIfDash(ci >= 0 ? value.slice(0, ci) : value);
+                sud = ci >= 0 ? nullIfDash(value.slice(ci + 1)) : null;
+            }
+        }
         rows.push({
             konanieId,
             debtorName: parsed.debtorName,
@@ -204,7 +201,13 @@ export function parseSearchRows(html, baseUrl = DEFAULT_BASE) {
             subjectType: parsed.subjectType,
             proceedingType: parsed.proceedingType,
             spisovaZnacka: parsed.spisovaZnacka,
-            spravca: spravca && spravca.length > 0 ? spravca : null,
+            stav,
+            stavDatum,
+            sud,
+            poslednyOznamVo,
+            spravca,
+            likvidator,
+            prebiehajuce,
             detailUrl: `${baseUrl}${DETAIL_PATH}?konanieId=${konanieId}`,
         });
     }
@@ -214,41 +217,51 @@ export function parseSearchRows(html, baseUrl = DEFAULT_BASE) {
  * Parse the single-line row label, e.g.
  *   "Pongóová Angelika (24.12.1987) - Oddlženie - Konkurz č. 1OdK/134/2026"
  *   "ACME s.r.o. (IČO: 12345678) - Konkurz - Konkurz č. 2K/10/2026"
- * Pure.
+ *   "\"v konkurze\" SLATUR TRADE, s.r.o. - Konkurz č. 32K/27/2011"
+ * Business names may themselves contain " - " ("CORNER - STONE …"), so the
+ * name ends at the identity parenthetical, not at the first dash. Pure.
  */
 export function parseRowLabel(label) {
     const clean = label.replace(/\s+/g, " ").trim();
-    // Case number after "č." (handles "Konkurz č." / "č.").
-    const spisovaZnacka = /[čc]\.\s*([^\s][^-]*?)\s*$/i.exec(clean)?.[1]?.trim() ?? "";
-    // Parenthetical: birthdate (FO) or "IČO: NNN" (PO).
-    const paren = /\(([^)]*)\)/.exec(clean)?.[1]?.trim() ?? "";
+    // Case number after the trailing "č.".
+    const spisovaZnacka = /\s[čc]\.\s*(\S+)\s*$/i.exec(clean)?.[1]?.trim() ?? "";
+    // Identity parenthetical: birth date (FO) or "IČO: N". Take the last one.
+    const idRe = /\(\s*(\d{1,2}\.\d{1,2}\.\d{4}|I[ČC]O\s*:?\s*\d{6,8})\s*\)/gi;
+    let idMatch = null;
+    for (let m = idRe.exec(clean); m !== null; m = idRe.exec(clean))
+        idMatch = m;
     let birthDate = null;
     let ico = null;
-    let subjectType = "PO";
-    const dateM = /^(\d{1,2}\.\d{1,2}\.\d{4})$/.exec(paren);
-    const icoM = /I[ČC]O\s*:?\s*(\d{6,8})/i.exec(paren);
-    if (dateM) {
-        birthDate = dateM[1];
-        subjectType = "FO";
+    let debtorName;
+    let tail;
+    if (idMatch) {
+        debtorName = clean.slice(0, idMatch.index).trim();
+        tail = clean.slice(idMatch.index + idMatch[0].length);
+        const date = /^\d{1,2}\.\d{1,2}\.\d{4}$/.exec(idMatch[1]);
+        if (date)
+            birthDate = date[0];
+        else
+            ico = /(\d{6,8})/.exec(idMatch[1])?.[1] ?? null;
     }
-    else if (icoM) {
-        ico = icoM[1];
-        subjectType = "PO";
+    else {
+        // No parenthetical: the tail is " - <type> č. <spZn>", where the type may
+        // itself be "Oddlženie - …".
+        const t = /\s+-\s+((?:Oddlženie\s+-\s+)?[^-]+?\s+[čc]\.\s*\S+)\s*$/i.exec(clean);
+        debtorName = (t ? clean.slice(0, t.index) : clean).trim();
+        tail = t ? ` - ${t[1]}` : "";
     }
-    // Debtor name = everything before the first "(" or " - ".
-    const nameCut = clean.search(/\s*[(]|\s+-\s+/);
-    const debtorName = (nameCut >= 0 ? clean.slice(0, nameCut) : clean).trim();
-    // Proceeding type = the segment between the parenthetical/name and "... č.".
-    // The label tail is "<doc> č. <spZn>" (e.g. "Konkurz č. 1OdK/134/2026"); the
-    // proceeding type is everything before that trailing "<word> č." marker.
-    const afterParen = paren ? clean.slice(clean.indexOf(")") + 1) : clean.slice(debtorName.length);
-    let seg = afterParen.replace(/^\s*-\s*/, "");
-    // Cut the trailing case-number marker " č. <spZn>" (keep the proceeding type,
-    // whose last word is the document type, e.g. "Oddlženie - Konkurz").
+    let seg = tail.replace(/^\s*-\s*/, "");
     const cn = /\s+[čc]\.\s*\S/i.exec(seg);
     if (cn)
         seg = seg.slice(0, cn.index);
-    let proceedingType = seg.replace(/\s*-\s*$/, "").trim();
+    const proceedingType = seg.replace(/\s*-\s*$/, "").trim();
+    // Row-level type is a heuristic: a row shows only a birth date or an IČO.
+    // The detail header "(FO)/(FOP)/(PO)" is authoritative.
+    let subjectType = "PO";
+    if (birthDate)
+        subjectType = "FO";
+    else if (ico && /podnikate[ľl]|\bSZČO\b/i.test(debtorName))
+        subjectType = "FOP";
     return { debtorName, birthDate, ico, subjectType, proceedingType, spisovaZnacka };
 }
 export function parseKonanieId(s) {
@@ -258,56 +271,101 @@ export function parseKonanieId(s) {
 // ---------------------------------------------------------------------------
 // Case-detail parsing
 // ---------------------------------------------------------------------------
+/** Inner HTML of the <div> whose opening tag ends at `from`, with nested divs balanced. */
+function balancedDivInner(html, from) {
+    const tagRe = /<\/?div\b[^>]*>/gi;
+    tagRe.lastIndex = from;
+    let depth = 1;
+    let m;
+    while ((m = tagRe.exec(html)) !== null) {
+        depth += m[0][1] === "/" ? -1 : 1;
+        if (depth === 0)
+            return html.slice(from, m.index);
+    }
+    return html.slice(from);
+}
 /**
- * Parse the konanieDetail.xhtml page into a structured case record. The page
- * uses labelled fields; we flatten tags to text and read each label. Pure:
+ * Read the labelled sections of the detail page: each field is
+ * `<div class="col-xs-3">Label:</div><div class="col-xs-9">value</div>`.
+ * A section that is present but empty maps to "" — never to text borrowed
+ * from a later part of the page. Pure.
+ */
+export function parseDetailSections(html) {
+    const footer = html.search(/<div[^>]*id=["']footer["']/i);
+    const body = footer >= 0 ? html.slice(0, footer) : html;
+    const sections = new Map();
+    const re = /<div\s+class=["']col-xs-3["'][^>]*>\s*([^<]+?)\s*:\s*<\/div>\s*<div\s+class=["']col-xs-9[^"']*["'][^>]*>/gi;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+        const label = decodeHtmlEntities(m[1]).replace(/\s+/g, " ").trim();
+        if (!sections.has(label))
+            sections.set(label, balancedDivInner(body, re.lastIndex));
+    }
+    return sections;
+}
+/** Normalize detail text: collapse whitespace and drop the space before commas. */
+function detailText(html) {
+    return inlineText(html).replace(/\s+,/g, ",").trim();
+}
+/** "Name od dd.mm.yyyy" entries (current trustee or trustee history). */
+function parseSpravcaList(html) {
+    const text = detailText(html);
+    const out = [];
+    for (const m of text.matchAll(/(.+?)\s+od\s+(\d{1,2}\.\d{1,2}\.\d{4})\s*/g)) {
+        out.push({ nazov: m[1].trim(), odDatumu: m[2] });
+    }
+    if (out.length === 0 && text)
+        out.push({ nazov: text, odDatumu: null });
+    return out;
+}
+/**
+ * Parse the konanieDetail.xhtml page into a structured case record. Pure:
  * operates on an HTML string.
  */
 export function parseCaseDetail(html, konanieId, baseUrl = DEFAULT_BASE) {
-    const flat = flattenToText(html);
-    const knownLabels = [
-        "Spisová značka, typ konania",
-        "Súd",
-        "Sudca",
-        "Správca",
-        "Stav konania",
-        "Posledný verejný oznam",
-        "História stavov konania",
-        "Navrhovatelia",
-        "Návrh na vyhlásenie konkurzu",
-        "Lehoty",
-        "Typ konania podľa územnej platnosti",
-    ];
-    const labelValue = (label) => {
-        const htmlValue = labelValueFromHtml(html, label, knownLabels);
-        if (htmlValue)
-            return htmlValue;
-        // "Label: value" up to the next " | " separator or end.
-        const re = new RegExp(`${escapeRegExp(label)}\\s*:?\\s*([^|]+?)(?:\\s*\\||$)`, "i");
-        const m = re.exec(flat);
-        return m ? m[1].trim() : null;
+    const sections = parseDetailSections(html);
+    const section = (label) => sections.get(label) ?? null;
+    const text = (label) => {
+        const raw = section(label);
+        return raw === null ? null : nullIfDash(detailText(raw));
     };
-    // Spisová značka, typ konania: "1OdK/134/2026, Oddlženie - Konkurz"
-    const spisTyp = labelValue("Spisová značka, typ konania");
+    // Spisová značka, typ konania: "31K/28/2025, Konkurz"
+    const spisTyp = text("Spisová značka, typ konania");
     let spisovaZnacka = null;
     let typKonania = null;
     if (spisTyp) {
         const ci = spisTyp.indexOf(",");
-        if (ci >= 0) {
-            spisovaZnacka = spisTyp.slice(0, ci).trim();
-            typKonania = spisTyp.slice(ci + 1).trim();
+        spisovaZnacka = (ci >= 0 ? spisTyp.slice(0, ci) : spisTyp).trim();
+        typKonania = ci >= 0 ? spisTyp.slice(ci + 1).trim() || null : null;
+    }
+    const povodnaSpisovaZnacka = text("Pôvodná spisová značka");
+    // Súvisiace konania: "<a href=…konanieId=N>22K/35/2025</a> (Mestský súd Bratislava III)"
+    const suvisiaceKonania = [];
+    const suvRaw = section("Súvisiace konania");
+    if (suvRaw) {
+        const linkRe = /<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>\s*(?:\(([^)]*)\))?/gi;
+        for (const m of suvRaw.matchAll(linkRe)) {
+            const spZn = detailText(m[2]);
+            if (!spZn)
+                continue;
+            const id = parseKonanieId(decodeHtmlEntities(m[1]));
+            suvisiaceKonania.push({
+                spisovaZnacka: spZn,
+                sud: m[3] ? nullIfDash(detailText(m[3])) : null,
+                konanieId: id || null,
+            });
         }
-        else {
-            spisovaZnacka = spisTyp.trim();
+        if (suvisiaceKonania.length === 0) {
+            const t = nullIfDash(detailText(suvRaw));
+            if (t)
+                suvisiaceKonania.push({ spisovaZnacka: t, sud: null, konanieId: null });
         }
     }
     const detailHeader = parseDetailHeader(html);
-    // Subject type token "(FO)" / "(PO)" in the debtor header.
-    const subjectType = (detailHeader.subjectType ?? /\((FO|PO)\)/.exec(flat)?.[1]);
-    // Debtor: header "(FO) Name (24.12.1987) Address" or "(PO) Name IČO: NNN".
-    const upadca = detailHeader.upadca ?? parseDebtor(flat, subjectType ?? null);
+    const subjectType = detailHeader.subjectType;
+    const upadca = detailHeader.upadca ?? { meno: "", datumNarodenia: null, ico: null, adresa: null };
     // Súd: "Okresný súd X, odvolací súd Krajský súd v Y"
-    const sudRaw = labelValue("Súd");
+    const sudRaw = text("Súd");
     let sud = null;
     let odvolaciSud = null;
     if (sudRaw) {
@@ -317,100 +375,91 @@ export function parseCaseDetail(html, konanieId, baseUrl = DEFAULT_BASE) {
             sud = sudRaw.slice(0, om.index).replace(/[,\s]+$/, "").trim();
         }
         else {
-            sud = sudRaw.trim();
+            sud = sudRaw;
         }
     }
-    const sudca = labelValue("Sudca");
-    // Správca: "Hellenbart ... k.s. od 09.06.2026"
-    const spravcaRaw = labelValue("Správca");
-    let spravca = null;
-    if (spravcaRaw) {
-        const od = /\sod\s+(\d{1,2}\.\d{1,2}\.\d{4})\s*$/i.exec(spravcaRaw);
-        spravca = {
-            nazov: (od ? spravcaRaw.slice(0, od.index) : spravcaRaw).trim(),
-            odDatumu: od ? od[1] : null,
-        };
-    }
-    // Stav konania: "09.06.2026 - Vyhlásený konkurz"
-    const stavKonania = parseStav(labelValue("Stav konania"));
+    const sudca = text("Sudca");
+    const spravcaRaw = section("Správca");
+    const spravca = spravcaRaw && nullIfDash(detailText(spravcaRaw)) ? parseSpravcaList(spravcaRaw)[0] ?? null : null;
+    const historiaRaw = section("História správcov");
+    const historiaSpravcov = historiaRaw && nullIfDash(detailText(historiaRaw)) ? parseSpravcaList(historiaRaw) : [];
+    // Stav konania: "17.09.2026 - Skončená reštrukturalizácia, odsúhlasený plán"
+    const stavKonania = parseStav(text("Stav konania"));
     // Posledný verejný oznam: "08.06.2026 - Uznesenie"
-    const oznamRaw = labelValue("Posledný verejný oznam");
+    const oznamRaw = text("Posledný verejný oznam");
     let poslednyVerejnyOznam = null;
     if (oznamRaw) {
         const s = parseStav(oznamRaw);
         poslednyVerejnyOznam = s ? { datum: s.datum, typ: s.stav } : { datum: null, typ: oznamRaw };
     }
-    // História stavov konania: "09.06.2026 - X; 02.06.2026 - Y"
-    const historiaRaw = labelValue("História stavov konania");
-    const historiaStavov = parseStavList(historiaRaw);
-    // Navrhovatelia: comma-list of one or more proposers (split on ";").
-    const navrhRaw = labelValue("Navrhovatelia");
-    const navrhovatelia = navrhRaw
-        ? navrhRaw.split(";").map((x) => x.trim()).filter((x) => x.length > 0)
-        : [];
-    const lehotyRaw = labelValue("Lehoty");
+    // História stavov konania: one "row timeline" per status.
+    const historiaStavovRaw = section("História stavov konania") ?? "";
+    const historiaStavov = historiaStavovRaw
+        .split(/<div[^>]*class=["'][^"']*\btimeline\b[^"']*["'][^>]*>/i)
+        .slice(1)
+        .map((part) => parseStav(nullIfDash(detailText(part))))
+        .filter((s) => s !== null);
+    // Navrhovatelia: one block per proposer; an empty section stays empty.
+    const navrhRaw = section("Navrhovatelia") ?? "";
+    const navrhBlocks = navrhRaw.split(/<div[^>]*class=["'](?:pravnickaOsoba|fyzickaOsoba)[^"']*["'][^>]*>/i);
+    const navrhParts = navrhBlocks.length > 1 ? navrhBlocks.slice(1) : [navrhRaw];
+    const navrhovatelia = navrhParts
+        .map((part) => detailText(part)
+        .replace(/,\s*I[ČC]O\s*,/gi, ",")
+        .replace(/\s*,\s*/g, ", ")
+        .replace(/[,\s]+$/, "")
+        .trim())
+        .filter((x) => x.length > 0);
+    // Lehoty: rows of the lehoty data grid only ("date - description").
+    const lehotyRaw = section("Lehoty") ?? "";
     const lehoty = lehotyRaw
-        ? lehotyRaw.split(";").map((x) => x.trim()).filter((x) => x.length > 0)
-        : [];
-    const typPodlaUzemnejPlatnosti = labelValue("Typ konania podľa územnej platnosti");
+        .split(/<tr[^>]*class=["'][^"']*ui-datagrid-row[^"']*["'][^>]*>/i)
+        .slice(1)
+        .map((row) => {
+        const datum = /(\d{1,2}\.\d{1,2}\.\d{4})/.exec(row)?.[1] ?? null;
+        const desc = /<div\s+class=["']col-xs-6["'][^>]*>([\s\S]*?)<\/div>/i.exec(row)?.[1];
+        const popis = desc ? detailText(desc) : "";
+        return datum && popis ? `${datum} - ${popis}` : popis || datum || "";
+    })
+        .filter((x) => x.length > 0);
+    const typPodlaUzemnejPlatnosti = text("Typ konania podľa územnej platnosti");
     return {
         konanieId,
         spisovaZnacka,
         typKonania,
-        subjectType: subjectType ?? null,
+        povodnaSpisovaZnacka,
+        suvisiaceKonania,
+        subjectType,
         upadca,
         sud,
         odvolaciSud,
         sudca,
         spravca,
+        historiaSpravcov,
         stavKonania,
         historiaStavov,
         poslednyVerejnyOznam,
         navrhovatelia,
         lehoty,
         typPodlaUzemnejPlatnosti,
-        tabCounts: parseTabCounts(flat),
+        tabCounts: parseTabCounts(flattenToText(html)),
         detailUrl: `${baseUrl}${DETAIL_PATH}?konanieId=${konanieId}`,
     };
-}
-function labelValueFromHtml(html, label, labels) {
-    const labelRe = new RegExp(`${escapeRegExp(label)}\\s*:`, "i");
-    const labelMatch = labelRe.exec(html);
-    if (!labelMatch)
-        return null;
-    const start = labelMatch.index;
-    const afterStart = start + labelMatch[0].length;
-    let end = html.length;
-    for (const nextLabel of labels) {
-        if (nextLabel === label)
-            continue;
-        const nextRe = new RegExp(`${escapeRegExp(nextLabel)}\\s*:`, "i");
-        const nextMatch = nextRe.exec(html.slice(afterStart));
-        if (nextMatch && afterStart + nextMatch.index < end) {
-            end = afterStart + nextMatch.index;
-        }
-    }
-    const block = html.slice(start, end);
-    const text = stripTags(block)
-        .replace(new RegExp(`^${escapeRegExp(label)}\\s*:?\\s*`, "i"), "")
-        .split(/\s*\|\s*/)[0]
-        .replace(/\s+,/g, ",")
-        .trim();
-    return text.length > 0 ? text : null;
 }
 function parseDetailHeader(html) {
     const m = /<div[^>]*class=["'][^"']*\bdetail\b[^"']*["'][^>]*>[\s\S]*?<h1[^>]*>[\s\S]*?<div[^>]*>([\s\S]*?)<\/div>[\s\S]*?<\/h1>[\s\S]*?<h2[^>]*>[\s\S]*?<div[^>]*>([\s\S]*?)<\/div>/i.exec(html);
     if (!m)
         return { subjectType: null, upadca: null };
-    const title = stripTags(m[1]).replace(/\s+,/g, ",").trim();
-    const address = stripTags(m[2]).replace(/\s+,/g, ",").trim() || null;
-    const subjectType = /\((FO|PO)\)/.exec(title)?.[1];
+    const title = detailText(m[1]);
+    const address = detailText(m[2]) || null;
+    const subjectType = /^\((FOP|FO|PO)\)/i.exec(title)?.[1]?.toUpperCase();
     const birth = /\((\d{1,2}\.\d{1,2}\.\d{4})\)/.exec(title);
     const ico = /I[ČC]O\s*:?\s*(\d{6,8})/i.exec(title)?.[1] ?? null;
     const meno = title
-        .replace(/^\((?:FO|PO)\)\s*/i, "")
+        .replace(/^\((?:FOP|FO|PO)\)\s*/i, "")
         .replace(/\(\d{1,2}\.\d{1,2}\.\d{4}\)/, "")
         .replace(/I[ČC]O\s*:?\s*\d{6,8}/i, "")
+        .replace(/[,\s]+$/, "")
         .trim();
     return {
         subjectType: subjectType ?? null,
@@ -430,63 +479,9 @@ function parseStav(raw) {
         return { datum: m[1], stav: m[2].trim() };
     return { datum: null, stav: raw.trim() };
 }
-function parseStavList(raw) {
-    if (!raw)
-        return [];
-    const normalized = raw.replace(/\s+/g, " ").trim();
-    if (normalized.includes(";")) {
-        return normalized
-            .split(";")
-            .map((part) => parseStav(part.trim()))
-            .filter((stav) => stav !== null);
-    }
-    const matches = Array.from(normalized.matchAll(/(\d{1,2}\.\d{1,2}\.\d{4})\s*-\s*/g));
-    if (matches.length === 0)
-        return [];
-    return matches.map((match, i) => {
-        const valueStart = match.index + match[0].length;
-        const valueEnd = matches[i + 1]?.index ?? normalized.length;
-        return {
-            datum: match[1],
-            stav: normalized.slice(valueStart, valueEnd).trim(),
-        };
-    });
-}
-function parseDebtor(flat, subjectType) {
-    // Header up to the first " | " separator (the "Spisová značka..." block).
-    const head = flat.split("|")[0] ?? flat;
-    // Strip the leading "<type> č. <spZn> (FO)" prefix.
-    const afterType = head.replace(/^[\s\S]*?\((?:FO|PO)\)\s*/i, "");
-    const birth = /\((\d{1,2}\.\d{1,2}\.\d{4})\)/.exec(afterType);
-    const ico = /I[ČC]O\s*:?\s*(\d{6,8})/i.exec(afterType)?.[1] ?? null;
-    let meno = afterType;
-    if (birth)
-        meno = afterType.slice(0, birth.index).trim();
-    else if (ico)
-        meno = afterType.slice(0, afterType.search(/I[ČC]O/i)).trim();
-    // Address: everything after the birthdate/IČO token, comma-joined.
-    let adresa = null;
-    const tailStart = birth
-        ? birth.index + birth[0].length
-        : ico
-            ? afterType.search(/I[ČC]O/i)
-            : -1;
-    if (tailStart >= 0) {
-        adresa = afterType.slice(tailStart).replace(/^\s*I[ČC]O\s*:?\s*\d{6,8}\s*/i, "").trim();
-        adresa = adresa.replace(/\s*,\s*/g, ", ").replace(/^[,\s]+|[,\s]+$/g, "").trim();
-        if (adresa.length === 0)
-            adresa = null;
-    }
-    return {
-        meno: meno.trim(),
-        datumNarodenia: birth ? birth[1] : null,
-        ico,
-        adresa,
-    };
-}
 function parseTabCounts(flat) {
     const count = (label) => {
-        const re = new RegExp(`${escapeRegExp(label)}\\s*\\(?\\s*(\\d+)\\s*\\)?`, "i");
+        const re = new RegExp(`${escapeRegExp(label)}\\s*\\(\\s*(\\d+)\\s*\\)`, "i");
         const m = re.exec(flat);
         return m ? parseInt(m[1], 10) : null;
     };
@@ -500,7 +495,7 @@ function parseTabCounts(flat) {
         veritelia: count("Veritelia"),
     };
 }
-/** Flatten HTML to a single normalized text line, preserving "|" hints. */
+/** Flatten HTML to a single normalized text line. */
 function flattenToText(html) {
     return decodeHtmlEntities(html
         .replace(/<\s*(script|style)[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, " ")
@@ -662,15 +657,11 @@ export class RuClient {
             });
         });
     }
-    requireSearchStructure(html) {
-        if (!/name=["']javax\.faces\.ViewState["']/i.test(html) || !html.includes("searchKonanieForm:konanieList")) {
-            throw new RuMcpError("RU_SOURCE_PARSE", "RU search structure was not recognized.");
-        }
-    }
     /**
-     * Mandatory session handshake: GET the homepage to obtain the JSESSIONID
-     * cookie (scoped to /ru-verejnost-web). Without it every deep request is
-     * 302-redirected back to the homepage. Returns a cookie jar.
+     * Session handshake: GET the homepage to obtain the JSESSIONID cookie
+     * (scoped to /ru-verejnost-web). The register used to 302 every deep request
+     * without it; as of 9. 10. 2026 it no longer does, but the cookie is cheap
+     * insurance against that coming back. Fills the cookie jar.
      */
     async handshake(jar) {
         const html = await this.requestText(`${this.base}${HOME_PATH}`, {
@@ -679,9 +670,24 @@ export class RuClient {
         }, false, jar);
         void html;
     }
+    /** GET one server-rendered search page (1-based source page). */
+    fetchSearchPage(jar, query, zobrazKonania, sourcePage) {
+        const params = new URLSearchParams({ page: String(sourcePage), query, zobrazKonania });
+        return this.requestText(`${this.base}${SEARCH_PATH}?${params.toString()}`, {
+            method: "GET",
+            headers: { "User-Agent": USER_AGENT, Accept: "text/html", Cookie: cookieHeader(jar) },
+        }, false, jar);
+    }
     /**
-     * ru_search: handshake → GET searchKonanie (harvest ViewState) → POST the
-     * full-text query → POST partial-AJAX render of konanieList → parse the rows.
+     * ru_search: handshake → GET the server-rendered search page(s)
+     * searchKonanie.xhtml?query=…&zobrazKonania=…&page=N and parse the rows.
+     *
+     * The register's own form defaults to "Len prebiehajúce konania"; this
+     * client asks for zobrazKonania=all unless told otherwise, so finished,
+     * stopped and dismissed proceedings are not silently dropped. The source
+     * pages by 15 rows; page/pageSize are mapped onto as many source pages as
+     * needed. An empty result is returned only when the source said
+     * "Nenašli sa žiadne konania"; anything unrecognized is an error.
      */
     async search(params) {
         const query = params.query.trim();
@@ -690,111 +696,61 @@ export class RuClient {
         if (Buffer.byteLength(query, "utf8") > MAX_QUERY_BYTES)
             throw new RuMcpError("RU_INPUT_TOO_LARGE", "RU query is too large.");
         const page = params.page ?? 0;
-        const pageSize = params.pageSize ?? 15;
-        const first = page * pageSize;
+        const pageSize = params.pageSize ?? SOURCE_PAGE_SIZE;
+        const zobrazKonania = params.zobrazKonania ?? "all";
+        const prebiehajuce = zobrazKonania === "prebiehajuce" ? true : zobrazKonania === "ukoncene" ? false : null;
+        const offset = page * pageSize;
+        const firstSourcePage = Math.floor(offset / SOURCE_PAGE_SIZE) + 1;
+        const lastSourcePage = Math.floor((offset + pageSize - 1) / SOURCE_PAGE_SIZE) + 1;
         const jar = new Map();
         await this.handshake(jar);
-        // 1) GET the search page to harvest a fresh ViewState + the search-box ids.
-        const formHtml = await this.requestText(`${this.base}${SEARCH_PATH}`, {
-            method: "GET",
-            headers: { "User-Agent": USER_AGENT, Accept: "text/html", Cookie: cookieHeader(jar) },
-        }, false, jar);
-        this.requireSearchStructure(formHtml);
-        let viewState;
-        try {
-            viewState = parseViewState(formHtml);
-        }
-        catch {
-            throw new RuMcpError("RU_SOURCE_PARSE", "RU search state was not recognized.");
-        }
-        const typeField = discoverSearchBoxTypeField(formHtml);
-        const typeValue = typeField ? discoverSearchBoxTypeValue(formHtml, typeField) : null;
-        // 2) POST the full-text query (non-AJAX Mojarra form submit).
-        const queryHtml = await (async () => {
-            const body = new URLSearchParams();
-            body.set("searchBoxForm", "searchBoxForm");
-            body.set("searchBoxForm:searchQuery_input", query);
-            body.set("searchBoxForm:search", "searchBoxForm:search");
-            if (typeField && typeValue)
-                body.set(`${typeField}_input`, typeValue);
-            body.set("javax.faces.ViewState", viewState);
-            return this.requestText(`${this.base}${SEARCH_PATH}`, {
-                method: "POST",
-                headers: {
-                    "User-Agent": USER_AGENT,
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    Accept: "text/html",
-                    Cookie: cookieHeader(jar),
-                },
-                body: body.toString(),
-            }, true, jar);
-        })();
-        if (/Nenašli\s+sa\s+žiadne\s+konania\s+pre\s+hľadaný\s+reťazec/i.test(stripTags(decodeHtmlEntities(queryHtml)))) {
-            try {
-                parseViewState(queryHtml);
+        let total = null;
+        const collected = [];
+        for (let sp = firstSourcePage; sp <= lastSourcePage; sp++) {
+            if (total !== null && (sp - 1) * SOURCE_PAGE_SIZE >= total)
+                break;
+            const html = await this.fetchSearchPage(jar, query, zobrazKonania, sp);
+            if (isNoResultsPage(html)) {
+                if (!/<form[^>]*id=["']searchKonanieForm["']/i.test(html)) {
+                    throw new RuMcpError("RU_SOURCE_PARSE", "RU search structure was not recognized.");
+                }
+                total = 0;
+                break;
             }
-            catch {
-                throw new RuMcpError("RU_SOURCE_PARSE", "RU search state was not recognized.");
+            const pageTotal = parsePocetVysledkov(html);
+            if (pageTotal === null) {
+                throw new RuMcpError("RU_SOURCE_PARSE", "RU result count was not recognized; the result is not validated.");
             }
-            if (!/<form[^>]*id=["']searchKonanieForm["']/i.test(queryHtml)) {
-                throw new RuMcpError("RU_SOURCE_PARSE", "RU search structure was not recognized.");
+            total = pageTotal;
+            const shownPage = parseCurrentPage(html);
+            if (shownPage !== null && shownPage !== sp) {
+                throw new RuMcpError("RU_SOURCE_PARSE", "RU source returned a different result page.");
             }
-            return { query, page, pageSize, pocetVysledkov: 0, results: [] };
+            const rows = parseSearchRows(html, this.base, prebiehajuce);
+            const expected = Math.max(0, Math.min(SOURCE_PAGE_SIZE, total - (sp - 1) * SOURCE_PAGE_SIZE));
+            if (rows.length !== expected) {
+                throw new RuMcpError("RU_SOURCE_PARSE", "RU result rows do not match the announced count.");
+            }
+            collected.push(...rows);
         }
-        this.requireSearchStructure(queryHtml);
-        // The query POST returns a fresh ViewState; reuse it for the AJAX render.
-        try {
-            viewState = parseViewState(queryHtml);
-        }
-        catch {
-            /* keep previous ViewState */
-        }
-        const pocetVysledkov = parsePocetVysledkov(queryHtml);
-        // 3) POST the PrimeFaces lazy DataTable partial render for the active query.
-        const partialXml = await (async () => {
-            const body = new URLSearchParams();
-            body.set("javax.faces.partial.ajax", "true");
-            body.set("javax.faces.source", "searchKonanieForm:konanieList");
-            body.set("javax.faces.partial.execute", "searchKonanieForm:konanieList");
-            body.set("javax.faces.partial.render", "searchKonanieForm:konanieList");
-            body.set("searchKonanieForm:konanieList", "searchKonanieForm:konanieList");
-            body.set("searchKonanieForm:konanieList_pagination", "true");
-            body.set("searchKonanieForm:konanieList_first", String(first));
-            body.set("searchKonanieForm:konanieList_rows", String(pageSize));
-            body.set("searchKonanieForm", "searchKonanieForm");
-            body.set("javax.faces.ViewState", viewState);
-            return this.requestText(`${this.base}${SEARCH_PATH}`, {
-                method: "POST",
-                headers: {
-                    "User-Agent": USER_AGENT,
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    Accept: "application/xml, text/xml, */*",
-                    "Faces-Request": "partial/ajax",
-                    "X-Requested-With": "XMLHttpRequest",
-                    Cookie: cookieHeader(jar),
-                },
-                body: body.toString(),
-            }, false, jar);
-        })();
-        if (!/<update\s+id=["']searchKonanieForm:konanieList["']/i.test(partialXml)) {
-            throw new RuMcpError("RU_SOURCE_PARSE", "RU result update was not recognized.");
-        }
-        const results = parseSearchRows(partialXml, this.base).slice(0, pageSize);
-        const validatedCount = parsePocetVysledkov(partialXml) ?? pocetVysledkov;
-        if (results.length === 0 && validatedCount === null) {
-            throw new RuMcpError("RU_SOURCE_PARSE", "RU empty result was not explicitly validated.");
-        }
+        const skip = offset - (firstSourcePage - 1) * SOURCE_PAGE_SIZE;
+        const seen = new Set();
+        const results = collected
+            .slice(skip, skip + pageSize)
+            .filter((r) => (seen.has(r.konanieId) ? false : (seen.add(r.konanieId), true)));
         return {
             query,
-            pocetVysledkov: validatedCount,
+            zobrazKonania,
+            pocetVysledkov: total,
             page,
             pageSize,
+            hasMore: total !== null && offset + pageSize < total,
             results,
         };
     }
     /**
-     * ru_get_case: GET the case-detail deep link (needs the session cookie) and
-     * parse the labelled fields incl. trustee + status + status history.
+     * ru_get_case: GET the case-detail deep link and parse the labelled fields
+     * incl. trustee, trustee history, status and status history.
      */
     async getCase(konanieId) {
         if (!Number.isSafeInteger(konanieId) || konanieId < 1)
@@ -807,9 +763,9 @@ export class RuClient {
             headers: { "User-Agent": USER_AGENT, Accept: "text/html", Cookie: cookieHeader(jar) },
         }, false, jar);
         const hasId = new RegExp(`konanieId\\s*=\\s*["']?${konanieId}(?:\\D|$)`, "i").test(html);
-        const hasLabel = /Spisová značka|Súd|Sudca|Správca|Stav konania|Posledný verejný oznam/i.test(html);
-        if (!hasId || !hasLabel)
+        if (!hasId || !parseDetailSections(html).has("Spisová značka, typ konania")) {
             throw new RuMcpError("RU_SOURCE_PARSE", "RU case structure was not recognized.");
+        }
         return parseCaseDetail(html, konanieId, this.base);
     }
 }

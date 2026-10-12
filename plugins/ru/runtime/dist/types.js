@@ -25,6 +25,11 @@ export class RuMcpError extends Error {
  * ru_search input. The single full-text query matches debtor name, business
  * name, IČO and case number (sp. zn.), diacritics- and case-insensitive.
  */
+/**
+ * Source filter "Stav konania" (query parameter zobrazKonania). The register
+ * itself defaults to ongoing proceedings only; the MCP defaults to all.
+ */
+export const ZOBRAZ_KONANIA = ["all", "prebiehajuce", "ukoncene"];
 export const ruSearchInputSchema = {
     /** Full-text query: debtor name / business name / IČO / case number. */
     query: z.string().min(1, "Zadaj vyhľadávací výraz (meno, obchodné meno, IČO alebo sp. zn.)."),
@@ -32,6 +37,12 @@ export const ruSearchInputSchema = {
     page: z.number().int().min(0).optional(),
     /** Page size (default 15). */
     pageSize: z.number().int().min(1).max(100).optional(),
+    /** Which proceedings to return (default "all", i.e. ongoing and finished). */
+    zobrazKonania: z
+        .enum(ZOBRAZ_KONANIA)
+        .optional()
+        .describe("Filter stavu konania: \"all\" (predvolené – prebiehajúce aj skončené/zastavené/zrušené), " +
+        "\"prebiehajuce\" alebo \"ukoncene\"."),
 };
 /** ru_get_case input. */
 export const ruGetCaseInputSchema = {
