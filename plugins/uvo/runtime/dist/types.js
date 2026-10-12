@@ -21,15 +21,12 @@ export const uvoSearchInputSchema = {
     cpv: boundedText.optional(),
     /** NUTS region code (nut), e.g. "SK031". */
     nuts: boundedText.optional(),
-    /**
-     * Contract type (druhZakazky). The source expects TOVARY | SLUZBY | PRACE |
-     * SUHRNY; the legacy lowercase values are still accepted and mapped.
-     */
-    contractType: z.enum(["tovary", "sluzby", "stavebne prace", "TOVARY", "SLUZBY", "PRACE", "SUHRNY"]).optional(),
+    /** Contract type (druhZakazky): tovary | sluzby | stavebne prace. */
+    contractType: z.enum(["tovary", "sluzby", "stavebne prace"]).optional(),
     /** Update window in days (datumAktualizacie): 7 | 31 | 365. */
     updatedWithinDays: z.preprocess((value) => typeof value === "string" && value.trim() !== "" ? Number(value) : value, z.union([z.literal(7), z.literal(31), z.literal(365)])).optional(),
-    /** Page number (source parameter `page`, 1-based, 20 rows per page). */
-    page: looseNumber(z.number().int().min(1).max(1_000)).optional(),
+    /** Page number (pageNo, 1-based). */
+    page: looseNumber(z.number().int().min(1).max(20)).optional(),
 };
 /** uvo_get_notice input. */
 export const uvoGetNoticeInputSchema = {
