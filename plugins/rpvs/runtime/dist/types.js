@@ -6,7 +6,8 @@ export const searchInputSchema = {
     query: z
         .string()
         .min(1)
-        .describe("Obchodne meno (nazov) partnera verejneho sektora, alebo 8-miestne ICO."),
+        .describe("Obchodne meno (nazov) partnera alebo priezvisko fyzickej osoby (bez ohladu na velkost pismen, " +
+        "diakritika sa musi zhodovat), alebo 8-miestne ICO."),
     by: z
         .enum(["auto", "name", "ico"])
         .optional()
@@ -36,7 +37,14 @@ const getPartnerInputShape = {
         .int()
         .min(1)
         .optional()
-        .describe("Primarny kluc Partneri (Id == CisloVlozky / cislo vlozky)."),
+        .describe("Partneri.Id: pole partnerId z rpvs_search, rpvs_bulk_lookup alebo rpvs_get_partner. " +
+        "NIE je to cislo vlozky z webu RPVS (to patri do insertNumber) ani pole id z rpvs_search."),
+    insertNumber: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Cislo vlozky (CisloVlozky), ako ho uvadza web rpvs.gov.sk. Pri vacsine partnerov sa lisi od partnerId."),
     includeVerifications: looseBoolean
         .optional()
         .describe("Pripojit metadata verifikacnych dokumentov (default true). Binarne PDF sa nestahuje."),
@@ -50,9 +58,7 @@ const getPartnerInputShape = {
 export const getPartnerInputSchema = z
     .object(getPartnerInputShape)
     .strict()
-    .refine((input) => (input.ico === undefined) !== (input.partnerId === undefined), {
-    message: "Provide exactly one of ico or partnerId.",
-});
+    .refine((input) => [input.ico, input.partnerId, input.insertNumber].filter((v) => v !== undefined).length === 1, { message: "Provide exactly one of ico, partnerId or insertNumber." });
 export const bulkLookupInputSchema = {
     icoList: z
         .array(icoSchema)

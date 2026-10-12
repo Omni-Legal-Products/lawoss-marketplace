@@ -9,11 +9,15 @@ const DEFAULT_BASE_URL = "https://rpvs.gov.sk/opendatav2/";
 export function isCurrent(platnostDo) {
     return platnostDo === null || platnostDo === undefined || platnostDo === "";
 }
-/** Normalize a value that may be an empty string into null (RPVS uses "" for missing). */
+/**
+ * Normalize a value that may be an empty string into null (RPVS uses "" for missing).
+ * Numbers are kept as text: the source types some codes as Edm.Int32, and a
+ * non-string must never crash the whole lookup.
+ */
 function blankToNull(v) {
     if (v === null || v === undefined)
         return null;
-    const t = v.trim();
+    const t = String(v).trim();
     return t.length === 0 ? null : t;
 }
 /** Validate the canonical RPVS identifier without rewriting its meaning. */
@@ -38,7 +42,10 @@ export function normalizeAddress(a) {
     if (!a)
         return null;
     const street = blankToNull(a.MenoUlice);
-    const num = blankToNull(a.OrientacneCislo) ?? blankToNull(a.SupisneCislo);
+    // Slovak addresses write both numbers as "supisne/orientacne".
+    const supisne = blankToNull(a.SupisneCislo);
+    const orientacne = blankToNull(a.OrientacneCislo);
+    const num = supisne && orientacne ? `${supisne}/${orientacne}` : (orientacne ?? supisne);
     const streetLine = street ? (num ? `${street} ${num}` : street) : null;
     const city = blankToNull(a.Mesto);
     const zip = blankToNull(a.Psc);
@@ -50,10 +57,16 @@ export function normalizeAddress(a) {
         full: fullParts.length ? fullParts.join(", ") : null,
     };
 }
-export function normalizePartnerSummary(p) {
+/**
+ * @param owner the registration the record belongs to, when the record was
+ *   read through it rather than with an expanded `Partner`.
+ */
+export function normalizePartnerSummary(p, owner) {
     const name = blankToNull(p.ObchodneMeno) ?? joinName(p.Meno, p.Priezvisko, p.TitulPred, p.TitulZa);
     return {
         id: p.Id ?? null,
+        partnerId: p.Partner?.Id ?? owner?.Id ?? null,
+        insertNumber: p.Partner?.CisloVlozky ?? owner?.CisloVlozky ?? null,
         ico: blankToNull(p.Ico),
         name,
         formaOsoby: blankToNull(p.FormaOsoby),
@@ -104,7 +117,82 @@ export function normalizeSanction(k) {
         endedOn: blankToNull(k.DatumSkonceniaKonania),
         decisionFinalOn: blankToNull(k.DatumPravoplatnostiRozhodnutia),
         decision: blankToNull(k.SposobRozhodnutiaKP),
+        decisionCode: toCode(k.SposobRozhodnutiaKP),
     };
+}
+function toCode(v) {
+    if (typeof v === "number" && Number.isFinite(v))
+        return v;
+    if (typeof v === "string" && /^\s*-?\d+\s*$/.test(v))
+        return Number(v);
+    return null;
+}
+export function normalizeDeletion(v) {
+    if (!isRecord(v))
+        return null;
+    return { date: blankToNull(v.Datum), reason: blankToNull(v.Dovod), note: blankToNull(v.Poznamka) };
+}
+export function normalizeFine(p) {
+    if (!isRecord(p))
+        return null;
+    return { createdOn: blankToNull(p.DatumVytvorenia), note: blankToNull(p.Poznamka) };
+}
+export function normalizeUboIdentityVerification(o) {
+    if (!isRecord(o))
+        return null;
+    return {
+        verifiedOn: blankToNull(o.DatumOverenia),
+        createdOn: blankToNull(o.DatumVytvorenia),
+        valid: typeof o.Platny === "boolean" ? o.Platny : null,
+        typeId: toCode(o.TypOvereniaIdentifikacieKUVId),
+    };
+}
+function time(iso) {
+    const t = iso ? Date.parse(iso) : NaN;
+    return Number.isNaN(t) ? -Infinity : t;
+}
+/** The currently valid record, else the one that started last (not simply the first one). */
+export function latestRecord(history) {
+    const active = history.find((p) => p.active);
+    if (active)
+        return active;
+    return history.reduce((best, p) => (best === null || time(p.validFrom) > time(best.validFrom) ? p : best), null);
+}
+export function summarizeRegistration(raw) {
+    const history = normalizeRelationRows(raw.PartneriVerejnehoSektora, isRawPartnerSummary, (p) => normalizePartnerSummary(p, raw)).rows;
+    const latest = latestRecord(history);
+    const deletion = normalizeDeletion(raw.Vymaz);
+    const active = deletion === null && history.some((p) => p.active);
+    const registeredFrom = history.reduce((first, p) => (first === null || time(p.validFrom) < time(first) ? p.validFrom : first), null);
+    return {
+        registration: {
+            partnerId: raw.Id ?? null,
+            insertNumber: raw.CisloVlozky ?? null,
+            name: latest?.name ?? null,
+            active,
+            registeredFrom,
+            registeredTo: active ? null : (deletion?.date ?? latest?.validTo ?? null),
+            deletion,
+            selected: false,
+        },
+        latest,
+    };
+}
+/**
+ * Pick the registration an IČO lookup should describe: an active one when it
+ * exists, otherwise the one that ended last. Returns the list with `selected`
+ * set, in source order.
+ */
+export function selectRegistration(regs) {
+    const score = (r) => r.registration.active ? time(r.registration.registeredFrom) : time(r.registration.registeredTo);
+    const pick = regs.reduce((best, r) => {
+        if (best === null)
+            return r;
+        if (r.registration.active !== best.registration.active)
+            return r.registration.active ? r : best;
+        return score(r) > score(best) ? r : best;
+    }, null);
+    return regs.map((r) => ({ ...r, registration: { ...r.registration, selected: r === pick } }));
 }
 export function normalizeVerificationDocument(d) {
     return {
@@ -121,16 +209,25 @@ export function normalizeVerificationDocument(d) {
  * Pure function — no network — so it is unit-testable against fixtures.
  */
 export function buildPartnerDetail(partner, verificationDocs = []) {
-    const partnerHistory = normalizeRelationRows(partner.PartneriVerejnehoSektora, isRawPartnerSummary, normalizePartnerSummary);
-    const currentPartner = partnerHistory.find((p) => p.active) ?? partnerHistory[0] ?? null;
-    const ubosAll = normalizeRelationRows(partner.KonecniUzivateliaVyhod, isRawUbo, normalizeUbo);
-    const authAll = normalizeRelationRows(partner.OpravneneOsoby, isRawAuthorizedPerson, normalizeAuthorizedPerson);
-    const officials = normalizeRelationRows(partner.VerejniFunkcionari, isRawPublicOfficial, normalizePublicOfficial);
-    const sanctions = normalizeRelationRows(partner.KvalifikovanePodnety, isRawSanction, normalizeSanction);
-    const docs = normalizeRelationRows(verificationDocs, isRawVerificationDocument, normalizeVerificationDocument);
+    // A row that fails its shape check is left out, but never silently: the
+    // collection is reported in incompleteCollections.
+    const rejected = [];
+    const rows = (name, value, guard, normalize) => {
+        const out = normalizeRelationRows(value, guard, normalize);
+        if (out.dropped > 0)
+            rejected.push(name);
+        return out.rows;
+    };
+    const partnerHistory = rows("PartneriVerejnehoSektora", partner.PartneriVerejnehoSektora, isRawPartnerSummary, (p) => normalizePartnerSummary(p, partner));
+    const currentPartner = latestRecord(partnerHistory);
+    const ubosAll = rows("KonecniUzivateliaVyhod", partner.KonecniUzivateliaVyhod, isRawUbo, normalizeUbo);
+    const authAll = rows("OpravneneOsoby", partner.OpravneneOsoby, isRawAuthorizedPerson, normalizeAuthorizedPerson);
+    const officials = rows("VerejniFunkcionari", partner.VerejniFunkcionari, isRawPublicOfficial, normalizePublicOfficial);
+    const sanctions = rows("KvalifikovanePodnety", partner.KvalifikovanePodnety, isRawSanction, normalizeSanction);
+    const docs = rows("VerifikacneDokumenty", verificationDocs, isRawVerificationDocument, normalizeVerificationDocument);
     return {
         partnerId: partner.Id ?? null,
-        insertNumber: partner.CisloVlozky ?? partner.Id ?? null,
+        insertNumber: partner.CisloVlozky ?? null,
         partner: currentPartner,
         partnerHistory,
         ubos: {
@@ -145,6 +242,18 @@ export function buildPartnerDetail(partner, verificationDocs = []) {
         sanctionProceedings: sanctions,
         verificationDocuments: docs,
         noRelations: ubosAll.length === 0 && authAll.length === 0 && officials.length === 0 && sanctions.length === 0,
+        deletion: normalizeDeletion(partner.Vymaz),
+        fine: normalizeFine(partner.Pokuta),
+        uboIdentityVerification: normalizeUboIdentityVerification(partner.OverenieIdentifikacieKUV),
+        ...(rejected.length > 0
+            ? {
+                incompleteCollections: rejected,
+                notes: [
+                    `Niektoré riadky kolekcií ${rejected.join(", ")} nemali očakávaný tvar a boli vynechané; ` +
+                        "ich zoznamy sú neúplné.",
+                ],
+            }
+            : {}),
     };
 }
 function isRecord(value) {
@@ -155,6 +264,9 @@ function optionalFiniteNumber(row, key) {
 }
 function optionalText(row, key) {
     return row[key] === undefined || row[key] === null || typeof row[key] === "string";
+}
+function optionalNumber(row, key) {
+    return row[key] === undefined || row[key] === null || (typeof row[key] === "number" && Number.isFinite(row[key]));
 }
 function optionalBoolean(row, key) {
     return row[key] === undefined || row[key] === null || typeof row[key] === "boolean";
@@ -208,8 +320,10 @@ function isRawPublicOfficial(value) {
 function isRawSanction(value) {
     if (!isRecord(value) || !optionalFiniteNumber(value, "Id"))
         return false;
-    const textKeys = ["DatumZacatiaKonania", "DatumSkonceniaKonania", "DatumPravoplatnostiRozhodnutia", "SposobRozhodnutiaKP", "SpisovaZnackaKonania"];
+    const textKeys = ["DatumZacatiaKonania", "DatumSkonceniaKonania", "DatumPravoplatnostiRozhodnutia", "SpisovaZnackaKonania"];
+    // SposobRozhodnutiaKP is Edm.Int32; text is tolerated so a source change does not drop the row.
     return textKeys.every((key) => optionalText(value, key)) &&
+        (optionalNumber(value, "SposobRozhodnutiaKP") || optionalText(value, "SposobRozhodnutiaKP")) &&
         (typeof value.Id === "number" || hasText(value, textKeys));
 }
 function isRawVerificationDocument(value) {
@@ -220,8 +334,9 @@ function isRawVerificationDocument(value) {
 }
 function normalizeRelationRows(value, guard, normalize) {
     if (!Array.isArray(value))
-        return [];
-    return value.filter(guard).map(normalize);
+        return { rows: [], dropped: 0 };
+    const kept = value.filter(guard);
+    return { rows: kept.map(normalize), dropped: value.length - kept.length };
 }
 /** Escape a single quote for an OData string literal ('' is the escape). */
 export function odataQuote(value) {
@@ -247,6 +362,8 @@ export class RpvsClient {
             maxRetries: options.maxRetries ?? 2,
             retryBaseDelayMs: options.retryBaseDelayMs ?? 400,
             maxPages: options.maxPages ?? 10,
+            // The largest partner had 281 KUV records on 2026-10-09; 50 pages = 1000 rows.
+            maxCollectionPages: options.maxCollectionPages ?? 50,
         };
     }
     /**
@@ -263,45 +380,108 @@ export class RpvsClient {
             filter = `Ico eq ${odataQuote(normalizeIco(query))}`;
         }
         else {
+            // The source compares case-sensitively. tolower() lowers only the column,
+            // so the literal is lowered here; diacritics still have to match.
+            // Natural persons have no ObchodneMeno and are found by surname.
             const op = options.match === "startswith" ? "startswith" : "contains";
-            filter = `${op}(ObchodneMeno,${odataQuote(query)})`;
+            const needle = odataQuote(query.toLocaleLowerCase("sk"));
+            filter = `${op}(tolower(ObchodneMeno),${needle}) or ${op}(tolower(Priezvisko),${needle})`;
         }
         const params = new URLSearchParams();
         params.set("$filter", filter);
-        params.set("$select", "Id,Ico,ObchodneMeno,Meno,Priezvisko,TitulPred,TitulZa,FormaOsoby,PlatnostOd,PlatnostDo");
+        params.set("$select", PVS_SELECT);
+        // The row Id is not the key rpvs_get_partner reads; carry the registration's.
+        params.set("$expand", "Partner($select=Id,CisloVlozky)");
         // Fetch one row beyond the limit purely to learn whether more exist. The
         // caller otherwise sees exactly `limit` rows and cannot tell a complete
         // answer from a truncated one.
-        const rows = await this.collect("PartneriVerejnehoSektora", params, limit + 1);
+        const { rows } = await this.collect("PartneriVerejnehoSektora", params, limit + 1);
         return {
-            results: rows.slice(0, limit).map(normalizePartnerSummary),
+            results: rows.slice(0, limit).map((row) => normalizePartnerSummary(row)),
             truncated: rows.length > limit,
             limit,
         };
     }
     /**
-     * rpvs_get_partner — full UBO chain + authorized persons + officials.
-     * Recommended entry path: filter Partneri by the partner's ICO and expand
-     * the navigation collections in one round-trip.
+     * Every registration (vlozka) filed under an IČO, with the one a lookup
+     * should describe marked `selected`. Empty when the source has none.
+     */
+    async resolveIco(ico) {
+        const params = resolveParams(`PartneriVerejnehoSektora/any(p:p/Ico eq ${odataQuote(normalizeIco(ico))})`);
+        const { rows } = await this.collect("Partneri", params, 100);
+        return selectRegistration(rows.filter(isRecord).map(summarizeRegistration));
+    }
+    /**
+     * rpvs_get_partner by IČO. The IČO is first resolved to its registrations
+     * (there can be several, e.g. a deleted one and a new active one); the
+     * selected one is then read as a single entity.
+     *
+     * Not one `Partneri?$filter=…&$expand=…` round-trip: in a collection query
+     * the source nests at most 20 rows per collection, oldest first, so the
+     * current KUV of a partner with a long history fall off.
      */
     async getPartnerByIco(ico, includeVerifications = true) {
-        const normalized = normalizeIco(ico);
-        const params = new URLSearchParams();
-        params.set("$filter", `PartneriVerejnehoSektora/any(p:p/Ico eq ${odataQuote(normalized)})`);
-        params.set("$expand", PARTNER_EXPAND);
-        const page = await this.requestJson("Partneri", params);
-        const partner = page.value?.[0];
-        if (!partner)
+        const regs = await this.resolveIco(ico);
+        const chosen = regs.find((r) => r.registration.selected);
+        if (!chosen || chosen.registration.partnerId === null)
             return null;
-        return this.finishPartner(partner, includeVerifications);
+        const detail = await this.getPartnerById(chosen.registration.partnerId, includeVerifications);
+        if (!detail)
+            return null;
+        detail.registrations = regs.map((r) => r.registration);
+        if (regs.length > 1) {
+            const active = regs.filter((r) => r.registration.active).length;
+            addNote(detail, `Pod IČO sú ${regs.length} registrácie (vložky), aktívne: ${active}. Detail je pre partnerId ` +
+                `${chosen.registration.partnerId}; ostatné sú v poli registrations a dajú sa načítať cez partnerId.`);
+        }
+        return detail;
     }
+    /** rpvs_get_partner by insert number (cislo vlozky shown on rpvs.gov.sk). */
+    async getPartnerByInsertNumber(insertNumber, includeVerifications = true) {
+        const { rows } = await this.collect("Partneri", resolveParams(`CisloVlozky eq ${insertNumber}`), 2);
+        const id = rows[0]?.Id;
+        if (typeof id !== "number")
+            return null;
+        return this.getPartnerById(id, includeVerifications);
+    }
+    /** rpvs_get_partner by Partneri.Id. */
     async getPartnerById(partnerId, includeVerifications = true) {
         const params = new URLSearchParams();
         params.set("$expand", PARTNER_EXPAND);
         const partner = await this.requestJson(`Partneri(${partnerId})`, params);
         if (!partner || partner.Id === undefined)
             return null;
-        return this.finishPartner(partner, includeVerifications);
+        const incomplete = await this.completeCollections(partner);
+        const detail = await this.finishPartner(partner, includeVerifications);
+        if (incomplete.length > 0) {
+            detail.incompleteCollections = [...new Set([...(detail.incompleteCollections ?? []), ...incomplete])];
+            addNote(detail, `Zdroj nevydal celé kolekcie ${incomplete.join(", ")}; ich zoznamy sú neúplné ` +
+                "a z chýbajúceho záznamu nemožno usudzovať, že neexistuje.");
+        }
+        return detail;
+    }
+    /**
+     * A single-entity read returned every nested row on 2026-10-09 (281 KUV for
+     * the largest partner). Should the source page an expanded collection anyway,
+     * its own nested nextLink answers 404, so the collection is read again from
+     * its entity set. Returns the collections that still could not be read in full.
+     */
+    async completeCollections(partner) {
+        const incomplete = [];
+        for (const [name, nestedExpand] of NESTED_COLLECTIONS) {
+            if (!partner[`${name}@odata.nextLink`])
+                continue;
+            const params = new URLSearchParams();
+            params.set("$filter", `Partner/Id eq ${partner.Id}`);
+            if (nestedExpand)
+                params.set("$expand", nestedExpand);
+            const { rows, complete } = await this.collect(name, params, Number.POSITIVE_INFINITY, this.requestOptions.maxCollectionPages);
+            partner[name] = rows;
+            delete partner[`${name}@odata.nextLink`];
+            if (!complete)
+                incomplete.push(name);
+        }
+        return incomplete;
     }
     async finishPartner(partner, includeVerifications) {
         let docs = [];
@@ -322,28 +502,31 @@ export class RpvsClient {
         const params = new URLSearchParams();
         params.set("$select", "Id,PlatnyOd,PlatnyDo,CisloVlozky");
         params.set("$filter", `CisloVlozky eq ${cisloVlozky}`);
-        return this.collect("VerifikacneDokumenty", params, 100);
+        return (await this.collect("VerifikacneDokumenty", params, 100)).rows;
     }
     // -------------------------------------------------------------------------
     // Transport: paging walk + single request with retry
     // -------------------------------------------------------------------------
-    /** Walk @odata.nextLink (keyset pagination) until `limit` rows or pages exhausted. */
-    async collect(entitySet, params, limit) {
+    /**
+     * Walk @odata.nextLink (keyset pagination) until `limit` rows or pages exhausted.
+     * `complete` is false when the page cap stopped the walk while the source had more.
+     */
+    async collect(entitySet, params, limit, maxPages = this.requestOptions.maxPages) {
         const out = [];
         let url = this.buildUrl(entitySet, params);
-        for (let page = 0; page < this.requestOptions.maxPages; page += 1) {
+        for (let page = 0; page < maxPages; page += 1) {
             const data = await this.requestJsonUrl(url);
             for (const row of data.value ?? []) {
                 out.push(row);
                 if (out.length >= limit)
-                    return out;
+                    return { rows: out, complete: true };
             }
             const next = data["@odata.nextLink"];
             if (!next)
-                break;
+                return { rows: out, complete: true };
             url = this.resolvePaginationLink(next, url);
         }
-        return out;
+        return { rows: out, complete: false };
     }
     buildUrl(entitySet, params) {
         const url = new URL(entitySet, this.baseUrl);
@@ -382,7 +565,7 @@ export class RpvsClient {
                     redirect: "error",
                     headers: {
                         Accept: "application/json",
-                        "User-Agent": "rpvs-mcp/0.2.0",
+                        "User-Agent": "rpvs-mcp/0.3.0",
                     },
                     signal: controller.signal,
                 });
@@ -466,10 +649,31 @@ function isUnsafeHostname(hostname) {
     }
     return false;
 }
-// Single-round-trip expand for rpvs_get_partner.
+const PVS_SELECT = "Id,Ico,ObchodneMeno,Meno,Priezvisko,TitulPred,TitulZa,FormaOsoby,PlatnostOd,PlatnostDo";
+// Expand for the single-entity read Partneri(Id) of rpvs_get_partner.
 const PARTNER_EXPAND = "PartneriVerejnehoSektora($expand=Adresa,PravnaForma)," +
     "KonecniUzivateliaVyhod($expand=Adresa,StatnaPrislusnost)," +
-    "OpravneneOsoby,VerejniFunkcionari,KvalifikovanePodnety";
+    "OpravneneOsoby,VerejniFunkcionari,KvalifikovanePodnety," +
+    "Vymaz,Pokuta,OverenieIdentifikacieKUV";
+// Expanded collections of Partneri; each is also an entity set filterable by Partner/Id.
+const NESTED_COLLECTIONS = [
+    ["PartneriVerejnehoSektora", "Adresa,PravnaForma"],
+    ["KonecniUzivateliaVyhod", "Adresa,StatnaPrislusnost"],
+    ["OpravneneOsoby", null],
+    ["VerejniFunkcionari", null],
+    ["KvalifikovanePodnety", null],
+];
+/** Lightweight Partneri query: registration keys, its PVS records and deletion. */
+function resolveParams(filter) {
+    const params = new URLSearchParams();
+    params.set("$filter", filter);
+    params.set("$select", "Id,CisloVlozky");
+    params.set("$expand", `PartneriVerejnehoSektora($select=${PVS_SELECT}),Vymaz`);
+    return params;
+}
+function addNote(detail, note) {
+    detail.notes = [...(detail.notes ?? []), note];
+}
 // ---------------------------------------------------------------------------
 // Misc utilities
 // ---------------------------------------------------------------------------
