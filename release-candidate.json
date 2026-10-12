@@ -1,8 +1,8 @@
 {
-  "plugin": "uvo",
+  "plugin": "disq",
   "plugin_version": "1.2.0",
-  "catalog_commit": "8609ec422e51800770a08519d5200a569d18447d",
-  "source_repository": "Omni-Legal-Products/mcp-uvo",
-  "source_commit": "d0138206b55338fcc82e63b31b658430751ef55f",
-  "runtime_manifest_sha256": "255b977d8c333af193378e246da4d6af78bda8723f28423cfee715345c04c49a"
+  "catalog_commit": "4c952c0fcea05fa95c99585f927e82038ae39a46",
+  "source_repository": "Omni-Legal-Products/mcp-diskvalifikacie",
+  "source_commit": "b6d3d3033717af94d0fe876bcd64a3c479866df4",
+  "runtime_manifest_sha256": "59a46bc694c8822eff48ef13900488e69ba1dd53a0a97e8ef84997f7f751eeee"
 }
