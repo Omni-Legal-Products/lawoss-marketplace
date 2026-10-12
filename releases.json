@@ -75,7 +75,7 @@
     {
       "name": "rpvs",
       "repository": "Omni-Legal-Products/mcp-rpvs",
-      "commit": "baaae3d0c980991f945687bdfa203b4b5b74c382",
+      "commit": "a6e0667c09022ad5c716f5a9517d512d6936e377",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
