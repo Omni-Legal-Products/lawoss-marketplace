@@ -11,6 +11,8 @@ Source: `Omni-Legal-Products/mcp-ruz` commit `780624b04b7e0dd833ec657b8af29a4f5b
 - Catalog: 42 Python tests, `scripts/validate.py`, `claude plugin validate --strict` and instruction mirrors passed. The Codex plugin-creator validator was not available in the preparing environment and still has to run.
 - Packaged runtime smoke (stdio from an unrelated working directory, live RÚZ read, 2026-10-12): 8 tools, `entityId` exposed; Websupport 2025 revenue 13 148 139 (r. 05); Alza 2025/2024 617 457 271 / 539 442 883 with template „Úč POD“ and size „500-999 zamestnancov“; VW Slovakia one row per year with three further statements; IČO 99999999 two live candidates and one deleted record.
 
-Pending before merge: Codex plugin-creator validator and isolated Git-marketplace install/update/rollback acceptance.
+- Isolated Git-marketplace acceptance (2026-10-12, separate `CODEX_HOME` and `CLAUDE_CONFIG_DIR`): Codex installed `ruz@lawoss` 1.1.0 from `main`, `scripts/update_plugins.py --apply` updated it to 1.2.0 from `release/ruz-1.2.0`, the installed runtime started with `scripts/run.mjs mcp` and answered live RÚZ reads, and the same updater rolled it back to 1.1.0 from `main`. Claude Code installed 1.2.0 from `release/ruz-1.2.0` and the installed runtime answered the same reads.
+
+Not run: the Codex plugin-creator validator. The installed plugin-creator (0.1.26) ships skills only and no `validate_plugin.py`.
 
 Tests establish behavior for the captured responses and a selected live read. They do not establish accounting or legal correctness: the revenue composition is a mapping choice, and the primary-statement rule for duplicate periods is disclosed, not authoritative.
