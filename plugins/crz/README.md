@@ -35,4 +35,4 @@ Data comes from the public CRZ website. OCR may use Mistral only when explicitly
 
 ## Provenance
 
-Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-crz/tree/f4cc8bf0c4560f3ee50205dd9f7452b415197ffa), revision `f4cc8bf0c4560f3ee50205dd9f7452b415197ffa`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved.
+Built from [reviewed organization source](https://github.com/Omni-Legal-Products/mcp-crz/tree/d733296b3b22abdf3650e6c152accd11657e5e60), revision `d733296b3b22abdf3650e6c152accd11657e5e60`. Runtime file hashes and the configuration hash are recorded in runtime/provenance.json. [License and attribution](LICENSE) are preserved.

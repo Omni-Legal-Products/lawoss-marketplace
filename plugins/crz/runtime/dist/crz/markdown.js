@@ -193,8 +193,11 @@ function metadataAsMarkdown(c) {
         ["Číslo zmluvy", c.cislo_zmluvy],
         ["Názov zmluvy", c.nazov],
         ["Predmet", c.predmet],
+        ["Poznámka", c.poznamka],
+        ["Verejné obstarávanie", c.verejne_obstaravanie_url],
         ["Rezort", c.rezort],
         ["Zverejnil", c.zverejnil],
+        ...(c.ine_polia ?? []).map((f) => [f.label, f.value]),
     ];
     for (const [k, v] of id)
         if (v)
@@ -340,12 +343,20 @@ export function summarizeContract(c) {
     ].filter(Boolean).join("; ");
     const dates = [
         c.datum_uzavretia ? `uzavretá ${c.datum_uzavretia}` : null,
-        c.datum_ucinnosti ? `účinná od ${c.datum_ucinnosti}` : null,
+        // CRZ sometimes stores a sentence instead of a date; quote it verbatim.
+        c.datum_ucinnosti
+            ? (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(c.datum_ucinnosti) ? `účinná od ${c.datum_ucinnosti}` : `účinnosť podľa CRZ: „${c.datum_ucinnosti}“`)
+            : null,
         c.datum_platnosti_do ? `platnosť do ${c.datum_platnosti_do}` : null,
     ].filter(Boolean).join(", ");
-    const cena = c.cena?.celkova ?? c.cena?.zmluvne_dohodnuta ?? "neuvedená";
+    const cena = c.cena?.celkova
+        ? `Celková čiastka: ${c.cena.celkova}`
+        : c.cena?.zmluvne_dohodnuta
+            ? `Zmluvne dohodnutá čiastka: ${c.cena.zmluvne_dohodnuta}`
+            : "Cena: v CRZ neuvedená";
     const title = c.nazov ?? c.cislo_zmluvy ?? `Zmluva ${c.id}`;
     const cislo = c.cislo_zmluvy ? ` (č. ${c.cislo_zmluvy})` : "";
-    return `${title}${cislo}. ${parties}. ${dates ? dates + ". " : ""}Cena: ${cena}. ${c.rezort ? `Rezort: ${c.rezort}. ` : ""}Zdroj: ${c.url}`.trim();
+    const partiesEnd = parties ? (parties.endsWith(".") ? `${parties} ` : `${parties}. `) : "";
+    return `${title}${cislo}. ${partiesEnd}${dates ? dates + ". " : ""}${cena}. ${c.rezort ? `Rezort: ${c.rezort}. ` : ""}Zdroj: ${c.url}`.trim();
 }
 //# sourceMappingURL=markdown.js.map

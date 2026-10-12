@@ -41,6 +41,15 @@ function add(bag, row, weight, reason) {
     }
 }
 export async function findSimilar(seed, limit = 10) {
+    return (await findSimilarDetailed(seed, limit)).results;
+}
+/**
+ * Like `findSimilar`, but also reports sub-searches that failed, so an empty
+ * candidate list is never mistaken for "nothing similar exists".
+ */
+export async function findSimilarDetailed(seed, limit = 10) {
+    const warnings = [];
+    const failed = (what, err) => warnings.push(`search_failed: ${what} — ${err?.message ?? String(err)}; candidates from it are missing.`);
     const bag = { rows: new Map() };
     let seedId;
     let dodavatel;
@@ -66,7 +75,9 @@ export async function findSimilar(seed, limit = 10) {
                 for (const row of r.results)
                     add(bag, row, 2, `dodavatel:${dodavatel}`);
             }
-            catch { /* swallow */ }
+            catch (e) {
+                failed(`dodavatel:${dodavatel}`, e);
+            }
         })());
     }
     if (objednavatel) {
@@ -76,7 +87,9 @@ export async function findSimilar(seed, limit = 10) {
                 for (const row of r.results)
                     add(bag, row, 2, `objednavatel:${objednavatel}`);
             }
-            catch { /* swallow */ }
+            catch (e) {
+                failed(`objednavatel:${objednavatel}`, e);
+            }
         })());
     }
     for (const kw of keywords.slice(0, 3)) {
@@ -86,7 +99,9 @@ export async function findSimilar(seed, limit = 10) {
                 for (const row of r.results)
                     add(bag, row, 1, `keyword:${kw}`);
             }
-            catch { /* swallow */ }
+            catch (e) {
+                failed(`keyword:${kw}`, e);
+            }
         })());
     }
     await Promise.all(searches);
@@ -97,6 +112,6 @@ export async function findSimilar(seed, limit = 10) {
         out.push({ ...v.row, score: v.score, reasons: Array.from(v.reasons) });
     }
     out.sort((a, b) => b.score - a.score);
-    return out.slice(0, limit);
+    return { results: out.slice(0, limit), warnings };
 }
 //# sourceMappingURL=similar.js.map

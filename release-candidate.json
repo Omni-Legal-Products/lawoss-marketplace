@@ -1,8 +1,8 @@
 {
-  "plugin": "ruz",
-  "plugin_version": "1.2.0",
-  "catalog_commit": "7b0a6280ff002690c334a42aca3a9a2f79e02470",
-  "source_repository": "Omni-Legal-Products/mcp-ruz",
-  "source_commit": "780624b04b7e0dd833ec657b8af29a4f5bdaa991",
-  "runtime_manifest_sha256": "994f81bc85240f572f14d2696c585864fff3f4703f615260e2f4c65a602ba696"
+  "plugin": "crz",
+  "plugin_version": "1.5.0",
+  "catalog_commit": "0fe5e3fd3aab141474b8884e36858d91ba0ac0d5",
+  "source_repository": "Omni-Legal-Products/mcp-crz",
+  "source_commit": "d733296b3b22abdf3650e6c152accd11657e5e60",
+  "runtime_manifest_sha256": "8de3b96f3dda739ac2c729e559327c397d90db79db671f39fbea9dadef11dcdd"
 }
