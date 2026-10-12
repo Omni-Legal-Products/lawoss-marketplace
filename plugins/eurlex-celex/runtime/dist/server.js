@@ -12,10 +12,11 @@ import { loadCacheFromDisk, dumpCacheToDisk } from "./cache.js";
 import { registerCitationTools } from "./citation-tools.js";
 import { registerDocumentTools } from "./document-tools.js";
 import { registerSearchTools } from "./search-tools.js";
+import { VERSION } from "./version.js";
 // ─── Create server ──────────────────────────────────────────────────────────
 const server = new McpServer({
     name: "eurlex-celex-mcp-server",
-    version: "1.0.0",
+    version: VERSION,
 });
 // ─── Register all tools ──────────────────────────────────────────────────────
 registerCitationTools(server);

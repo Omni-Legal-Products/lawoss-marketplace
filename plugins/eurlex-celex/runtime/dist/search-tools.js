@@ -123,7 +123,7 @@ Args:
   - response_format ("markdown" | "json"): Output format (default: "markdown")
 
 Returns:
-  List of matching documents with CELEX numbers, titles, dates.
+  List of matching documents with CELEX numbers, titles, document date and entry-into-force date (each only when the EUR-Lex notice contains it).
   Pagination metadata: total, has_more, next_offset.
 
 Query examples (auto-normalized):
@@ -173,14 +173,17 @@ Errors:
             lines.push("*No results found. Try broader search terms.*");
         }
         for (const r of result.results) {
-            lines.push(`### ${r.celexNumber}`);
+            lines.push(`### ${r.celexNumber ?? "(no CELEX number in the EUR-Lex notice)"}`);
             if (r.title)
                 lines.push(`**${r.title}**`);
             if (r.dateDocument)
-                lines.push(`Date: ${r.dateDocument}`);
+                lines.push(`Date of document: ${r.dateDocument}`);
+            if (r.dateEntryIntoForce)
+                lines.push(`Entry into force: ${r.dateEntryIntoForce}`);
             if (r.documentType)
                 lines.push(`Type: ${r.documentType}`);
-            lines.push(`EUR-Lex: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${r.celexNumber}`);
+            if (r.celexNumber)
+                lines.push(`EUR-Lex: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${r.celexNumber}`);
             lines.push("");
         }
         return {

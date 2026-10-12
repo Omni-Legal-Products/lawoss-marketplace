@@ -63,6 +63,17 @@ function sparqlValue(binding, key) {
     return binding[key]?.value;
 }
 const parseSparqlBoolean = (value) => value === "true" || value === "1" ? true : value === "false" || value === "0" ? false : undefined;
+// CELEX numbers are interpolated into SPARQL string literals; only CELEX characters are allowed
+// (e.g. 32016R0679, 32016R0679R(02), 02016R0679-20160504, 72019L0790SVK_202100001).
+const CELEX_SAFE = /^[0-9A-Z][0-9A-Z()_.\-:/]*$/;
+/** Normalizes a CELEX number and rejects characters that could break out of a SPARQL literal. */
+export function sparqlCelex(celex) {
+    const normalized = normalizeCelex(celex);
+    if (!CELEX_SAFE.test(normalized)) {
+        throw new Error(`Invalid CELEX number "${celex}": only letters, digits and ( ) _ . - : / are allowed`);
+    }
+    return normalized;
+}
 const LANG_URI = (alpha3) => `<http://publications.europa.eu/resource/authority/language/${alpha3.toUpperCase()}>`;
 /**
  * SPARQL fragment binding Official Journal data for work variable ?{w}.
@@ -111,7 +122,7 @@ export function formatOjReference(b, w) {
 }
 // ─── Metadata ────────────────────────────────────────────────────────────────
 export async function getMetadata(celex) {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const key = `metadata:v3:${normalized}`;
     const cached = cacheGet(key);
     if (cached)
@@ -173,7 +184,7 @@ export async function getAvailableLanguages(celex) {
     const cached = cacheGet(key);
     if (cached)
         return cached;
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const query = `
 SELECT DISTINCT ?lang
 WHERE {
@@ -199,7 +210,7 @@ ORDER BY ?lang
 }
 // ─── Document versions ────────────────────────────────────────────────────────
 export async function getDocumentVersions(celex) {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const key = `versions:v2:${normalized}`;
     const cached = cacheGet(key);
     if (cached)
@@ -287,7 +298,7 @@ const RELATIONSHIP_PATTERNS = {
 /** A national measure carries one CELEX per implemented directive; prefer the one for this act. */
 const pickCelex = (celexes, baseCelex) => celexes.find(c => c.startsWith(`7${baseCelex.slice(1)}`)) ?? celexes.sort()[0];
 export async function findRelatedDocuments(celex, relationship = "all", limit = 20) {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const key = `related:v2:${normalized}:${relationship}:${limit}`;
     const cached = cacheGet(key);
     if (cached)
@@ -397,7 +408,7 @@ LIMIT 1
     return celex;
 }
 export async function celexToEli(celex) {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const key = `celex2eli:v2:${normalized}`;
     const cached = cacheGet(key);
     if (cached)
@@ -428,7 +439,7 @@ export async function checkCitationAtDate(celex, checkDate) {
     const cached = cacheGet(key);
     if (cached)
         return cached;
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     // Aggregate per work: CELLAR records several entry-into-force dates for phased acts
     // (GDPR 2, AI Act 5). A plain LIMIT 1 would pick an arbitrary one.
     const query = `
@@ -535,7 +546,7 @@ const MANIFESTATION_PREFERENCE = {
     xml: ["fmx4", "xml"],
 };
 async function getManifestation(celex, lang, format) {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const cacheKey = `mani:v2:${normalized}:${lang}:${format}`;
     const cached = cacheGet(cacheKey);
     if (cached)
@@ -599,10 +610,11 @@ async function fetchManifestationHtml(manifestationUri, celex, lang) {
 }
 // ─── Document content (HTML → Markdown) ──────────────────────────────────────
 export async function getDocumentContent(celex, lang = "en", offsetChars = 0, maxChars = 10_000) {
-    const key = `content:${celex}:${lang}`;
+    const normalized = sparqlCelex(celex);
+    // Same key as findInDocument, so either tool reuses the other's download.
+    const key = `content:${normalized}:${lang}`;
     let markdown = cacheGet(key);
     if (!markdown) {
-        const normalized = normalizeCelex(celex);
         // Resolve HTML manifestation URI via SPARQL (publications.europa.eu/resource/cellar/...)
         // This bypasses the AWS WAF on eur-lex.europa.eu which blocks automated HTML fetching.
         const manifestationUri = await getManifestationUri(normalized, lang, "html");
@@ -630,7 +642,7 @@ export async function getDocumentContent(celex, lang = "en", offsetChars = 0, ma
 }
 // ─── Document export (PDF/HTML to disk) ──────────────────────────────────────
 export async function exportDocument(celex, lang = "en", format = "pdf") {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     // Resolve manifestation via SPARQL to avoid WAF on eur-lex.europa.eu
     const manifestation = await getManifestation(normalized, lang, format);
     if (!manifestation) {
@@ -681,6 +693,45 @@ export async function exportDocument(celex, lang = "en", format = "pdf") {
         manifestationType: manifestation.type,
         sourceUrl: downloadUrl,
         ...(note ? { note } : {}),
+    };
+}
+// ─── Full-text search result mapping ────────────────────────────────────────
+const wsDateValue = (raw) => {
+    const value = typeof raw === "object" && raw !== null ? raw.VALUE : raw;
+    return value === undefined || value === null || String(value) === "" ? undefined : String(value);
+};
+/**
+ * Maps one EUR-Lex Web Service hit to a SearchResult without inventing values:
+ * a missing CELEX stays undefined (no empty identifier or dead link), and the
+ * entry-into-force date is reported as such, never as the document date.
+ */
+export function mapSearchHit(hit, lang) {
+    const notice = hit?.content;
+    const work = notice?.NOTICE?.WORK;
+    const expr = notice?.NOTICE?.EXPRESSION;
+    // Title: nested in EXPRESSION_TITLE.VALUE (may be array for multi-lang)
+    const exprTitle = expr?.EXPRESSION_TITLE;
+    const titleVal = Array.isArray(exprTitle)
+        ? (exprTitle.find((t) => t.LANG === lang.toUpperCase()) ?? exprTitle[0])?.VALUE
+        : exprTitle?.VALUE;
+    const title = titleVal ?? hit.reference;
+    // CELEX: in WORK.SAMEAS[].URI where TYPE === "celex"
+    const sameAs = work?.SAMEAS;
+    const sameAsArr = Array.isArray(sameAs) ? sameAs : sameAs ? [sameAs] : [];
+    const celexEntry = sameAsArr.find((entry) => {
+        const uri = entry?.URI;
+        return String(uri?.TYPE ?? "").toLowerCase() === "celex";
+    });
+    const celexId = celexEntry?.URI?.IDENTIFIER;
+    // Doc type: first entry in WORK.TYPE array (e.g. "cdm:regulation")
+    const typeArr = work?.TYPE;
+    const rawType = Array.isArray(typeArr) ? typeArr[0] : typeArr;
+    return {
+        celexNumber: celexId ? String(celexId) : undefined,
+        title: title !== undefined && title !== null && String(title) !== "" ? String(title) : undefined,
+        dateDocument: wsDateValue(work?.WORK_DATE_DOCUMENT),
+        dateEntryIntoForce: wsDateValue(work?.WORK_DATE_ENTRY_INTO_FORCE),
+        documentType: rawType ? String(rawType).replace("cdm:", "").replace(/_/g, " ") : undefined,
     };
 }
 // ─── Full-text search (EUR-Lex SOAP Web Service) ────────────────────────────
@@ -737,39 +788,7 @@ export async function searchFullText(query, lang = "en", limit = 10, offset = 0)
             ? result.result
             : result?.result ? [result.result] : [];
         const total = parseInt(String(result?.totalhits ?? "0"), 10);
-        const results = hits.map((hit) => {
-            const notice = hit?.content;
-            const work = notice?.NOTICE?.WORK;
-            const expr = notice?.NOTICE?.EXPRESSION;
-            // Title: nested in EXPRESSION_TITLE.VALUE (may be array for multi-lang)
-            const exprTitle = expr?.EXPRESSION_TITLE;
-            const titleVal = Array.isArray(exprTitle)
-                ? (exprTitle.find((t) => t.LANG === lang.toUpperCase()) ?? exprTitle[0])?.VALUE
-                : exprTitle?.VALUE;
-            // CELEX: in WORK.SAMEAS[].URI where TYPE === "celex"
-            const sameAs = work?.SAMEAS;
-            const sameAsArr = Array.isArray(sameAs) ? sameAs : sameAs ? [sameAs] : [];
-            const celexEntry = sameAsArr.find((s) => {
-                const uri = s?.URI;
-                return String(uri?.TYPE ?? "").toLowerCase() === "celex";
-            });
-            const celexId = celexEntry?.URI?.IDENTIFIER ?? "";
-            // Date: WORK_DATE_DOCUMENT is { DAY, MONTH, YEAR, VALUE } — extract VALUE
-            const dateRaw = work?.WORK_DATE_DOCUMENT ?? work?.WORK_DATE_ENTRY_INTO_FORCE;
-            const dateDoc = typeof dateRaw === "object" && dateRaw !== null
-                ? String(dateRaw.VALUE ?? "")
-                : String(dateRaw ?? "");
-            // Doc type: first entry in WORK.TYPE array (e.g. "cdm:regulation")
-            const typeArr = work?.TYPE;
-            const rawType = Array.isArray(typeArr) ? typeArr[0] : String(typeArr ?? "");
-            const docType = rawType.replace("cdm:", "").replace(/_/g, " ");
-            return {
-                celexNumber: String(celexId),
-                title: String(titleVal ?? hit.reference ?? ""),
-                dateDocument: dateDoc,
-                documentType: docType,
-            };
-        });
+        const results = hits.map((hit) => mapSearchHit(hit, lang));
         const out = { results, total, hasMore: offset + results.length < total };
         cacheSet(cacheKey, out, TTL_SEARCH);
         return out;
@@ -862,7 +881,7 @@ export async function compareDocuments(celexA, langA, celexB, langB, maxChars = 
 }
 export const MAX_FIND_MATCHES = 200;
 export async function findInDocument(celex, lang = "en", query, contextChars = 2_000, maxMatches = 5, useRegex = false) {
-    const normalized = normalizeCelex(celex);
+    const normalized = sparqlCelex(celex);
     const key = `content:${normalized}:${lang}`;
     // Fetch (or reuse cached) full markdown — identical cache key as getDocumentContent.
     // If the document was already fetched, search is instant (no HTTP round-trip).

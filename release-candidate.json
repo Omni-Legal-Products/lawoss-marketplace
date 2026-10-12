@@ -1,8 +1,8 @@
 {
-  "plugin": "ov",
-  "plugin_version": "1.2.0",
-  "catalog_commit": "0cd2fbe22ed77bf67da305abc64af80698533e2e",
-  "source_repository": "Omni-Legal-Products/mcp-obchodny-vestnik",
-  "source_commit": "4d15084fe1cf2b6f3df5df6b7f99741914ad47c7",
-  "runtime_manifest_sha256": "4bf12ea069eb015c48533d8168fcba5334402f388fb321ba5ecb69e38f9c3368"
+  "plugin": "eurlex-celex",
+  "plugin_version": "1.2.1",
+  "catalog_commit": "9a8027622ed7962b96db714bb3b642928e8ac902",
+  "source_repository": "Omni-Legal-Products/mcp-eurlex",
+  "source_commit": "e6c930f3b1a902c879431233c9466c443c694f7f",
+  "runtime_manifest_sha256": "3f69afebb1739b94b01f68ea0d88535c3a8a08cd4b416bf1c3fe389410bff597"
 }
