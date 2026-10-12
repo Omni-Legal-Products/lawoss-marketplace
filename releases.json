@@ -61,7 +61,7 @@
     {
       "name": "ov",
       "repository": "Omni-Legal-Products/mcp-obchodny-vestnik",
-      "commit": "4d15084fe1cf2b6f3df5df6b7f99741914ad47c7",
+      "commit": "41177404d26dc0d64ae92da316a4decadadbc89c",
       "branch": "codex/rollout-fix-ov",
       "distribution": "local-mcp-skill-cli"
     },
