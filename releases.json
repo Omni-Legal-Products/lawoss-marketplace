@@ -40,7 +40,7 @@
     {
       "name": "judikaty",
       "repository": "Omni-Legal-Products/mcp-judikaty-sk",
-      "commit": "211a958d19e4eabed232b833514b351f489769f2",
+      "commit": "5889b7296859a347242a9cf89cf996e2058557c1",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
