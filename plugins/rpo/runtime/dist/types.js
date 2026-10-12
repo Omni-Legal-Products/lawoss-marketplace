@@ -83,6 +83,7 @@ export const StatisticalCodesSchema = z
     esa2010: CodelistValueSchema.optional(),
 })
     .passthrough();
+/** A legal predecessor or successor record inside the entity detail. */
 export const RelatedEntityRecordSchema = z
     .object({
     identifier: z.string().optional(),
@@ -93,6 +94,68 @@ export const RelatedEntityRecordSchema = z
 })
     .passthrough();
 const RelatedEntityArraySchema = z.preprocess((value) => Array.isArray(value) ? value : [], z.array(RelatedEntityRecordSchema));
+/** Legal status (CL010108), e.g. "Zaniknutá spoločnosť", "V likvidácii". */
+export const LegalStatusSchema = z
+    .object({
+    value: CodelistValueSchema.optional(),
+    validFrom: z.string().optional(),
+    validTo: z.string().optional(),
+})
+    .passthrough();
+/**
+ * Supervisory board members, procurators, partners, shareholders. A
+ * stakeholder is either a natural person (personName) or a company
+ * (fullName + identifier). stakeholderType.code is not unique across
+ * codelists (99 = "Spoločník" here, "Predstavenstvo" in CL010113), so only
+ * the label is used.
+ */
+export const StakeholderSchema = z
+    .object({
+    stakeholderType: CodelistValueSchema.optional(),
+    validFrom: z.string().optional(),
+    validTo: z.string().optional(),
+    address: AddressSchema.optional(),
+    personName: PersonNameSchema.optional(),
+    fullName: z.string().optional(),
+    identifier: z.string().optional(),
+})
+    .passthrough();
+/** Registered capital. RPO keeps the amount and the paid-up amount as separate records. */
+export const EquitySchema = z
+    .object({
+    value: z.number().optional(),
+    valuePaid: z.number().optional(),
+    currency: CodelistValueSchema.optional(),
+    validFrom: z.string().optional(),
+    validTo: z.string().optional(),
+})
+    .passthrough();
+export const ShareSchema = z
+    .object({
+    shareType: CodelistValueSchema.optional(),
+    shareForm: z.string().optional(),
+    shareNominalValue: z.number().optional(),
+    shareCurrency: CodelistValueSchema.optional(),
+    /** Number of shares of this kind (ORSR "počet"). */
+    amountOfFunds: z.number().optional(),
+    transferability: z.string().optional(),
+    validFrom: z.string().optional(),
+    validTo: z.string().optional(),
+})
+    .passthrough();
+/** A partner's deposit (vklad) in an s.r.o. / k.s. */
+export const DepositSchema = z
+    .object({
+    personName: PersonNameSchema.optional(),
+    fullName: z.string().optional(),
+    amount: z.number().optional(),
+    currency: CodelistValueSchema.optional(),
+    validFrom: z.string().optional(),
+    validTo: z.string().optional(),
+})
+    .passthrough();
+/** Free-text records: manner of acting (authorizations), other legal facts. */
+export const TextRecordSchema = HistoryValueSchema;
 /** A single entity summary as returned inside `/search` results[]. */
 export const EntitySummarySchema = z
     .object({
@@ -102,6 +165,7 @@ export const EntitySummarySchema = z
     fullNames: z.array(HistoryValueSchema).optional(),
     addresses: z.array(AddressSchema).optional(),
     establishment: z.string().optional(),
+    termination: z.string().optional(),
     sourceRegister: SourceRegisterSchema.optional(),
 })
     .passthrough();
@@ -122,13 +186,16 @@ export const EntityDetailSchema = z
     addresses: z.array(AddressSchema).optional(),
     legalForms: z.array(LegalFormSchema).optional(),
     establishment: z.string().optional(),
+    termination: z.string().optional(),
+    legalStatuses: z.array(LegalStatusSchema).optional(),
     activities: z.array(ActivitySchema).optional(),
     statutoryBodies: z.array(StatutoryBodySchema).optional(),
-    stakeholders: z.array(z.unknown()).optional(),
-    otherLegalFacts: z.array(z.unknown()).optional(),
-    authorizations: z.array(z.unknown()).optional(),
-    equities: z.array(z.unknown()).optional(),
-    shares: z.array(z.unknown()).optional(),
+    stakeholders: z.array(StakeholderSchema).optional(),
+    otherLegalFacts: z.array(TextRecordSchema).optional(),
+    authorizations: z.array(TextRecordSchema).optional(),
+    equities: z.array(EquitySchema).optional(),
+    shares: z.array(ShareSchema).optional(),
+    deposits: z.array(DepositSchema).optional(),
     sourceRegister: SourceRegisterSchema.optional(),
     statisticalCodes: StatisticalCodesSchema.optional(),
     predecessors: RelatedEntityArraySchema,

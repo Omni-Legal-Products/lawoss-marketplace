@@ -102,6 +102,8 @@ export function rankResults(rows, query) {
         a.index - b.index)
         .map((entry) => entry.row);
 }
+/** The register never returns more than this many rows and gives no total. */
+export const UPSTREAM_RESULT_CAP = 500;
 /** Slovenčina rozlišuje 1 / 2-4 / 5+: "1 zhodu", "3 zhody", "134 zhôd". */
 export function plural(n, one, few, many) {
     const form = n === 1 ? one : n >= 2 && n <= 4 ? few : many;
@@ -128,19 +130,24 @@ export function capResults(rows, query, limit = DEFAULT_SEARCH_LIMIT) {
     const effective = Math.max(1, limit);
     const ranked = rankResults(rows, query);
     const results = ranked.slice(0, effective);
-    const truncated = ranked.length > results.length;
+    const capped = ranked.length >= UPSTREAM_RESULT_CAP;
+    const truncated = capped || ranked.length > results.length;
+    const narrow = "Dopyt zúž (onlyActive, addressMunicipality, sourceRegister, legalForm).";
+    const note = capped
+        ? `Register vrátil ${UPSTREAM_RESULT_CAP} záznamov, čo je strop jeho odpovede — zhôd je aspoň ${UPSTREAM_RESULT_CAP}, ` +
+            "skutočný počet register neuvádza. Poradie presnosti je len z riadkov, ktoré vybral register, " +
+            `takže hľadaný subjekt v nich nemusí byť; ${vraciam(results.length)}. ${narrow}`
+        : truncated
+            ? `Register našiel ${plural(ranked.length, "zhodu", "zhody", "zhôd")}; ` +
+                `${vraciam(results.length)} podľa presnosti zhody s menom. Zvýš limit, alebo ${narrow.charAt(0).toLowerCase()}${narrow.slice(1)}`
+            : undefined;
     return {
         count: ranked.length,
+        countIsLowerBound: capped,
         returned: results.length,
         truncated,
         limit: effective,
         results,
-        ...(truncated
-            ? {
-                note: `Register našiel ${plural(ranked.length, "zhodu", "zhody", "zhôd")}; ` +
-                    `${vraciam(results.length)} podľa presnosti zhody s menom. ` +
-                    "Zvýš limit, alebo dopyt zúž (onlyActive, addressMunicipality, sourceRegister, legalForm).",
-            }
-            : {}),
+        ...(note ? { note } : {}),
     };
 }

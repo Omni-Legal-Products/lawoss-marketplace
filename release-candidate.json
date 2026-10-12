@@ -1,8 +1,8 @@
 {
-  "plugin": "kalkulacky",
-  "plugin_version": "1.2.0",
-  "catalog_commit": "3604687e4c9b35a66ec20ee771179a02b08b7a00",
-  "source_repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
-  "source_commit": "5ff45d0d03887bd3a166f80f40635a508a2d1a3f",
-  "runtime_manifest_sha256": "da8d1ad6f32d6433de610ec0779f17ba2fdcb1043784fdbdea4198e1a8dd00d3"
+  "plugin": "rpo",
+  "plugin_version": "0.2.0",
+  "catalog_commit": "008d5d4188802611d5ab981691f4fb9f80b0c258",
+  "source_repository": "Omni-Legal-Products/mcp-rpo",
+  "source_commit": "53033548a30a105e45b8a5a883632f420612581b",
+  "runtime_manifest_sha256": "1dabff6f770ba500da9af840da96de7e9ab39e1769c6eb4b2d992091883a391a"
 }

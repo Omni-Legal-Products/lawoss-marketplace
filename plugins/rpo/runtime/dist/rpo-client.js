@@ -99,11 +99,18 @@ export class RpoClient {
         delete parsed.license;
         return parsed;
     }
-    /** Two-step IČO -> id resolution. Returns the internal id or null. */
+    /**
+     * Two-step IČO -> id resolution. Returns the internal id or null.
+     *
+     * Only a hit that actually carries the IČO counts: taking results[0] blindly
+     * would hand back the detail of a different entity whenever the register
+     * answers with anything else.
+     */
     async resolveIdByIco(ico) {
-        const res = await this.search({ identifier: ico });
-        const first = res.results?.[0];
-        return first ? first.id : null;
+        const wanted = digits(ico);
+        const res = await this.search({ identifier: wanted || ico });
+        const hit = (res.results ?? []).find((r) => (r.identifiers ?? []).some((i) => digits(i.value ?? "") === wanted));
+        return hit ? hit.id : null;
     }
     /** Convenience: full detail by IČO (search by identifier, then fetch detail). */
     async getEntityByIco(ico, opts = {}) {
@@ -112,6 +119,9 @@ export class RpoClient {
             return null;
         return this.getEntityById(id, opts);
     }
+}
+function digits(value) {
+    return value.replace(/\D/g, "");
 }
 function backoff(attempt) {
     // 250ms, 500ms, 1000ms ...
@@ -169,17 +179,44 @@ export function normalizeAddress(a) {
 export function currentAddress(arr) {
     return formatAddress(pickCurrent(arr));
 }
+/**
+ * pickCurrent falls back to the latest closed record when nothing is open —
+ * the last name of a dissolved company. That value is no longer valid, so the
+ * end date travels with it instead of passing it off as current.
+ */
+function closedSince(arr) {
+    return pickCurrent(arr)?.validTo;
+}
 /** Map a raw search result entity into a token-lean summary view. */
 export function toSummaryView(e) {
     return {
         id: e.id,
         ico: currentIco(e),
         name: currentName(e),
+        ...defined({ nameValidTo: closedSince(e.fullNames) }),
         address: currentAddress(e.addresses),
+        ...defined({ addressValidTo: closedSince(e.addresses) }),
         establishment: e.establishment,
+        ...defined({ termination: e.termination }),
         sourceRegister: e.sourceRegister?.value?.value,
         dbModificationDate: e.dbModificationDate,
     };
+}
+/** Drop undefined keys so optional markers do not appear as nulls in JSON. */
+function defined(obj) {
+    return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+}
+function dated(r) {
+    return defined({ value: r.value, validFrom: r.validFrom, validTo: r.validTo });
+}
+function terminationNote(d) {
+    if (!d.termination)
+        return undefined;
+    const base = `Subjekt zanikol ${d.termination}; nejde o existujúcu osobu.`;
+    if (!currentName(d) && !currentAddress(d.addresses)) {
+        return `${base} Bez showHistoricalData=true RPO nevracia jeho posledný názov ani sídlo.`;
+    }
+    return `${base} Názov a sídlo sú posledné zapísané hodnoty, platné do nameValidTo/addressValidTo.`;
 }
 export function normalizeSearch(res) {
     return (res.results ?? []).map(toSummaryView);
@@ -192,20 +229,25 @@ export function toDetailView(d) {
         memberType: s.statutoryBodyMember?.value,
         address: formatAddress(s.address),
         validFrom: s.validFrom,
+        ...defined({ validTo: s.validTo }),
     }));
     return {
         id: d.id,
         ico: currentIco(d),
         name: currentName(d),
+        ...defined({ nameValidTo: closedSince(d.fullNames) }),
         nameHistory: (d.fullNames ?? []).map((n) => ({
             value: n.value,
             validFrom: n.validFrom,
             validTo: n.validTo,
         })),
         address: currentAddress(d.addresses),
+        ...defined({ addressValidTo: closedSince(d.addresses) }),
         addressHistory: (d.addresses ?? []).map(normalizeAddress),
         legalForm: pickCurrent(d.legalForms)?.value?.value,
         establishment: d.establishment,
+        ...defined({ termination: d.termination }),
+        legalStatuses: (d.legalStatuses ?? []).map((l) => dated({ ...l, value: l.value?.value })),
         sourceRegister: d.sourceRegister?.value?.value,
         registrationOffices: (d.sourceRegister?.registrationOffices ?? [])
             .map((o) => o.value)
@@ -216,30 +258,71 @@ export function toDetailView(d) {
         activities: (d.activities ?? []).map((a) => ({
             description: a.economicActivityDescription,
             validFrom: a.validFrom,
+            ...defined({ validTo: a.validTo }),
         })),
         statutoryBodies,
+        stakeholders: (d.stakeholders ?? []).map((s) => defined({
+            name: s.personName?.formatedName ?? s.fullName,
+            role: s.stakeholderType?.value,
+            identifier: s.identifier,
+            address: formatAddress(s.address),
+            validFrom: s.validFrom,
+            validTo: s.validTo,
+        })),
+        authorizations: (d.authorizations ?? []).map(dated),
+        equities: (d.equities ?? []).map((e) => defined({
+            value: e.value,
+            valuePaid: e.valuePaid,
+            currency: e.currency?.code ?? e.currency?.value,
+            validFrom: e.validFrom,
+            validTo: e.validTo,
+        })),
+        shares: (d.shares ?? []).map((s) => defined({
+            type: s.shareType?.value,
+            form: s.shareForm,
+            nominalValue: s.shareNominalValue,
+            currency: s.shareCurrency?.code ?? s.shareCurrency?.value,
+            quantity: s.amountOfFunds,
+            transferability: s.transferability,
+            validFrom: s.validFrom,
+            validTo: s.validTo,
+        })),
+        deposits: (d.deposits ?? []).map((x) => defined({
+            name: x.personName?.formatedName ?? x.fullName,
+            amount: x.amount,
+            currency: x.currency?.code ?? x.currency?.value,
+            validFrom: x.validFrom,
+            validTo: x.validTo,
+        })),
+        otherLegalFacts: (d.otherLegalFacts ?? []).map(dated),
+        predecessors: d.predecessors.map(toRelatedEntity),
+        successors: d.successors.map(toRelatedEntity),
         mainActivity: d.statisticalCodes?.mainActivity?.value,
         esa2010: d.statisticalCodes?.esa2010?.value,
         dbModificationDate: d.dbModificationDate,
+        ...defined({ note: terminationNote(d) }),
     };
 }
-/** Build a simplified RelatedEntitiesView from raw detail predecessors/successors. */
-export function toRelatedView(detail) {
-    const preds = Array.isArray(detail.predecessors) ? detail.predecessors : [];
-    const succs = Array.isArray(detail.successors) ? detail.successors : [];
-    const mapEntity = (r) => ({
+function toRelatedEntity(r) {
+    return defined({
         identifier: r.identifier,
         fullName: r.fullName,
         address: formatSimpleAddress(r.address),
         validFrom: r.validFrom,
         validTo: r.validTo,
     });
+}
+/** Build a simplified RelatedEntitiesView from raw detail predecessors/successors. */
+export function toRelatedView(detail) {
+    const preds = detail.predecessors;
+    const succs = detail.successors;
     return {
         id: detail.id,
         ico: currentIco(detail),
         fullName: currentName(detail),
-        predecessors: preds.map(mapEntity),
-        successors: succs.map(mapEntity),
+        ...defined({ termination: detail.termination }),
+        predecessors: preds.map(toRelatedEntity),
+        successors: succs.map(toRelatedEntity),
         noRelations: preds.length === 0 && succs.length === 0,
     };
 }

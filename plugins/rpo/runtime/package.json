@@ -1,6 +1,6 @@
 {
   "name": "rpo-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Read-only MCP server for the Register právnických osôb, podnikateľov a orgánov verejnej moci (RPO)",
   "type": "module",
   "main": "dist/server.js",
