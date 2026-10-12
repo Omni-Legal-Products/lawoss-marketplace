@@ -18,6 +18,8 @@ Source: `Omni-Legal-Products/mcp-slovlex` commit `bcc73f5dcc6d323600ecba72ddc61d
 
 Not addressed: `colspan`/`rowspan` in tables and low-severity audit findings #13–#16.
 
-Pending before merge: Codex plugin-creator validator and isolated Git-marketplace install/update/rollback acceptance.
+- Isolated Git-marketplace acceptance (2026-10-12, separate `CODEX_HOME` and `CLAUDE_CONFIG_DIR`): Codex installed `slovlex@lawoss` 1.1.2 from `main`, `scripts/update_plugins.py --apply` updated it to 1.1.3 from `release/slovlex-1.1.3-r2`, the installed runtime started with `scripts/run.mjs mcp` from an unrelated working directory and answered live Slov-Lex reads (145/1995 443 005 characters, 145/1995 § 13 without 71/1967, 460/1992 Čl. 5), and the same updater rolled it back to 1.1.2 from `main` (145/1995 back to 42 830 characters). Claude Code installed 1.1.3 from `release/slovlex-1.1.3-r2`; the installed skill carries the new pitfalls and the installed runtime answered the same reads.
+
+Not run: the Codex plugin-creator validator. The installed plugin-creator (0.1.26) ships skills only and no `validate_plugin.py`.
 
 Tests establish behavior for the captured HTML and selected live reads. They do not establish legal applicability or universal coverage of every Slov-Lex document structure.
