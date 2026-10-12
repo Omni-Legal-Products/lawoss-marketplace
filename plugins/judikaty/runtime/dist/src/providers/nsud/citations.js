@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-const CITATION_EXTRACTOR_VERSION = 2;
+// v3: "písmeno b)" letter, standalone OSP token, attribution right after the paragraph,
+// and two-letter paragraph suffixes (151ma, 59ab).
+const CITATION_EXTRACTOR_VERSION = 3;
+/** How far past a paragraph citation an abbreviation or law number still counts as "directly following". */
+const DIRECT_ATTRIBUTION_CHARS = 60;
 const LAW_ALIASES = [
     {
         lawNumber: "40/1964",
@@ -31,7 +35,8 @@ const LAW_ALIASES = [
     {
         lawNumber: "99/1963",
         patterns: [
-            /O\.?\s*S\.?\s*P\.?/iu,
+            // OSP, O.s.p., O. s. p. — only as a separate token, never inside e.g. "prospech".
+            /(?<![\p{L}\p{N}.])(?:OSP|O\.\s?S\.\s?P\.?)(?![\p{L}\p{N}])/iu,
             /Občiansk(?:y|eho|ého)\s+súdn(?:y|eho|ého)\s+poriadk(?:u|om)?/iu
         ],
         searchAliases: ["Občiansky súdny poriadok", "OSP", "O.s.p."]
@@ -68,7 +73,7 @@ export function extractCitationsFromText(text) {
     if (!normalizedText) {
         return [];
     }
-    const paragraphPattern = /§\s*(\d+[a-z]?)(?:\s*(?:ods?\.?|odsek)\s*(\d+[a-z]?))?(?:\s*(?:písm?\.?|pism?\.?)\s*([a-z]))?/giu;
+    const paragraphPattern = /§\s*(\d+[a-z]{0,2})(?![\p{L}])(?:\s*(?:ods?\.?|odsek)\s*(\d+[a-z]?))?(?:\s*(?:písmeno|pismeno|písm\.?|pism\.?)\s*([a-z])(?![\p{L}]))?/giu;
     const seen = new Map();
     for (const match of normalizedText.matchAll(paragraphPattern)) {
         const paragraph = match[1]?.toLowerCase();
@@ -78,7 +83,10 @@ export function extractCitationsFromText(text) {
         const odsek = match[2]?.toLowerCase() ?? null;
         const pismeno = match[3]?.toLowerCase() ?? null;
         const context = buildCitationContext(normalizedText, match.index, match[0].length);
-        const lawNumber = detectLawNumber(context);
+        // An abbreviation or law number right after the paragraph names the law it belongs to,
+        // so it wins over a law number that merely appears earlier in the surrounding text.
+        const lawNumber = detectLawNumber(buildFollowingContext(normalizedText, match.index + match[0].length)) ??
+            detectLawNumber(context);
         if (!lawNumber) {
             continue;
         }
@@ -115,6 +123,14 @@ function buildCitationContext(text, matchIndex, matchLength) {
         end = nextParagraphIndex;
     }
     return text.slice(start, end);
+}
+function buildFollowingContext(text, matchEnd) {
+    let end = Math.min(text.length, matchEnd + DIRECT_ATTRIBUTION_CHARS);
+    const nextParagraphIndex = text.indexOf("§", matchEnd);
+    if (nextParagraphIndex >= 0 && nextParagraphIndex < end) {
+        end = nextParagraphIndex;
+    }
+    return text.slice(matchEnd, end);
 }
 export function buildNsudCitationCandidateQueries(input) {
     return buildNsudCitationCandidateQueryPlan(input).allQueries;

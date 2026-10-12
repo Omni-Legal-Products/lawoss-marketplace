@@ -3,6 +3,7 @@ import { getDecisionCache } from "../../infra/decision-detail-cache.js";
 import { normalizeLawReference } from "../../domain/slovlex.js";
 import { buildTextWindow, downloadPdfToCache, extractPdfText, removeCachedPdf } from "../../infra/pdf.js";
 import { DocumentUnavailableError } from "../../domain/errors.js";
+import { recordJusticeDetailFormSource, recordJusticeListFormSources } from "../nsud/form-decision-ingest.js";
 import { JusticeCourtAutocompleteItemSchema, JusticeCourtDetailSchema, JusticeDecisionAutocompleteItemSchema, JusticeDecisionDetailSchema, JusticeDecisionListResponseSchema } from "./schemas.js";
 const JUSTICE_BASE_URL = "https://obcan.justice.sk/pilot/api/ress-isu-service/v1";
 export class JusticeClient {
@@ -45,13 +46,17 @@ export class JusticeClient {
         else
             url.searchParams.set("page", "0");
         url.searchParams.set("size", String(input.limit));
+        const fetchedAt = new Date().toISOString();
         const response = await fetchJson(url);
+        recordJusticeListFormSources(response, fetchedAt);
         return JusticeDecisionListResponseSchema.parse(response);
     }
     async getDecisionDetail(input) {
         return getDecisionCache("justice", "detail").getOrLoad(input.id, async () => {
             const url = new URL(`${JUSTICE_BASE_URL}/rozhodnutie/${input.id}`);
+            const fetchedAt = new Date().toISOString();
             const response = await fetchJson(url);
+            recordJusticeDetailFormSource(response, input.id, fetchedAt);
             return JusticeDecisionDetailSchema.parse(response);
         });
     }

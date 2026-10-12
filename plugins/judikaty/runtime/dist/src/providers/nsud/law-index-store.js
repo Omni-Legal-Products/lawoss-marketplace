@@ -2,10 +2,13 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { asCaseRef, normalizeCaseRef } from "../../domain/relation-extractor.js";
+import { asCaseRef, isSelfRelation, normalizeCaseRef } from "../../domain/relation-extractor.js";
+import { classifyModelLabel, modelLabelApplies } from "../../domain/relation-model-labels.js";
+import { IndexSchemaTooNewError, SCHEMA_VERSION, applySchemaVersion, initSchema, readSchemaVersion } from "./schema.js";
 import { normalizeForFts } from "../../domain/text-normalization.js";
 import { buildNsudFtsSql, mapNsudFtsRows, mapProviderFtsRows, normalizeFtsParams, planProviderFtsQuery, sanitizeFtsQuery } from "./fts-queries.js";
 import { QueryWorkerUnavailableError, isQueryWorkerEnabled, runReadQueryOnWorker } from "./query-worker-client.js";
+import { existingRelationCovers } from "../../domain/justice-relation-orientation.js";
 const STATE_ROW_ID = 1;
 let cachedHandle = null;
 let cachedRoot = null;
@@ -18,6 +21,35 @@ function getDatabasePath() {
 /** Resolved lazily so the query worker picks up the cwd in force when it spawns. */
 export function getIndexDatabasePath() {
     return getDatabasePath();
+}
+/**
+ * Opens the index and brings its schema up to date. The stored version is checked
+ * first: a too-new index (from a newer build, or a snapshot imported by one) must be
+ * refused before anything writes to it — switching it to WAL rewrites its header and
+ * initSchema adds tables, either of which would alter a file this build cannot read
+ * correctly. A failed open closes its connection instead of leaking it.
+ */
+function openIndexDatabase(file) {
+    const db = new DatabaseSync(file);
+    try {
+        // Concurrent nightly indexers (NS text / NS relations / ÚS / justice) can write
+        // the same DB at once; wait for the lock instead of throwing SQLITE_BUSY. A
+        // connection setting, so it is safe before the version check.
+        db.exec("PRAGMA busy_timeout = 30000;");
+        const stored = readSchemaVersion(db);
+        if (stored > SCHEMA_VERSION)
+            throw new IndexSchemaTooNewError(stored, SCHEMA_VERSION);
+        db.exec("PRAGMA journal_mode = WAL;");
+        db.exec("PRAGMA foreign_keys = ON;");
+        db.exec("PRAGMA synchronous = NORMAL;");
+        initSchema(db);
+        applySchemaVersion(db);
+        return db;
+    }
+    catch (error) {
+        db.close();
+        throw error;
+    }
 }
 async function getHandle() {
     const root = getIndexRoot();
@@ -32,14 +64,7 @@ async function getHandle() {
         cachedRoot = null;
     }
     await mkdir(root, { recursive: true });
-    const db = new DatabaseSync(getDatabasePath());
-    db.exec("PRAGMA journal_mode = WAL;");
-    // Concurrent nightly indexers (NS text / NS relations / ÚS / justice) can write
-    // the same DB at once; wait for the lock instead of throwing SQLITE_BUSY.
-    db.exec("PRAGMA busy_timeout = 30000;");
-    db.exec("PRAGMA foreign_keys = ON;");
-    db.exec("PRAGMA synchronous = NORMAL;");
-    initSchema(db);
+    const db = openIndexDatabase(getDatabasePath());
     const handle = {
         db,
         insertRecord: db.prepare(`INSERT INTO records (id, ecli, spisova_znacka, date_issued, updated_at)
@@ -206,252 +231,35 @@ async function getHandle() {
            SELECT 1 FROM relation_scan_log empty_sl
            WHERE empty_sl.provider = ? AND empty_sl.source_id = sl.source_id
          )
-       LIMIT ?`)
+       LIMIT ?`),
+        // A primary-key prefix seek per relation; never a scan. Newest label first.
+        selectNewestModelLabel: db.prepare(`SELECT role, role_confidence, outcome, outcome_confidence
+       FROM relation_model_labels
+       WHERE source_provider = ? AND source_id = ? AND target_ref_norm = ?
+       ORDER BY labelled_at DESC, label_run DESC
+       LIMIT 1`),
+        upsertModelLabel: db.prepare(`INSERT INTO relation_model_labels
+         (source_provider, source_id, target_ref_norm, label_run, model, role,
+          role_confidence, outcome, outcome_confidence, question_versions, labelled_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(source_provider, source_id, target_ref_norm, label_run) DO UPDATE SET
+         model = excluded.model,
+         role = excluded.role,
+         role_confidence = excluded.role_confidence,
+         outcome = excluded.outcome,
+         outcome_confidence = excluded.outcome_confidence,
+         question_versions = excluded.question_versions,
+         labelled_at = excluded.labelled_at`),
+        deleteModelLabelRunBatch: db.prepare(`DELETE FROM relation_model_labels WHERE rowid IN (
+         SELECT rowid FROM relation_model_labels WHERE label_run = ? LIMIT ?
+       )`),
+        selectRelationByNaturalKey: db.prepare(`SELECT disposition FROM decision_relations
+       WHERE source_provider = ? AND source_id = ? AND target_ref_norm = ?`)
     };
     cachedHandle = handle;
     cachedRoot = root;
     await migrateLegacyJsonIfNeeded(root, handle);
     return handle;
-}
-function initSchema(db) {
-    db.exec(`CREATE TABLE IF NOT EXISTS records (
-       id TEXT PRIMARY KEY,
-       ecli TEXT,
-       spisova_znacka TEXT,
-       date_issued TEXT,
-       updated_at TEXT NOT NULL
-     );
-
-     -- Serves search_decisions(provider="nsud", dateFrom/dateTo, no text criterion)
-     -- straight from this table instead of the NS SR portal, which ignores
-     -- art_datum_od/art_datum_do and always returns the same first page. Without
-     -- this index a date-range query is a full scan of every NS record.
-     CREATE INDEX IF NOT EXISTS idx_records_date_issued ON records(date_issued);
-
-     CREATE TABLE IF NOT EXISTS record_tokens (
-       record_id TEXT NOT NULL,
-       token TEXT NOT NULL,
-       PRIMARY KEY (record_id, token),
-       FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
-     );
-
-     CREATE INDEX IF NOT EXISTS idx_record_tokens_token ON record_tokens(token);
-
-     CREATE TABLE IF NOT EXISTS state (
-       id INTEGER PRIMARY KEY,
-       payload TEXT NOT NULL
-     );
-
-     CREATE TABLE IF NOT EXISTS decisions (
-       id TEXT PRIMARY KEY REFERENCES records(id) ON DELETE CASCADE,
-       text TEXT NOT NULL,
-       text_sha256 TEXT NOT NULL,
-       source_mode TEXT NOT NULL,
-       indexed_at TEXT NOT NULL
-     );
-
-     CREATE VIRTUAL TABLE IF NOT EXISTS decisions_fts USING fts5(
-       text,
-       tokenize = 'unicode61 remove_diacritics 2'
-     );
-
-     CREATE TABLE IF NOT EXISTS decision_relations (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       source_provider TEXT NOT NULL,
-       source_id TEXT NOT NULL,
-       source_ref TEXT,
-       source_ref_norm TEXT,
-       source_court TEXT,
-       target_court TEXT,
-       target_ref TEXT NOT NULL,
-       target_ref_norm TEXT NOT NULL,
-       relation TEXT NOT NULL,
-       disposition TEXT NOT NULL,
-       target_date TEXT,
-       confidence REAL NOT NULL,
-       extracted_at TEXT NOT NULL,
-       UNIQUE(source_provider, source_id, target_ref_norm)
-     );
-
-     CREATE INDEX IF NOT EXISTS idx_relations_target_norm
-       ON decision_relations(target_ref_norm);
-     CREATE INDEX IF NOT EXISTS idx_relations_source_ref_norm
-       ON decision_relations(source_ref_norm);
-     CREATE INDEX IF NOT EXISTS idx_relations_source
-       ON decision_relations(source_provider, source_id);
-
-     CREATE TABLE IF NOT EXISTS relation_scan_log (
-       provider TEXT NOT NULL,
-       source_id TEXT NOT NULL,
-       scanned_at TEXT NOT NULL,
-       PRIMARY KEY (provider, source_id)
-     );
-
-     CREATE TABLE IF NOT EXISTS crawl_state (
-       provider TEXT PRIMARY KEY,
-       payload TEXT NOT NULL
-     );
-
-     CREATE TABLE IF NOT EXISTS stats_snapshots (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       taken_at TEXT NOT NULL,
-       payload TEXT NOT NULL
-     );
-
-     CREATE TABLE IF NOT EXISTS job_runs (
-       job TEXT PRIMARY KEY,
-       last_run_at TEXT NOT NULL,
-       payload TEXT NOT NULL
-     );
-
-     CREATE TABLE IF NOT EXISTS watchlist (
-       ref_norm TEXT PRIMARY KEY,
-       ref_raw TEXT NOT NULL,
-       note TEXT,
-       added_at TEXT NOT NULL
-     );
-
-     -- Deterministic abstracts: the operative part and the opening of the reasoning,
-     -- indexed separately from the full text because that is where the holding lives
-     -- and because a hit then costs ~40-90 tokens instead of thousands.
-     --
-     -- The holding column is reserved for a model-written právna veta and stays NULL
-     -- for now; source and model record which producer wrote a row, so an LLM pass can
-     -- be added later without touching this schema. text_sha256 makes re-extraction
-     -- idempotent: a document whose text has not changed is skipped.
-     CREATE TABLE IF NOT EXISTS decision_abstracts (
-       rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-       provider TEXT NOT NULL,
-       id TEXT NOT NULL,
-       vyrok TEXT,
-       lead_text TEXT,
-       holding TEXT,
-       source TEXT NOT NULL,
-       model TEXT,
-       text_sha256 TEXT NOT NULL,
-       generated_at TEXT NOT NULL,
-       UNIQUE(provider, id)
-     );
-
-     -- Documents the extractor could not make an abstract from. Without this they
-     -- stay at the head of the backfill queue and come back in every batch, so once
-     -- their number exceeds the batch size the job stops making progress entirely —
-     -- silently, because it still reports work attempted. Keyed by text hash so a
-     -- changed document is retried, and the whole table can be dropped to force a
-     -- full retry after the extractor improves.
-     -- Which documents' FTS rows have been rewritten with letter-spacing collapsed.
-     -- Everything indexed before that existed has "z r u š u j e" in the index as
-     -- seven single-character tokens, so the outcome of a decision is unsearchable.
-     CREATE TABLE IF NOT EXISTS fts_normalized (
-       provider TEXT NOT NULL,
-       id TEXT NOT NULL,
-       text_sha256 TEXT NOT NULL,
-       normalized_at TEXT NOT NULL,
-       PRIMARY KEY (provider, id)
-     );
-
-     CREATE TABLE IF NOT EXISTS abstract_attempts (
-       provider TEXT NOT NULL,
-       id TEXT NOT NULL,
-       text_sha256 TEXT NOT NULL,
-       attempted_at TEXT NOT NULL,
-       PRIMARY KEY (provider, id)
-     );
-
-     CREATE VIRTUAL TABLE IF NOT EXISTS decision_abstracts_fts USING fts5(
-       vyrok,
-       lead_text,
-       holding,
-       tokenize = 'unicode61 remove_diacritics 2'
-     );
-
-     -- Tool usage counts. The repo has ~24 tools, 7 of which are variants of "read the
-     -- decision text", and the documented Tool Consolidation Gate says the collapse
-     -- decision waits for usage data rather than guesswork. Nothing was counting, so the
-     -- data could never arrive; this starts the clock.
-     CREATE TABLE IF NOT EXISTS tool_calls (
-       tool TEXT PRIMARY KEY,
-       calls INTEGER NOT NULL DEFAULT 0,
-       first_seen_at TEXT NOT NULL,
-       last_seen_at TEXT NOT NULL
-     );
-
-     -- Case refs the user deliberately looked up by name. Looking a case up is a
-     -- much better signal of "I rely on this" than a search hit is, so this acts
-     -- as an implicit watchlist for the weekly report without asking the user to
-     -- maintain one by hand.
-     CREATE TABLE IF NOT EXISTS ref_lookups (
-       ref_norm TEXT PRIMARY KEY,
-       ref_raw TEXT NOT NULL,
-       lookups INTEGER NOT NULL DEFAULT 1,
-       first_seen_at TEXT NOT NULL,
-       last_seen_at TEXT NOT NULL
-     );
-
-     CREATE TABLE IF NOT EXISTS provider_texts (
-       rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-       provider TEXT NOT NULL,
-       id TEXT NOT NULL,
-       text TEXT NOT NULL,
-       text_sha256 TEXT NOT NULL,
-       source_mode TEXT NOT NULL,
-       indexed_at TEXT NOT NULL,
-       text_complete INTEGER NOT NULL DEFAULT 0,
-       UNIQUE(provider, id)
-     );
-
-     CREATE VIRTUAL TABLE IF NOT EXISTS provider_texts_fts USING fts5(
-       text,
-       tokenize = 'unicode61 remove_diacritics 2'
-     );
-
-     CREATE TABLE IF NOT EXISTS provider_records (
-       provider TEXT NOT NULL,
-       id TEXT NOT NULL,
-       spisova_znacka TEXT,
-       spisova_znacka_norm TEXT,
-       court_name TEXT,
-       date_issued TEXT,
-       updated_at TEXT NOT NULL,
-       PRIMARY KEY (provider, id)
-     );
-     CREATE INDEX IF NOT EXISTS idx_provider_records_ref_norm ON provider_records(spisova_znacka_norm);`);
-    // Migration: relation-scan marker on decisions (added in Phase 2a).
-    // ALTER ADD COLUMN throws "duplicate column name" if already present — ignore.
-    try {
-        db.exec("ALTER TABLE decisions ADD COLUMN relation_extracted_at TEXT;");
-    }
-    catch {
-        // column already exists
-    }
-    // Migration: text-attempt marker on records (added in Phase 2 text-accel).
-    // ALTER ADD COLUMN throws "duplicate column name" if already present — ignore.
-    try {
-        db.exec("ALTER TABLE records ADD COLUMN text_attempted_at TEXT;");
-    }
-    catch {
-        // column already exists
-    }
-    // Migration: disposition-update marker on decision_relations (so the enricher's
-    // upgrades from "ine" to a real outcome are visible to freshness queries).
-    // ALTER ADD COLUMN throws "duplicate column name" if already present — ignore.
-    try {
-        db.exec("ALTER TABLE decision_relations ADD COLUMN disposition_updated_at TEXT;");
-    }
-    catch {
-        // column already exists
-    }
-    // Migration: whole-document marker on provider_texts. The justice disposition
-    // enricher stores a 20,000-char window, so a row is not necessarily the whole
-    // judgment; the text read path may only serve rows it knows are complete.
-    // Existing rows default to 0 and are upgraded the first time they are read.
-    // ALTER ADD COLUMN throws "duplicate column name" if already present — ignore.
-    try {
-        db.exec("ALTER TABLE provider_texts ADD COLUMN text_complete INTEGER NOT NULL DEFAULT 0;");
-    }
-    catch {
-        // column already exists
-    }
 }
 async function migrateLegacyJsonIfNeeded(root, handle) {
     const countRow = handle.db
@@ -1111,6 +919,68 @@ function mapRelationRow(row) {
         dispositionUpdatedAt: row.disposition_updated_at ?? null
     };
 }
+/**
+ * Stored relations as they may be presented: a decision pointing at its own file
+ * number is dropped, and a model label, where one exists, is applied on top.
+ *
+ * 443,622 justice rows (78 % of that provider) were written with the source's own
+ * court-prefixed number as the target, and 3,199 of them carry an outcome, so a
+ * lookup of "6T/206/2012" answered "quashed by K3-6T/206/2012" — itself. The
+ * writers no longer produce such rows; the existing ones stay in the database and
+ * are filtered here, the same validate-on-read approach as `looksLikeCaseRef`.
+ * The check runs on rows already fetched by an indexed query: no extra SQL.
+ *
+ * Every relation reader goes through here, so every reader gets the model overlay.
+ */
+function presentableRelations(handle, rows) {
+    const kept = [];
+    for (const row of rows) {
+        if (isSelfRelation(row.source_ref, row.target_ref_norm))
+            continue;
+        kept.push(applyModelLabel(handle, mapRelationRow(row)));
+    }
+    return kept;
+}
+/**
+ * The newest model label for one relation, or null.
+ *
+ * `node:sqlite` is synchronous on the HTTP thread, so this must stay a primary-key
+ * seek for rows already fetched — one per relation, never a scan. A label table that
+ * is absent (a database from before this table, or one dropped by hand) is a no-op.
+ */
+function newestModelLabel(handle, row) {
+    try {
+        const found = handle.selectNewestModelLabel.get(row.sourceProvider, row.sourceId, row.targetRefNorm);
+        return found ?? null;
+    }
+    catch (error) {
+        if (error instanceof Error && /no such table/i.test(error.message))
+            return null;
+        throw error;
+    }
+}
+/**
+ * Present a relation as the model label says (design 2026-09-25, section 2). Without
+ * a label the row is returned untouched — no key is added — so output is unchanged.
+ * An NS/ÚS heuristic mention (`ine`) is skipped before any lookup: labels exist only
+ * for their rows with an outcome, and this keeps the per-row lookups to the minority
+ * that has one. Justice rows are looked up even as `ine` (section 7): regional-court
+ * appellate relations get their outcome only from a label.
+ */
+function applyModelLabel(handle, row) {
+    if (!modelLabelApplies(row.disposition, row.sourceProvider))
+        return row;
+    const found = newestModelLabel(handle, row);
+    if (!found)
+        return row;
+    const classified = classifyModelLabel(row.disposition, {
+        role: found.role,
+        roleConfidence: found.role_confidence,
+        outcome: found.outcome,
+        outcomeConfidence: found.outcome_confidence
+    });
+    return { ...row, disposition: classified.disposition, ...classified.overlay };
+}
 export async function upsertDecisionRelations(input) {
     if (input.relations.length === 0)
         return;
@@ -1125,7 +995,7 @@ export async function upsertDecisionRelations(input) {
 }
 export async function getRelationsReviewing(targetRefNorm) {
     const handle = await getHandle();
-    return handle.selectRelationsByTargetNorm.all(targetRefNorm).map(mapRelationRow);
+    return presentableRelations(handle, handle.selectRelationsByTargetNorm.all(targetRefNorm));
 }
 /**
  * Opening characters of stored decision texts, keyed by decision id.
@@ -1346,9 +1216,13 @@ export async function searchDecisionAbstractsFts(input) {
 /**
  * Documents whose abstract is missing or stale, for the nightly backfill.
  *
- * Staleness is decided by comparing the stored text hash, so a re-extraction after
- * an extractor change only touches what actually needs it and the job can be run
- * repeatedly without doing the same work twice.
+ * Staleness is decided purely by comparing the stored text hash against the
+ * document's current one, so the job can be run repeatedly without doing the same
+ * work twice. That also means it CANNOT see an extractor change: if a document's
+ * text is unchanged, its hash still matches and it is skipped, even though a fixed
+ * extractor would now produce a different abstract. Rows affected by an extractor
+ * fix need a different, one-off query keyed on a symptom of the old output instead
+ * — see `listAbstractsWithGluedReasoning` and `scripts/repair-glued-abstracts.ts`.
  */
 export async function listDecisionsMissingAbstract(limit) {
     const handle = await getHandle();
@@ -1375,6 +1249,49 @@ export async function listDecisionsMissingAbstract(limit) {
        LIMIT ?`)
         .all(limit - rows.length);
     return [...rows, ...providerRows].map((row) => ({
+        provider: row.provider,
+        id: row.id,
+        text: row.text,
+        textSha256: row.text_sha256
+    }));
+}
+/**
+ * Rows whose abstract was extracted before the "odôvodnenie" heading fix (commit
+ * 59d76c2) and still have the whole reasoning glued into `vyrok`, with `lead_text`
+ * left NULL.
+ *
+ * `listDecisionsMissingAbstract` cannot find these: its staleness check compares
+ * the stored TEXT hash against the current one, and for these rows the text never
+ * changed — only the EXTRACTOR did. A text-hash queue has no way to notice that, so
+ * these rows would otherwise stay broken forever. This is the one-off pattern for
+ * that situation (see `scripts/repair-glued-abstracts.ts`): find rows by a symptom
+ * of the old extractor's output (`lead_text IS NULL` and `vyrok` still contains the
+ * reasoning heading text) instead of by text-hash staleness.
+ *
+ * Keyset pagination by `rowid` (never OFFSET) is required: OFFSET would force
+ * SQLite to walk and discard every already-scanned row on every batch, so a repair
+ * over a large table would get slower as it progresses. Keying off `rowid` instead
+ * keeps each batch a short, bounded scan regardless of how far the repair has
+ * already gotten.
+ */
+export async function listAbstractsWithGluedReasoning(input) {
+    const handle = await getHandle();
+    const rows = handle.db
+        .prepare(`SELECT a.rowid AS rowid, a.provider AS provider, a.id AS id,
+              COALESCE(d.text, pt.text) AS text,
+              COALESCE(d.text_sha256, pt.text_sha256) AS text_sha256
+       FROM decision_abstracts a
+       LEFT JOIN decisions d ON a.provider = 'nsud' AND d.id = a.id
+       LEFT JOIN provider_texts pt ON a.provider <> 'nsud' AND pt.provider = a.provider AND pt.id = a.id
+       WHERE a.rowid > ?
+         AND a.lead_text IS NULL
+         AND a.vyrok LIKE '%dôvodneni%'
+         AND COALESCE(d.text, pt.text) IS NOT NULL
+       ORDER BY a.rowid
+       LIMIT ?`)
+        .all(input.afterRowid, input.limit);
+    return rows.map((row) => ({
+        rowid: row.rowid,
         provider: row.provider,
         id: row.id,
         text: row.text,
@@ -1519,9 +1436,8 @@ export async function getRelationsReviewingMany(targetRefNorms) {
          WHERE target_ref_norm IN (${chunk.map(() => "?").join(", ")})
          ORDER BY confidence DESC`)
             .all(...chunk);
-        for (const raw of rows) {
-            const mapped = mapRelationRow(raw);
-            const key = raw.target_ref_norm;
+        for (const mapped of presentableRelations(handle, rows)) {
+            const key = mapped.targetRefNorm;
             const existing = byRef.get(key);
             if (existing)
                 existing.push(mapped);
@@ -1533,11 +1449,11 @@ export async function getRelationsReviewingMany(targetRefNorms) {
 }
 export async function getRelationsBySourceRef(sourceRefNorm) {
     const handle = await getHandle();
-    return handle.selectRelationsBySourceRefNorm.all(sourceRefNorm).map(mapRelationRow);
+    return presentableRelations(handle, handle.selectRelationsBySourceRefNorm.all(sourceRefNorm));
 }
 export async function getRelationsBySource(sourceProvider, sourceId) {
     const handle = await getHandle();
-    return handle.selectRelationsBySource.all(sourceProvider, sourceId).map(mapRelationRow);
+    return presentableRelations(handle, handle.selectRelationsBySource.all(sourceProvider, sourceId));
 }
 export async function countDecisionRelations() {
     const handle = await getHandle();
@@ -1567,6 +1483,322 @@ export async function listIneJusticeSources(limit) {
 export async function updateIneRelationDisposition(input) {
     const handle = await getHandle();
     handle.updateIneDisposition.run(input.disposition, input.confidence, new Date().toISOString(), input.sourceId, input.targetRefNorm);
+}
+/**
+ * One keyset page of justice relations joined to their source's list metadata.
+ *
+ * Takes the database explicitly so a diagnostic can run it against a copy opened
+ * read-only. `+dr.source_provider` keeps SQLite on the rowid range instead of the
+ * provider index, which would sort the whole provider on every page.
+ */
+export function selectJusticeRelationsWithOwnRef(db, input) {
+    const rows = db
+        .prepare(`SELECT dr.id AS id, dr.source_id AS source_id, dr.source_ref AS source_ref,
+              dr.source_court AS source_court, dr.target_ref AS target_ref,
+              dr.target_ref_norm AS target_ref_norm, dr.target_court AS target_court,
+              dr.disposition AS disposition, pr.id AS pr_id,
+              pr.spisova_znacka AS own_ref, pr.court_name AS own_court
+       FROM decision_relations dr
+       LEFT JOIN provider_records pr ON pr.provider = 'justice' AND pr.id = dr.source_id
+       WHERE dr.id > ? AND +dr.source_provider = 'justice'
+       ORDER BY dr.id
+       LIMIT ?`)
+        .all(input.afterId, input.limit);
+    return rows.map((row) => ({
+        id: row.id,
+        sourceId: row.source_id,
+        sourceRef: row.source_ref,
+        sourceCourt: row.source_court,
+        targetRef: row.target_ref,
+        targetRefNorm: row.target_ref_norm,
+        targetCourt: row.target_court,
+        disposition: row.disposition,
+        hasProviderRecord: row.pr_id !== null,
+        ownRef: row.own_ref,
+        ownCourt: row.own_court
+    }));
+}
+export async function listJusticeRelationsWithOwnRef(input) {
+    const handle = await getHandle();
+    return selectJusticeRelationsWithOwnRef(handle.db, input);
+}
+/** The disposition of another justice row of `sourceId` with this target, if one exists. */
+export function selectOtherJusticeRelation(db, input) {
+    const row = db
+        .prepare(`SELECT id, disposition FROM decision_relations
+       WHERE source_provider = 'justice' AND source_id = ? AND target_ref_norm = ? AND id <> ?`)
+        .get(input.sourceId, input.targetRefNorm, input.id);
+    return row ?? null;
+}
+export async function findOtherJusticeRelation(input) {
+    const handle = await getHandle();
+    return selectOtherJusticeRelation(handle.db, input);
+}
+const RELATION_COLUMNS = "id, source_provider, source_id, source_ref, source_ref_norm, source_court, target_court, " +
+    "target_ref, target_ref_norm, relation, disposition, target_date, confidence, extracted_at, " +
+    "disposition_updated_at";
+/**
+ * Before-images of every row the justice orientation repair changed or deleted, keyed
+ * by repair run, so an applied repair can be undone exactly. For an update, `after_*`
+ * holds the columns the repair wrote; every other column it left as logged. Rollback
+ * restores a row only while it still matches that post-repair state. Created on first
+ * use by the repair itself: ordinary server start-up never touches the schema for it.
+ */
+function ensureRelationRepairLog(db) {
+    db.exec(`CREATE TABLE IF NOT EXISTS decision_relations_repair_log (
+       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+       repair_run TEXT NOT NULL,
+       action TEXT NOT NULL CHECK (action IN ('update', 'delete')),
+       logged_at TEXT NOT NULL,
+       restored_at TEXT,
+       after_source_ref TEXT,
+       after_source_ref_norm TEXT,
+       after_source_court TEXT,
+       after_target_ref TEXT,
+       after_target_ref_norm TEXT,
+       id INTEGER NOT NULL,
+       source_provider TEXT NOT NULL,
+       source_id TEXT NOT NULL,
+       source_ref TEXT,
+       source_ref_norm TEXT,
+       source_court TEXT,
+       target_court TEXT,
+       target_ref TEXT NOT NULL,
+       target_ref_norm TEXT NOT NULL,
+       relation TEXT NOT NULL,
+       disposition TEXT NOT NULL,
+       target_date TEXT,
+       confidence REAL NOT NULL,
+       extracted_at TEXT NOT NULL,
+       disposition_updated_at TEXT
+     );
+     CREATE INDEX IF NOT EXISTS idx_relations_repair_log_run
+       ON decision_relations_repair_log(repair_run, log_id);`);
+}
+/**
+ * Like `runInTransaction`, but takes the write lock up front (BEGIN IMMEDIATE), so a
+ * repair batch that read a row cannot lose the lock to a concurrent indexer before it
+ * writes; `busy_timeout` makes it wait instead.
+ */
+function runInImmediateTransaction(db, body) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+        body();
+        db.exec("COMMIT");
+    }
+    catch (error) {
+        try {
+            db.exec("ROLLBACK");
+        }
+        catch {
+            // best-effort rollback; surface the original failure
+        }
+        throw error;
+    }
+}
+/**
+ * Rewrite inverted justice rows to the orientation `orientJusticeRelation` decided, in
+ * one immediate transaction per batch, logging each row's before-image under
+ * `repairRun` first (see `rollbackJusticeAppellateRepairBatch`). When the source
+ * already has a row with the corrected target, the inverted row is deleted if that row
+ * covers it (`existingRelationCovers`) and left alone otherwise. `target_court`,
+ * `disposition`, `confidence` and `extracted_at` are kept: the original court was
+ * stored right, and a fresh `extracted_at` would make every repaired row look newly
+ * indexed to the weekly report.
+ */
+export async function fixJusticeAppellateRelations(fixes, repairRun) {
+    const counts = { fixed: 0, merged: 0, conflicts: 0, disappeared: 0 };
+    if (fixes.length === 0)
+        return counts;
+    const handle = await getHandle();
+    ensureRelationRepairLog(handle.db);
+    const selectCurrent = handle.db.prepare("SELECT disposition FROM decision_relations WHERE id = ? AND source_provider = 'justice'");
+    const logRow = handle.db.prepare(`INSERT INTO decision_relations_repair_log
+       (repair_run, action, logged_at, after_source_ref, after_source_ref_norm, after_source_court,
+        after_target_ref, after_target_ref_norm, ${RELATION_COLUMNS})
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ${RELATION_COLUMNS} FROM decision_relations WHERE id = ?`);
+    const update = handle.db.prepare(`UPDATE decision_relations
+     SET source_ref = ?, source_ref_norm = ?, source_court = ?, target_ref = ?, target_ref_norm = ?
+     WHERE id = ?`);
+    const remove = handle.db.prepare("DELETE FROM decision_relations WHERE id = ?");
+    const loggedAt = new Date().toISOString();
+    runInImmediateTransaction(handle.db, () => {
+        for (const fix of fixes) {
+            const current = selectCurrent.get(fix.id);
+            if (!current) {
+                counts.disappeared += 1;
+                continue;
+            }
+            const existing = selectOtherJusticeRelation(handle.db, fix);
+            if (existing) {
+                if (existingRelationCovers(existing, current)) {
+                    logRow.run(repairRun, "delete", loggedAt, null, null, null, null, null, fix.id);
+                    remove.run(fix.id);
+                    counts.merged += 1;
+                }
+                else {
+                    counts.conflicts += 1;
+                }
+                continue;
+            }
+            const sourceRefNorm = fix.sourceRef ? normalizeCaseRef(fix.sourceRef) : null;
+            logRow.run(repairRun, "update", loggedAt, fix.sourceRef, sourceRefNorm, fix.sourceCourt, fix.targetRef, fix.targetRefNorm, fix.id);
+            update.run(fix.sourceRef, sourceRefNorm, fix.sourceCourt, fix.targetRef, fix.targetRefNorm, fix.id);
+            counts.fixed += 1;
+        }
+    });
+    return counts;
+}
+/**
+ * Delete these justice relation rows for `pruneJusticeInvertedNonReviews`, in one
+ * immediate transaction, logging each row's before-image under `repairRun` first
+ * exactly like the delete branch of `fixJusticeAppellateRelations` (same columns,
+ * `after_*` NULL), so `rollbackJusticeAppellateRepairBatch` restores it the same way.
+ *
+ * A row is only deleted while it still exists, is still a justice row
+ * (`source_provider = 'justice'`), and still has the same `target_ref_norm` and
+ * `source_ref` (`IS`, so a null `source_ref` matches only another null) as when the
+ * caller listed it. Any mismatch -- gone, no longer justice, or changed by the
+ * indexer, the repair pass or another prune run between the caller's read and this
+ * write -- is counted as `changedOrDisappeared` and left alone, never deleted on
+ * stale information.
+ */
+export async function pruneJusticeRelations(rows, repairRun) {
+    const counts = { deleted: 0, changedOrDisappeared: 0 };
+    if (rows.length === 0)
+        return counts;
+    const handle = await getHandle();
+    ensureRelationRepairLog(handle.db);
+    const selectCurrent = handle.db.prepare(`SELECT 1 FROM decision_relations
+     WHERE id = ? AND source_provider = 'justice' AND target_ref_norm IS ? AND source_ref IS ?`);
+    const logRow = handle.db.prepare(`INSERT INTO decision_relations_repair_log
+       (repair_run, action, logged_at, after_source_ref, after_source_ref_norm, after_source_court,
+        after_target_ref, after_target_ref_norm, ${RELATION_COLUMNS})
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ${RELATION_COLUMNS} FROM decision_relations WHERE id = ?`);
+    const remove = handle.db.prepare("DELETE FROM decision_relations WHERE id = ?");
+    const loggedAt = new Date().toISOString();
+    runInImmediateTransaction(handle.db, () => {
+        for (const row of rows) {
+            const current = selectCurrent.get(row.id, row.targetRefNorm, row.sourceRef);
+            if (!current) {
+                counts.changedOrDisappeared += 1;
+                continue;
+            }
+            logRow.run(repairRun, "delete", loggedAt, null, null, null, null, null, row.id);
+            remove.run(row.id);
+            counts.deleted += 1;
+        }
+    });
+    return counts;
+}
+/**
+ * Undo one page of a repair run, newest log entry first: each logged row is put back
+ * exactly as it was (same id and columns), whether the repair updated or deleted it.
+ *
+ * Newer data always wins. An updated row that no longer matches what the repair left
+ * (the disposition enricher found its outcome, the indexer upserted it, it was
+ * deleted) is skipped and counted as `changedSinceRepair`. A restore that would
+ * collide with another row on the (source_provider, source_id, target_ref_norm) key
+ * is counted as a conflict. Both are left for a human. Dry run (apply false) only
+ * counts. Restored entries are stamped, so a finished rollback has nothing left to do.
+ */
+export async function rollbackJusticeAppellateRepairBatch(input) {
+    const handle = await getHandle();
+    ensureRelationRepairLog(handle.db);
+    const entries = handle.db
+        .prepare(`SELECT log_id, action, ${RELATION_COLUMNS} FROM decision_relations_repair_log
+       WHERE repair_run = ? AND log_id < ? AND restored_at IS NULL
+       ORDER BY log_id DESC
+       LIMIT ?`)
+        .all(input.repairRun, input.beforeLogId, input.limit);
+    const result = {
+        entries: entries.length,
+        restored: 0,
+        conflicts: 0,
+        changedSinceRepair: 0,
+        nextBefore: entries.length < input.limit ? null : entries[entries.length - 1].log_id
+    };
+    if (entries.length === 0)
+        return result;
+    // The row exactly as the repair left it: `after_*` for what it wrote, the logged
+    // before-image for every column it did not touch. `IS` compares NULLs as equal.
+    const unchanged = handle.db.prepare(`SELECT 1 FROM decision_relations d
+     JOIN decision_relations_repair_log l ON l.log_id = ?
+     WHERE d.id = l.id
+       AND d.source_provider IS l.source_provider AND d.source_id IS l.source_id
+       AND d.source_ref IS l.after_source_ref AND d.source_ref_norm IS l.after_source_ref_norm
+       AND d.source_court IS l.after_source_court AND d.target_ref IS l.after_target_ref
+       AND d.target_ref_norm IS l.after_target_ref_norm AND d.target_court IS l.target_court
+       AND d.relation IS l.relation AND d.disposition IS l.disposition
+       AND d.target_date IS l.target_date AND d.confidence IS l.confidence
+       AND d.extracted_at IS l.extracted_at AND d.disposition_updated_at IS l.disposition_updated_at`);
+    const idTaken = handle.db.prepare("SELECT 1 FROM decision_relations WHERE id = ?");
+    const clash = handle.db.prepare(`SELECT 1 FROM decision_relations
+     WHERE source_provider = ? AND source_id = ? AND target_ref_norm = ? AND id <> ?`);
+    const remove = handle.db.prepare("DELETE FROM decision_relations WHERE id = ?");
+    const insert = handle.db.prepare(`INSERT INTO decision_relations (${RELATION_COLUMNS})
+     SELECT ${RELATION_COLUMNS} FROM decision_relations_repair_log WHERE log_id = ?`);
+    const stamp = handle.db.prepare("UPDATE decision_relations_repair_log SET restored_at = ? WHERE log_id = ?");
+    const restoredAt = new Date().toISOString();
+    const restore = () => {
+        for (const entry of entries) {
+            const changed = entry.action === "update" ? !unchanged.get(entry.log_id) : Boolean(idTaken.get(entry.id));
+            if (changed) {
+                result.changedSinceRepair += 1;
+                continue;
+            }
+            if (clash.get(entry.source_provider, entry.source_id, entry.target_ref_norm, entry.id)) {
+                result.conflicts += 1;
+                continue;
+            }
+            if (!input.apply)
+                continue;
+            remove.run(entry.id);
+            insert.run(entry.log_id);
+            stamp.run(restoredAt, entry.log_id);
+            result.restored += 1;
+        }
+    };
+    if (input.apply)
+        runInImmediateTransaction(handle.db, restore);
+    else
+        restore();
+    return result;
+}
+/** relation_scan_log key recording that the orientation repair re-fetched a decision. */
+export const JUSTICE_REFETCH_SCAN_PROVIDER = "justice-refetch";
+/**
+ * One keyset page (by source_id) of justice scan-log entries written on or after
+ * `scannedSince` and before `scannedBefore` (null: no upper bound) whose decision has no relation row as source and has not been
+ * re-fetched by the orientation repair yet. Walks the scan log's primary key; each
+ * page reads at most `limit` log rows. `nextAfter` is the last source_id examined, or
+ * null when the log is exhausted.
+ */
+export function selectScannedJusticeWithoutRelation(db, input) {
+    const page = db
+        .prepare(`SELECT sl.source_id AS source_id, sl.scanned_at AS scanned_at,
+              pr.spisova_znacka AS own_ref, pr.court_name AS court_name,
+              EXISTS (SELECT 1 FROM decision_relations dr
+                      WHERE dr.source_provider = 'justice' AND dr.source_id = sl.source_id) AS has_relation,
+              EXISTS (SELECT 1 FROM relation_scan_log rf
+                      WHERE rf.provider = '${JUSTICE_REFETCH_SCAN_PROVIDER}' AND rf.source_id = sl.source_id) AS refetched
+       FROM relation_scan_log sl
+       LEFT JOIN provider_records pr ON pr.provider = 'justice' AND pr.id = sl.source_id
+       WHERE sl.provider = 'justice' AND sl.source_id > ?
+       ORDER BY sl.source_id
+       LIMIT ?`)
+        .all(input.afterSourceId, input.limit);
+    const rows = page
+        .filter((row) => row.scanned_at >= input.scannedSince &&
+        (input.scannedBefore === null || row.scanned_at < input.scannedBefore) &&
+        row.has_relation === 0 &&
+        row.refetched === 0)
+        .map((row) => ({ sourceId: row.source_id, ownRef: row.own_ref, courtName: row.court_name }));
+    return { rows, nextAfter: page.length < input.limit ? null : page[page.length - 1].source_id };
+}
+export async function listScannedJusticeWithoutRelation(input) {
+    const handle = await getHandle();
+    return selectScannedJusticeWithoutRelation(handle.db, input);
 }
 export async function markNsudTextAttempted(id) {
     const handle = await getHandle();
@@ -1661,7 +1893,8 @@ export async function listWatchlistEntries() {
 }
 export async function listRelationsExtractedSince(sinceIso, limit) {
     const handle = await getHandle();
-    return handle.selectRelationsSince.all(sinceIso, sinceIso, limit).map(mapRelationRow);
+    // The LIMIT applies before the self-reference filter, so fewer rows may come back.
+    return presentableRelations(handle, handle.selectRelationsSince.all(sinceIso, sinceIso, limit));
 }
 export async function countRelationsByDisposition() {
     const handle = await getHandle();
@@ -1670,5 +1903,221 @@ export async function countRelationsByDisposition() {
     for (const r of rows)
         out[r.disposition] = r.count;
     return out;
+}
+/**
+ * Write model labels in one transaction. Idempotent: a label is keyed by the relation's
+ * natural key plus its run, so re-importing the same run overwrites, never duplicates.
+ * A label whose relation does not exist yet is stored anyway — the read path only ever
+ * joins existing relations, and a later re-extraction that recreates it picks it up.
+ */
+export async function upsertRelationModelLabels(labels) {
+    if (labels.length === 0)
+        return 0;
+    const handle = await getHandle();
+    runInTransaction(handle.db, () => {
+        for (const label of labels) {
+            handle.upsertModelLabel.run(label.sourceProvider, label.sourceId, label.targetRefNorm, label.labelRun, label.model, label.role, label.roleConfidence, label.outcome, label.outcomeConfidence, label.questionVersions, label.labelledAt);
+        }
+    });
+    return labels.length;
+}
+// Pages by the decision_relations primary key; the label EXISTS and the attempts subquery
+// both hit the leading columns of their tables' primary keys, so a page stays cheap even
+// on a million-row relation table.
+const LABELLING_CANDIDATE_SELECT = `
+  SELECT dr.id, dr.source_provider, dr.source_id, dr.source_ref_norm, dr.target_ref, dr.target_ref_norm, dr.relation, dr.disposition,
+         pr.spisova_znacka_norm AS portal_norm, pr.court_name AS portal_court,
+         EXISTS (SELECT 1 FROM relation_model_labels l
+                 WHERE l.source_provider = dr.source_provider AND l.source_id = dr.source_id
+                   AND l.target_ref_norm = dr.target_ref_norm) AS has_label,
+         (SELECT group_concat(a.stream) FROM relation_label_attempts a
+           WHERE a.source_provider = dr.source_provider AND a.source_id = dr.source_id
+             AND a.target_ref_norm = dr.target_ref_norm) AS attempted
+  FROM decision_relations dr
+  LEFT JOIN provider_records pr ON pr.provider = dr.source_provider AND pr.id = dr.source_id`;
+function toLabellingCandidate(row) {
+    return {
+        id: Number(row.id),
+        sourceProvider: row.source_provider,
+        sourceId: row.source_id,
+        sourceRefNorm: row.source_ref_norm,
+        targetRef: row.target_ref,
+        targetRefNorm: row.target_ref_norm,
+        relation: row.relation,
+        disposition: row.disposition,
+        portalRefNorm: row.portal_norm,
+        portalCourtName: row.portal_court,
+        hasLabel: Number(row.has_label) === 1,
+        attemptedStreams: row.attempted ? row.attempted.split(",") : []
+    };
+}
+/** One page of relations for the nightly label job, ordered by row id, after `afterId`. */
+export async function listRelationLabellingCandidates(afterId, limit) {
+    const handle = await getHandle();
+    const rows = handle.db
+        .prepare(`${LABELLING_CANDIDATE_SELECT} WHERE dr.id > ? ORDER BY dr.id LIMIT ?`)
+        .all(afterId, limit);
+    return rows.map(toLabellingCandidate);
+}
+/** The same candidate shape for one relation, or null when the relation does not exist. */
+export async function getRelationLabellingCandidate(key) {
+    const handle = await getHandle();
+    const row = handle.db
+        .prepare(`${LABELLING_CANDIDATE_SELECT}
+       WHERE dr.source_provider = ? AND dr.source_id = ? AND dr.target_ref_norm = ?`)
+        .get(key.sourceProvider, key.sourceId, key.targetRefNorm);
+    return row ? toLabellingCandidate(row) : null;
+}
+/** Record one look at a relation/stream: first time tries=1, later times tries+1 and the newest outcome. */
+export async function recordRelationLabelAttempt(input) {
+    const handle = await getHandle();
+    handle.db
+        .prepare(`INSERT INTO relation_label_attempts
+         (source_provider, source_id, target_ref_norm, stream, status, tries, last_attempt_at, detail)
+       VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+       ON CONFLICT (source_provider, source_id, target_ref_norm, stream) DO UPDATE SET
+         status = excluded.status, tries = relation_label_attempts.tries + 1,
+         last_attempt_at = excluded.last_attempt_at, detail = excluded.detail`)
+        .run(input.sourceProvider, input.sourceId, input.targetRefNorm, input.stream, input.status, input.at, input.detail);
+}
+/** Attempts worth another try: transient statuses, old enough, and still under the try cap. */
+export async function listRetryableRelationLabelAttempts(input) {
+    const handle = await getHandle();
+    const rows = handle.db
+        .prepare(`SELECT source_provider, source_id, target_ref_norm, stream, status, tries, last_attempt_at, detail
+       FROM relation_label_attempts
+       WHERE status IN ('no_text', 'no_vyrok', 'error') AND last_attempt_at < ? AND tries < ?
+       ORDER BY last_attempt_at
+       LIMIT ?`)
+        .all(input.olderThan, input.maxTries, input.limit);
+    return rows.map((r) => ({
+        sourceProvider: r.source_provider,
+        sourceId: r.source_id,
+        targetRefNorm: r.target_ref_norm,
+        stream: r.stream,
+        status: r.status,
+        tries: Number(r.tries),
+        lastAttemptAt: r.last_attempt_at,
+        detail: r.detail
+    }));
+}
+/** Number of labels stored for one run; used by the offline rollback, never by the server. */
+export async function countRelationModelLabelRun(labelRun) {
+    const handle = await getHandle();
+    const row = handle.db
+        .prepare("SELECT COUNT(*) AS count FROM relation_model_labels WHERE label_run = ?")
+        .get(labelRun);
+    return row?.count ?? 0;
+}
+/**
+ * Remove every label of one run, and its persisted counts; other runs are untouched.
+ * Deletes in small batches, each its own short transaction, so a 244k-row run never
+ * holds the write lock long enough to stall the server. Returns the rows deleted.
+ */
+export async function deleteRelationModelLabelRun(labelRun, batch = 5000) {
+    const handle = await getHandle();
+    const size = Math.max(1, Math.floor(batch));
+    let deleted = 0;
+    for (;;) {
+        const changes = Number(handle.deleteModelLabelRunBatch.run(labelRun, size).changes);
+        deleted += changes;
+        if (changes === 0)
+            break;
+        // Let other work on this process run between batches.
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+    handle.db.prepare("DELETE FROM relation_model_label_runs WHERE label_run = ?").run(labelRun);
+    return deleted;
+}
+export async function getRelationDispositionByKey(key) {
+    const handle = await getHandle();
+    const row = handle.selectRelationByNaturalKey.get(key.sourceProvider, key.sourceId, key.targetRefNorm);
+    return row?.disposition ?? null;
+}
+/**
+ * Recompute and persist one run's effect counts. Offline only (the label import):
+ * it walks every label of the run and joins its relation. Counts follow the read
+ * path (`modelLabelApplies`): a label on a missing relation, or on an NS/ÚS heuristic
+ * mention, has no effect.
+ * A run with no labels left loses its row.
+ */
+export async function recomputeRelationModelLabelRunStats(labelRun) {
+    const handle = await getHandle();
+    const stats = {
+        labelRun,
+        labelled: 0,
+        hidden: 0,
+        corrected: 0,
+        verified: 0,
+        uncertain: 0,
+        importedAt: new Date().toISOString()
+    };
+    const rows = handle.db
+        .prepare(`SELECT l.source_provider AS source_provider, l.role AS role,
+              l.role_confidence AS role_confidence, l.outcome AS outcome,
+              l.outcome_confidence AS outcome_confidence, r.disposition AS disposition
+       FROM relation_model_labels l
+       LEFT JOIN decision_relations r
+         ON r.source_provider = l.source_provider
+        AND r.source_id = l.source_id
+        AND r.target_ref_norm = l.target_ref_norm
+       WHERE l.label_run = ?`)
+        .iterate(labelRun);
+    for (const row of rows) {
+        stats.labelled += 1;
+        if (row.disposition === null || !modelLabelApplies(row.disposition, row.source_provider))
+            continue;
+        const { effect } = classifyModelLabel(row.disposition, {
+            role: row.role,
+            roleConfidence: row.role_confidence,
+            outcome: row.outcome,
+            outcomeConfidence: row.outcome_confidence
+        });
+        stats[effect] += 1;
+    }
+    if (stats.labelled === 0) {
+        handle.db.prepare("DELETE FROM relation_model_label_runs WHERE label_run = ?").run(labelRun);
+        return null;
+    }
+    handle.db
+        .prepare(`INSERT INTO relation_model_label_runs
+         (label_run, labelled, hidden, corrected, verified, uncertain, imported_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(label_run) DO UPDATE SET
+         labelled = excluded.labelled, hidden = excluded.hidden,
+         corrected = excluded.corrected, verified = excluded.verified,
+         uncertain = excluded.uncertain, imported_at = excluded.imported_at`)
+        .run(labelRun, stats.labelled, stats.hidden, stats.corrected, stats.verified, stats.uncertain, stats.importedAt);
+    return stats;
+}
+/**
+ * Persisted per-run counts — a few rows, never the label table itself. Null when the
+ * table is absent or empty, so the stats output is unchanged until labels are imported.
+ */
+export async function listRelationModelLabelRuns() {
+    const handle = await getHandle();
+    let rows;
+    try {
+        rows = handle.db
+            .prepare(`SELECT label_run, labelled, hidden, corrected, verified, uncertain, imported_at
+         FROM relation_model_label_runs ORDER BY label_run`)
+            .all();
+    }
+    catch (error) {
+        if (error instanceof Error && /no such table/i.test(error.message))
+            return null;
+        throw error;
+    }
+    if (rows.length === 0)
+        return null;
+    return rows.map((row) => ({
+        labelRun: row.label_run,
+        labelled: row.labelled,
+        hidden: row.hidden,
+        corrected: row.corrected,
+        verified: row.verified,
+        uncertain: row.uncertain,
+        importedAt: row.imported_at
+    }));
 }
 //# sourceMappingURL=law-index-store.js.map

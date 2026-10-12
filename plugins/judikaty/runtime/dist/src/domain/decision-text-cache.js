@@ -7,6 +7,17 @@ import { readNsudDecisionText, readProviderText, upsertProviderText } from "../p
  * `search_decision_text`.
  */
 const CACHEABLE_PROVIDERS = new Set(["justice", "ustavny"]);
+/**
+ * Signature of the pre-fix PDF normalization, which glued a lowercase word between two
+ * numbers into a "register": "25 nariadenia 1215/2012" -> "25nariadenia/1215/2012",
+ * "3 smernice 93/13/EHS" -> "3smernice/93/13/EHS". Real joined registers start with an
+ * uppercase letter ("11C/182/1987", "15Co/117/2021"), so they never match.
+ */
+const MANGLED_REGISTER_SIGNATURE = /\b\d+\p{Ll}{2,}\/\d{1,5}\/\d{2,4}\b/u;
+/** True for a stored row written by the old normalizer; such a row is refetched like a miss. */
+export function hasMangledRegisterText(text) {
+    return MANGLED_REGISTER_SIGNATURE.test(text);
+}
 /** Large enough for any judgment in the corpus; the cap only bounds memory. */
 const FULL_FETCH_CHARS = 2_000_000;
 /**
@@ -49,7 +60,7 @@ export async function readDecisionTextWindow(input) {
         });
     }
     const stored = await readProviderText(input.provider, input.id);
-    if (stored?.complete) {
+    if (stored?.complete && !hasMangledRegisterText(stored.text)) {
         return sliceTextWindow({
             provider: input.provider,
             id: input.id,

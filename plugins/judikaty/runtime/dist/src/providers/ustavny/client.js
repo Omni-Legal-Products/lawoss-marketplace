@@ -1,6 +1,7 @@
 import { buildTextWindow, downloadPdfToCache, extractPdfText, removeCachedPdf } from "../../infra/pdf.js";
 import { EmptyResponseError, fetchJson } from "../../infra/http.js";
 import { getDecisionCache } from "../../infra/decision-detail-cache.js";
+import { recordUstavnyDetailFormSource, recordUstavnySearchFormSources } from "../nsud/form-decision-ingest.js";
 import { UstavnyAccessTokenSchema, UstavnyCodelistResponseSchema, UstavnyContentResponseSchema, UstavnyDecisionItemSchema, UstavnySearchResponseSchema } from "./schemas.js";
 const USTAVNY_BASE_URL = "https://www.ustavnysud.sk";
 const USTAVNY_DOC_TYPE = "USSR_DECISION_MK";
@@ -27,6 +28,7 @@ function resolveUstavnyCredentials() {
 export class UstavnyClient {
     #tokenCache = null;
     async searchDecisions(input) {
+        const fetchedAt = new Date().toISOString();
         const response = await this.#fetchAuthorizedJson(`${USTAVNY_BASE_URL}/o/v1/dms/search`, {
             method: "POST",
             headers: {
@@ -34,11 +36,13 @@ export class UstavnyClient {
             },
             body: JSON.stringify(buildSearchPayload(input))
         });
+        recordUstavnySearchFormSources(response, fetchedAt);
         return UstavnySearchResponseSchema.parse(response);
     }
     async getDecisionDetail(id) {
         return getDecisionCache("ustavny", "detail").getOrLoad(id, async () => {
             try {
+                const fetchedAt = new Date().toISOString();
                 const response = await this.#fetchAuthorizedJson(`${USTAVNY_BASE_URL}/o/v1/dms/details`, {
                     method: "POST",
                     headers: {
@@ -49,6 +53,7 @@ export class UstavnyClient {
                         docType: USTAVNY_DOC_TYPE
                     })
                 });
+                recordUstavnyDetailFormSource(response, id, fetchedAt);
                 return UstavnyDecisionItemSchema.parse(response);
             }
             catch (error) {

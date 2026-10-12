@@ -16,7 +16,7 @@ export const JusticeJudgeSchema = z.object({
 });
 export const JusticeDecisionListItemSchema = z.object({
     guid: z.string(),
-    formaRozhodnutia: z.string().optional(),
+    formaRozhodnutia: z.string().nullable().optional(),
     povaha: z.array(z.string()).optional(),
     sud: z.object({
         registreGuid: z.string().optional(),
@@ -48,7 +48,7 @@ export const JusticeDocumentSchema = z.object({
 });
 export const JusticeDecisionDetailSchema = z.object({
     guid: z.string(),
-    formaRozhodnutia: z.string().optional(),
+    formaRozhodnutia: z.string().nullable().optional(),
     povaha: z.array(z.string()).optional(),
     sud: z.object({
         registreGuid: z.string().optional(),

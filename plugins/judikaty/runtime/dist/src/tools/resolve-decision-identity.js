@@ -1,8 +1,8 @@
 import { ResolveDecisionIdentityInputSchema, assertProviderAvailable, resolveSearchProvider } from "../domain/provider-contracts.js";
 import { buildReferenceFallbackBoundary } from "../domain/fallback-boundary.js";
-import { firstResolvedIdentity } from "../domain/merge.js";
 import { UnsupportedProviderError } from "../domain/errors.js";
 import { asToolResult } from "../server/response.js";
+import { resolveIdentityInAutoMode } from "./get-decision-by-reference.js";
 export function registerResolveDecisionIdentityTool(server, registry) {
     server.registerTool("resolve_decision_identity", {
         title: "Resolve Decision Identity",
@@ -16,17 +16,10 @@ export function registerResolveDecisionIdentityTool(server, registry) {
             if (!justice.resolveDecisionIdentity || !nsud.resolveDecisionIdentity) {
                 throw new Error("Auto provider mode requires resolveDecisionIdentity in justice and nsud.");
             }
-            const results = await Promise.allSettled([
-                justice.resolveDecisionIdentity({ ...parsed, provider: "justice" }),
-                nsud.resolveDecisionIdentity({ ...parsed, provider: "nsud" })
-            ]);
-            const successfulResults = results
-                .filter((result) => result.status === "fulfilled")
-                .map((result) => result.value);
-            if (successfulResults.length === 0) {
+            const { resolution, answered } = await resolveIdentityInAutoMode({ ecli: parsed.ecli, spisovaZnacka: parsed.spisovaZnacka, providerId: parsed.providerId }, registry, [justice, nsud]);
+            if (answered === 0) {
                 throw new Error("Auto provider mode could not resolve the decision identity.");
             }
-            const resolution = firstResolvedIdentity(successfulResults);
             const fallbackBoundary = buildReferenceFallbackBoundary({
                 provider: parsed.provider,
                 reference: parsed.ecli ?? parsed.spisovaZnacka ?? parsed.providerId ?? "",

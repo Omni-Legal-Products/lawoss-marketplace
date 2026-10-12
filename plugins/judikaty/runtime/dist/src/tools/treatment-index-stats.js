@@ -1,8 +1,8 @@
-import { countRefLookups, listToolCallCounts, countDecisionRelations, countDecisionRelationsBySource, countNsudDecisionTexts, countNsudLawIndexRecords, countRelationScanLog, countRelationsByDisposition, getLatestStatsSnapshot, listJobRuns, loadCrawlState, loadNsudLawIndexState, recordStatsSnapshot } from "../providers/nsud/law-index-store.js";
+import { countRefLookups, listToolCallCounts, countDecisionRelations, countDecisionRelationsBySource, countNsudDecisionTexts, countNsudLawIndexRecords, countRelationScanLog, countRelationsByDisposition, getLatestStatsSnapshot, listJobRuns, listRelationModelLabelRuns, loadCrawlState, loadNsudLawIndexState, recordStatsSnapshot } from "../providers/nsud/law-index-store.js";
 import { collectCacheDiskUsage } from "../infra/disk-usage.js";
 import { asToolResult } from "../server/response.js";
 async function gatherCurrent() {
-    const [corpus, metadataRecords, total, nsud, ustavny, justice, scUstavny, scJustice, stUstavny, stJustice, nsState, byDisposition, jobRuns, disk] = await Promise.all([
+    const [corpus, metadataRecords, total, nsud, ustavny, justice, scUstavny, scJustice, stUstavny, stJustice, nsState, byDisposition, modelLabels, jobRuns, disk] = await Promise.all([
         countNsudDecisionTexts(),
         countNsudLawIndexRecords(),
         countDecisionRelations(),
@@ -15,6 +15,7 @@ async function gatherCurrent() {
         loadCrawlState("justice"),
         loadNsudLawIndexState(),
         countRelationsByDisposition(),
+        listRelationModelLabelRuns(),
         listJobRuns(),
         collectCacheDiskUsage()
     ]);
@@ -29,7 +30,14 @@ async function gatherCurrent() {
             highestKnownDecisionId: nsState.highestKnownDecisionId ?? null,
             discoveredHeadDecisionId: nsState.discoveredHeadDecisionId ?? null
         },
-        relations: { total, nsud, ustavny, justice, byDisposition },
+        relations: {
+            total,
+            nsud,
+            ustavny,
+            justice,
+            byDisposition,
+            ...(modelLabels ? { modelLabels } : {})
+        },
         scanned: { ustavny: scUstavny, justice: scJustice },
         refLookupsTracked: await countRefLookups(),
         toolCalls: await listToolCallCounts(),

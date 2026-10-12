@@ -32,9 +32,14 @@ z neho v podaní vychádzaš.
 ## Osvedčené postupnosti
 
 1. **Na konkrétne rozhodnutie:** `get_decision_by_reference` podľa ECLI, značky alebo ID.
+   Ak výsledok hlási `matched: false` s poznámkou „Ambiguous reference“, rovnaká značka je
+   na viacerých súdoch — vyber kandidáta podľa súdu a zopakuj dotaz s jeho `providerId`
+   alebo ECLI. Značky ÚS („PL. ÚS 3/09“, „III. ÚS …“) nájde aj predvolený režim `auto`.
 2. **Na výklad ustanovenia:** `find_decisions_by_law`, prípadne `search_decision_text`
    na fulltext.
 3. **Na procesný osud:** `get_decision_treatment`, prípadne celá reťaz cez `get_case_chain`.
+   Výsledok s príznakom `textEstimate` alebo s textom „odhad z textu výroku“ si over
+   v samotnom rozhodnutí (`get_decision_markdown_by_reference`), kým naň v podaní spoliehaš.
 4. **Na dlhý text:** `get_decision_markdown_by_reference` po oknách — opakované volanie
    `export_decision_markdown` na celé znenie stojí toľko, čo celý dokument.
 
@@ -46,6 +51,16 @@ z neho v podaní vychádzaš.
   nie „platí".
 - **Väčšina citačných vzťahov nemá zistený výrok** a hlási sa ako `mention` — index sa
   nedopĺňa odhadom.
+- **Výrok z textu je odhad, nie fakt.** Zistí sa len zo slovesa v prítomnom čase vo výroku
+  citujúceho rozhodnutia („zrušuje“, „mení“, „potvrdzuje“, „odmieta“, „zamieta“); minulý čas
+  v odôvodnení („zrušil“) je opis skoršieho konania, nie zásah. Takéto výsledky nesú
+  `textEstimate: true`. Vzťahy uložené v indexe pred opravou z 10/2026 ešte môžu niesť
+  starý odhad — preto ich výstup tiež označuje ako odhad.
+- **Procesný osud sa páruje len podľa spisovej značky, bez súdu.** Rovnaká značka býva na
+  viacerých krajských či okresných súdoch (napr. `5Co/1/2020` je na KS Žilina, Trenčín aj
+  Nitra). Ak výstup obsahuje `ambiguityNote`, nájdené väzby sa môžu týkať iného súdu.
+- **`total` pri `find_decisions_by_law` pre NS** sa počíta len z obmedzenej vzorky
+  kandidátov; čítaj `coverageNotes` (kompaktný výstup ich od 10/2026 vracia tiež).
 - **Pokrytie nižších súdov je oportunistické.** Staršie rozhodnutia nie sú rovnomerne
   dostupné ako plný text.
 - **Priamy dotaz na súdny portál ide len pri hľadaní rozhodnutia, ktoré ešte nie je
@@ -54,8 +69,9 @@ z neho v podaní vychádzaš.
 ## Autorizácia
 
 Vzdialený HTTP transport je OAuth-only, s authorization-code flow, PKCE a jednorazovým
-súhlasom po prihlásení. Lokálne stdio beží bez autentifikácie. Repozitár neobsahuje
-predvolenú remote URL ani prihlasovacie údaje; tie spravuje operátor mimo Gitu.
+súhlasom po prihlásení. Lokálne stdio beží bez autentifikácie a bez OAuth premenných.
+Repozitár neobsahuje predvolenú remote URL ani prihlasovacie údaje; tie spravuje
+operátor mimo Gitu.
 
 ## Inštalácia v LAWOSS
 
