@@ -11,7 +11,28 @@ import { CalcError } from "./errors.js";
 import { addDays, dateToUtc, daysBetween, halfYearStart, todayIso } from "./dates.js";
 import { round2 } from "./money.js";
 import { ecbRateAt } from "./types.js";
-const STALE_ECB_DNI = 60;
+/**
+ * Tabuľka ECB staršia než toľko dní voči dňu výpočtu (alebo dnešku) vyvolá
+ * upozornenie. Produkčný refresh beží týždenne, repo PR tiež; 14 dní znamená
+ * aspoň jeden zmeškaný refresh.
+ */
+export const STALE_ECB_DNI = 14;
+/**
+ * Upozornenie na vek tabuľky ECB (pre sadzby_info a štart servera), alebo null,
+ * ak je tabuľka čerstvá. Nič nehovorí o správnosti konkrétneho výpočtu — to
+ * rieši kontrola hľadaných dátumov vo `vypocitajUrok`.
+ */
+export function ecbVekUpozornenie(ecb, dnes) {
+    const coverageTo = ecb.coverage.to;
+    if (dnes <= coverageTo)
+        return null;
+    const vek = daysBetween(coverageTo, dnes);
+    if (vek <= STALE_ECB_DNI)
+        return null;
+    return (`Tabuľka sadzieb ECB (${ecb.snapshot.file}, zdroj ${ecb.snapshot.zdroj}, verzia ${ecb.snapshot.version}) ` +
+        `je overená len do ${coverageTo} — ${vek} dní dozadu (prah ${STALE_ECB_DNI} dní). Zmena sadzby ECB po tomto dni ` +
+        `v nej nie je; spusti refresh sadzieb alebo over sadzbu na stránke ECB.`);
+}
 function halfYearEnd(iso) {
     const start = halfYearStart(iso);
     return start.endsWith("-01-01") ? `${start.slice(0, 4)}-06-30` : `${start.slice(0, 4)}-12-31`;
@@ -98,7 +119,7 @@ function rozvrhSadzieb(sposob, sposobZ, tables, vznikOmeskania) {
         const ecb = ecbRateAt(tables.ecb.entries, vznikOmeskania);
         const sadzba = ecb + sposobZ.spread;
         const odvodenie = `ECB ${fmt(ecb)} % k prvému dňu omeškania (${vznikOmeskania}) + ${sposobZ.spread} p. b. = ${fmt(sadzba)} % p. a.`;
-        return { sadzbaPre: () => ({ sadzba, do: null, odvodenie }) };
+        return { sadzbaPre: () => ({ sadzba, do: null, odvodenie, ecbDatum: vznikOmeskania }) };
     }
     return {
         sadzbaPre: (iso) => {
@@ -108,6 +129,7 @@ function rozvrhSadzieb(sposob, sposobZ, tables, vznikOmeskania) {
             return {
                 sadzba,
                 do: halfYearEnd(iso),
+                ecbDatum: start,
                 odvodenie: `ECB ${fmt(ecb)} % k prvému dňu polroka (${start}) + ${sposobZ.spread} p. b. = ${fmt(sadzba)} % p. a.`,
             };
         },
@@ -128,9 +150,13 @@ function pocitaj(input, tables, vznikOmeskania, kuDnu, schedule, uhrady) {
         platbyPodlaDna.set(u.datum, (platbyPodlaDna.get(u.datum) ?? 0) + u.suma);
     }
     const dnyPlatieb = [...platbyPodlaDna.keys()].sort();
+    const ecbDatumy = new Set();
+    let koniecOmeskania = kuDnu;
     let cursor = vznikOmeskania;
     while (cursor <= kuDnu) {
-        const { sadzba, do: hranica, odvodenie } = schedule.sadzbaPre(cursor);
+        const { sadzba, do: hranica, odvodenie, ecbDatum } = schedule.sadzbaPre(cursor);
+        if (ecbDatum !== null && istina > 0)
+            ecbDatumy.add(ecbDatum);
         const dalsiaPlatba = dnyPlatieb.find((d) => d >= cursor);
         let konec = kuDnu;
         if (hranica !== null && hranica < konec)
@@ -183,6 +209,8 @@ function pocitaj(input, tables, vznikOmeskania, kuDnu, schedule, uhrady) {
                 preplatok += zostatok;
                 warnings.push(`Úhrady prevyšujú dlh o ${fmt(preplatok)} € k dátumu ${konec}.`);
             }
+            if (istina <= 0 && koniecOmeskania === kuDnu)
+                koniecOmeskania = konec;
             uhradyZapocet.push({
                 datum: konec,
                 suma: round2(platba),
@@ -205,8 +233,19 @@ function pocitaj(input, tables, vznikOmeskania, kuDnu, schedule, uhrady) {
         naUrokRaw: naUrok,
         naIstinuRaw: naIstinu,
         preplatokRaw: preplatok,
+        ecbDatumy: [...ecbDatumy],
+        koniecOmeskania,
         warnings,
     };
+}
+/**
+ * Či sa základná úroková sadzba ECB zmenila počas omeškania: existuje zmena
+ * účinná po prvom dni omeškania a najneskôr v posledný deň omeškania. Zmena
+ * účinná práve v prvý deň omeškania sa nepočíta — tá je už v sadzbe „platnej
+ * k prvému dňu omeškania“.
+ */
+function zmenilaSaEcbPocasOmeskania(tables, vznikOmeskania, koniec) {
+    return tables.ecb.entries.some((e) => e.from > vznikOmeskania && e.from <= koniec);
 }
 /**
  * Vypočíta úroky z omeškania vrátane započítania úhrad.
@@ -263,7 +302,7 @@ export function vypocitajUrok(input, tables, dnes) {
         }
         const sadzba = input.dohodnutaSadzba;
         const schedule = {
-            sadzbaPre: () => ({ sadzba, do: null, odvodenie: `Dohodnutá sadzba ${fmt(sadzba)} % p. a.` }),
+            sadzbaPre: () => ({ sadzba, do: null, odvodenie: `Dohodnutá sadzba ${fmt(sadzba)} % p. a.`, ecbDatum: null }),
         };
         const v = pocitaj(input, tables, vznikOmeskania, kuDnu, schedule, uhrady);
         pravnyZaklad.push("Dohodnutá sadzba úrokov z omeškania prebíja zákonnú (§ 369 ods. 1 ObZ; § 517 ods. 2 OZ pre občianskoprávne vzťahy).");
@@ -278,6 +317,7 @@ export function vypocitajUrok(input, tables, dnes) {
             kuDnu,
             tables,
             pouzilaSaEcb: false,
+            ecbDatumy: [],
         });
     }
     // --- zákonná sadzba ---
@@ -288,35 +328,64 @@ export function vypocitajUrok(input, tables, dnes) {
         throw new CalcError(`Spôsob "${volba}" nie je pre režim "${input.rezim}" v období od ${zaznam.from} prípustný ` +
             `(dostupné: ${dostupne.map(([s]) => s).join(", ")}).`, "SPOSOB_NOT_AVAILABLE");
     }
+    const ecbDatumy = new Set();
     const spocitane = variantList.map(([s, sz]) => {
         const v = pocitaj(input, tables, vznikOmeskania, kuDnu, rozvrhSadzieb(s, sz, tables, vznikOmeskania), uhrady);
+        v.ecbDatumy.forEach((d) => ecbDatumy.add(d));
+        // § 3 ods. 2 nar. vl. 87/1995 Z. z. v znení do 31. 1. 2013: spôsob je
+        // prípustný len „ak sa počas trvania omeškania zmení základná úroková sadzba
+        // ECB“ — dáta to označujú príznakom vyzadujeZmenuSadzbyEcb.
+        let podmienkaZmenyEcbSplnena;
+        if (sz.vyzadujeZmenuSadzbyEcb === true) {
+            podmienkaZmenyEcbSplnena = zmenilaSaEcbPocasOmeskania(tables, vznikOmeskania, v.koniecOmeskania);
+            // Bez pokrytia do konca omeškania sa „nezmenila“ nedá tvrdiť — dátum ide do kontroly pokrytia.
+            ecbDatumy.add(v.koniecOmeskania);
+        }
         const odsek = odsekZoZakladu(sz.zaklad);
         return {
             sposob: s,
             sposobZ: sz,
             vypocet: v,
+            podmienkaZmenyEcbSplnena,
             alternativa: {
                 sposob: s,
                 ...(odsek !== undefined ? { odsek } : {}),
                 urokSpolu: round2(v.urokSpoluRaw),
                 podmieneny: sz.podmienka !== undefined,
+                ...(podmienkaZmenyEcbSplnena !== undefined ? { podmienkaZmenyEcbSplnena } : {}),
                 zaklad: sz.zaklad,
             },
         };
     });
-    // Pri "najvyhodnejsi" sa uplatní maximum (podmienka "…ak je to pre veriteľa
-    // výhodnejšie"); podmienený spôsob nikdy nevyhrá pri rovnosti.
-    let vybrany = spocitane[0];
+    const nezmenenaEcb = (k) => `Spôsob "${k.sposob}" (${k.sposobZ.zaklad}) je prípustný len ak sa počas trvania omeškania zmenila základná ` +
+        `úroková sadzba ECB (${k.sposobZ.podmienka ?? "podmienka podľa dát"}). Medzi ${vznikOmeskania} a ` +
+        `${k.vypocet.koniecOmeskania} sa sadzba ECB podľa tabuľky nezmenila`;
+    // Pri "najvyhodnejsi" sa uplatní maximum z PRÍPUSTNÝCH spôsobov (podmienka
+    // "…ak je to pre veriteľa výhodnejšie"); podmienený spôsob nikdy nevyhrá pri
+    // rovnosti a spôsob bez zmeny ECB sa do výberu nedostane vôbec.
+    const pripustne = spocitane.filter((k) => k.podmienkaZmenyEcbSplnena !== false);
+    let vybrany = pripustne[0] ?? spocitane[0];
     if (volba === "najvyhodnejsi") {
-        for (const kandidat of spocitane) {
+        for (const kandidat of pripustne) {
             if (kandidat.vypocet.urokSpoluRaw > vybrany.vypocet.urokSpoluRaw)
                 vybrany = kandidat;
         }
+        for (const vylucene of spocitane.filter((k) => k.podmienkaZmenyEcbSplnena === false)) {
+            if (vylucene.vypocet.urokSpoluRaw > vybrany.vypocet.urokSpoluRaw) {
+                warnings.push(`${nezmenenaEcb(vylucene)} — preto sa neuplatní, hoci by dal vyšší úrok ` +
+                    `(${fmt(vylucene.vypocet.urokSpoluRaw)} €); je v alternativy len ilustračne.`);
+            }
+        }
+    }
+    let uplatnitelny = true;
+    // Výslovne vyžiadaný spôsob bez zmeny ECB počas omeškania nie je uplatniteľný.
+    if (volba !== "najvyhodnejsi" && vybrany.podmienkaZmenyEcbSplnena === false) {
+        uplatnitelny = false;
+        warnings.push(`${nezmenenaEcb(vybrany)} — uplatniteľný je iný spôsob. Tento výsledok je len ilustračný.`);
     }
     // Ak si užívateľ výslovne vyžiadal podmienený spôsob, ktorý pre neho nie je
     // výhodnejší, výsledok je len výpočtová vetva — nie uplatniteľná suma.
-    let uplatnitelny = true;
-    if (volba !== "najvyhodnejsi" && vybrany.sposobZ.podmienka !== undefined) {
+    if (uplatnitelny && volba !== "najvyhodnejsi" && vybrany.sposobZ.podmienka !== undefined) {
         const iny = dostupne
             .filter(([s]) => s !== vybrany.sposob)
             .map(([s, sz]) => pocitaj(input, tables, vznikOmeskania, kuDnu, rozvrhSadzieb(s, sz, tables, vznikOmeskania), uhrady)
@@ -344,6 +413,7 @@ export function vypocitajUrok(input, tables, dnes) {
         kuDnu,
         tables,
         pouzilaSaEcb: true,
+        ecbDatumy: [...ecbDatumy],
     });
 }
 function zabal(v, o) {
@@ -352,7 +422,16 @@ function zabal(v, o) {
     if (o.pouzilaSaEcb) {
         dataSnapshot.push(o.tables.ecb.snapshot);
         const coverageTo = o.tables.ecb.coverage.to;
-        if (o.kuDnu > coverageTo && daysBetween(coverageTo, o.kuDnu) > STALE_ECB_DNI) {
+        const zaPokrytim = [...new Set(o.ecbDatumy)].filter((d) => d > coverageTo).sort();
+        if (zaPokrytim.length > 0) {
+            // Sadzba sa hľadala k dňu, pre ktorý tabuľka nič nevie — ecbRateAt vrátil
+            // poslednú známu sadzbu, ktorá už nemusí platiť. Nezáleží na tom, o koľko dní.
+            warnings.push(`Sadzba ECB sa určovala k ${zaPokrytim.join(", ")}, ale tabuľka sadzieb ECB ` +
+                `(zdroj ${o.tables.ecb.snapshot.zdroj}, verzia ${o.tables.ecb.snapshot.version}) pokrýva dáta len do ${coverageTo}. ` +
+                `Použila sa posledná známa sadzba; ak sa sadzba ECB po ${coverageTo} zmenila, výsledok je nesprávny. ` +
+                `Over aktuálnu základnú úrokovú sadzbu ECB.`);
+        }
+        else if (o.kuDnu > coverageTo && daysBetween(coverageTo, o.kuDnu) > STALE_ECB_DNI) {
             warnings.push(`Tabuľka sadzieb ECB pokrýva dáta len do ${coverageTo}, počítalo sa ku ${o.kuDnu} ` +
                 `(viac než ${STALE_ECB_DNI} dní). Over aktuálnu základnú úrokovú sadzbu ECB.`);
         }

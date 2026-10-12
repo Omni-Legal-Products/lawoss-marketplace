@@ -1,6 +1,6 @@
 {
-  "version": "2026-08-06",
-  "fetchedAt": "2026-08-06",
+  "version": "2026-10-12",
+  "fetchedAt": "2026-10-12",
   "source": "vyhl. 68/2017 Z. z., znenie ucinne od 1. 1. 2024; § 197 zak. 233/1995 Z. z. (Exekucny poriadok) - slov-lex MCP, overene 2026-08-06",
   "_comment": "Vsetky sumy platia pre exekucne konania zacate od 1. 1. 2024. Pre starsie konania platia prechodne ustanovenia § 30, § 30a a § 30b vyhl. 68/2017 Z. z. - pozri pole 'historia'.",
   "penazne": {
@@ -33,9 +33,9 @@
       "odmena": "urci sa z vymozeneho plnenia podla § 7 (t. j. z toho, co sa do zastavenia vymohlo); vyhlaska neurcuje osobitnu odmenu za samotne zastavenie",
       "pausalneVydavkyPodiel": 1.0,
       "zaklad": "§ 21 ods. 2 vyhl. 68/2017 Z. z.: 'Nahrada pausalnych vydavkov patri exekutorovi pri zastaveni exekucie alebo jej ukonceni inym sposobom ako zastavenim exekucie.'; § 22 ods. 1",
-      "_comment": "Pri zastaveni exekucie patri PLNA nahrada pausalnych vydavkov (podiel 1,0) zo sumy platnej pre obdobie zacatia konania; polovica podla § 22 ods. 2 sa uplatni len pri SPLNENI naroku v lehote na podanie navrhu na zastavenie (pozri splnenieVLehote), nie pri zastaveni ako takom."
+      "_comment": "Pri zastaveni exekucie patri PLNA nahrada pausalnych vydavkov (podiel 1,0) zo sumy platnej pre obdobie zacatia konania, ak dovod ukoncenia nastal az po uplynuti lehoty na podanie navrhu na zastavenie s odkladnym ucinkom. Ak sa narok SPLNIL v tejto lehote alebo ak v nej NASTAL INY DOVOD NA UKONCENIE EXEKUCIE, patri podla § 22 ods. 2 len 50 % (pausalneVydavky.polovicnyPodiel; vstup inyDovodUkonceniaVLehote). OPRAVA (audit 2026-10-09, K5): predchadzajuci komentar tvrdil, ze 50 % sa pri zastaveni nikdy neuplatni - text § 22 ods. 2 (Slov-Lex, znenie od 1. 1. 2024, overene 2026-10-09) to vyvracia."
     },
-    "_comment": "OVERENE: vyhl. 68/2017 Z. z. NEOBSAHUJE osobitnu 'odmenu pri zastaveni exekucie' - ani pri penaznom, ani pri nepenaznom plneni. Pri penaznom plneni je odmena vzdy percentom z vymozeneho plnenia; ak sa nic nevymohlo, odmena je nulova a exekutorovi patri iba nahrada pausalnych vydavkov (a pripadne nevyhnutnych vydavkov). ZIADNE 50 % znizenie sa pri zastaveni neuplatnuje - § 16 ods. 1 (50 %) sa vztahuje na splnenie naroku v lehote, nie na zastavenie."
+    "_comment": "OVERENE: vyhl. 68/2017 Z. z. NEOBSAHUJE osobitnu 'odmenu pri zastaveni exekucie' - ani pri penaznom, ani pri nepenaznom plneni. Pri penaznom plneni je odmena vzdy percentom z vymozeneho plnenia; ak sa nic nevymohlo, odmena je nulova a exekutorovi patri iba nahrada pausalnych vydavkov (a pripadne nevyhnutnych vydavkov). Odmena sa pri zastaveni neznizuje - § 7 ods. 2 (10 %) aj § 16 ods. 1 (50 %) sa vztahuju na splnenie naroku v lehote. Pausalne vydavky vsak § 22 ods. 2 znizuje na 50 % aj vtedy, ked do uplynutia lehoty nastane iny dovod na ukoncenie exekucie (pozri penazne._comment)."
   },
   "pausalneVydavky": {
     "suma": 100,
@@ -65,8 +65,13 @@
   "dph": {
     "uplatniSa": "ak je exekutor platitelom DPH, zvysuje sa jeho odmena A nahrada vydavkov o DPH",
     "sadzba": 0.23,
-    "zaklad": "§ 197 ods. 2 zak. 233/1995 Z. z.; § 27 ods. 1 zak. 222/2004 Z. z. (23 % od 1. 1. 2025)"
+    "zaklad": "§ 197 ods. 2 zak. 233/1995 Z. z.; § 27 ods. 1 zak. 222/2004 Z. z. (23 % od 1. 1. 2025)",
+    "_comment": "Pole 'sadzba' je AKTUALNA sadzba a zostava len pre spatnu kompatibilitu. Vypocet pouziva dphHistoria podla datumu plnenia (audit 2026-10-09, K6)."
   },
+  "dphHistoria": [
+    { "from": "2011-01-01", "to": "2024-12-31", "sadzba": 0.20, "_comment": "§ 27 ods. 1 zak. 222/2004 Z. z. - zakladna sadzba 20 % (Slov-Lex, znenia k 2017-06-01 a k 2024-12-31, overene 2026-10-09)" },
+    { "from": "2025-01-01", "to": null, "sadzba": 0.23, "_comment": "§ 27 ods. 1 zak. 222/2004 Z. z. v zneni ucinnom od 1. 1. 2025 - zakladna sadzba 23 % (Slov-Lex, znenie k 2026-10-09; nezmenene ani v zneni od 2027-01-01)" }
+  ],
   "ineOdmeny": [
     { "id": "zaloznePravo", "suma": 30, "nazov": "za zriadene exekucne zalozne pravo na nehnutelnosti, ktorej vytazok tvori rozdelovanu podstatu (len raz)", "zaklad": "§ 8 vyhl. 68/2017 Z. z." },
     { "id": "spisanieNavrhu", "suma": 30, "sumaVyzivneAleboOslobodeny": 16.50, "nazov": "za spisanie navrhu na vykonanie exekucie do zapisnice a zaslanie sudu elektronicky", "zaklad": "§ 17 vyhl. 68/2017 Z. z." },

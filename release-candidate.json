@@ -1,8 +1,8 @@
 {
-  "plugin": "uvo",
+  "plugin": "kalkulacky",
   "plugin_version": "1.2.0",
-  "catalog_commit": "71bb694cdd646205b83239f1c820bde97af24334",
-  "source_repository": "Omni-Legal-Products/mcp-uvo",
-  "source_commit": "d0138206b55338fcc82e63b31b658430751ef55f",
-  "runtime_manifest_sha256": "255b977d8c333af193378e246da4d6af78bda8723f28423cfee715345c04c49a"
+  "catalog_commit": "3604687e4c9b35a66ec20ee771179a02b08b7a00",
+  "source_repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
+  "source_commit": "5ff45d0d03887bd3a166f80f40635a508a2d1a3f",
+  "runtime_manifest_sha256": "da8d1ad6f32d6433de610ec0779f17ba2fdcb1043784fdbdea4198e1a8dd00d3"
 }

@@ -5,14 +5,21 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerTools } from "./tools/register.js";
 import { getTables } from "./data/tables-cache.js";
+import { ecbVekUpozornenie } from "./domain/urok.js";
+import { todayIso } from "./domain/dates.js";
 export async function main(tablesFn = getTables) {
     // Eager, explicit call so a broken repo/overlay fails loudly at startup —
     // before connecting the transport at all — instead of surfacing as an
     // error on the first tool call. registerTools() also loads eagerly for its
     // static description text, but that's an implementation detail we don't
     // want this fail-fast guarantee to depend on.
-    tablesFn();
-    const server = new McpServer({ name: "kalkulacky-sk-mcp", version: "0.1.0" });
+    const tables = tablesFn();
+    // Lokálny stdio režim nemá týždenný refresh do overlay — vek tabuľky ECB
+    // treba povedať nahlas hneď pri štarte (stderr sa v MCP klientoch loguje).
+    const upozornenie = ecbVekUpozornenie(tables.ecb, todayIso());
+    if (upozornenie)
+        console.error(`[kalkulacky-sk-mcp] UPOZORNENIE: ${upozornenie}`);
+    const server = new McpServer({ name: "kalkulacky-sk-mcp", version: "0.2.0" });
     registerTools(server, tablesFn);
     const transport = new StdioServerTransport();
     await server.connect(transport);
