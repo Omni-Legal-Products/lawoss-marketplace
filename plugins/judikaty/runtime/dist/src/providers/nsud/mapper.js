@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { looksLikeCaseRef } from "../../domain/relation-extractor.js";
+import { collapseLetterSpacing } from "../../domain/text-normalization.js";
 import { buildAvailabilityNotes, buildSourceAvailability } from "../../domain/source-availability.js";
 import { buildSourceProvenance } from "../../domain/source-provenance.js";
 export const NSUD_COURT_NAME = "Najvyšší súd Slovenskej republiky";
@@ -16,7 +17,7 @@ export function mapNsudDecisionSummary(id, item) {
         courtType: NSUD_COURT_TYPE,
         spisovaZnacka: emptyToNull(item.cislo),
         identifikacneCisloSpisu: extractSpisIdFromEcli(item.ecli),
-        decisionForm: inferDecisionForm(item.obsah),
+        decisionForm: inferNsudDecisionForm(item.obsah),
         decisionNature: [],
         dateIssued: emptyToNull(item.datum),
         judgeName: emptyToNull(item.sudca),
@@ -59,7 +60,7 @@ export function mapNsudDecisionDetail(id, item) {
         spisovaZnacka: emptyToNull(item.cislo),
         identifikacneCisloSpisu: extractSpisIdFromEcli(item.ecli),
         dateIssued: emptyToNull(item.datum),
-        decisionForm: inferDecisionForm(item.obsah),
+        decisionForm: inferNsudDecisionForm(item.obsah),
         decisionNature: [],
         legalAreas: kolegiumToAreas(item.kolegium),
         legalSubAreas: [],
@@ -197,17 +198,56 @@ function deriveNsudTextSourceMode(item) {
     }
     return "none";
 }
-function inferDecisionForm(text) {
+/**
+ * Decision form from the document's own heading.
+ *
+ * The NS open-data detail has no form field, and the text must not be searched for the
+ * words: a rozsudok's reasoning quotes "Uznesenie ..." and a uznesenie's operative part
+ * opens with "Rozsudok Krajského súdu ..." (both seen in real NS texts). Every NS text
+ * starts with a tab-separated metadata block ending in an "ECLI:" line, and the heading
+ * is the first non-empty line after it: "Uznesenie", "Rozsudok", or "Rozhodnutie" followed
+ * by "V MENE SLOVENSKEJ REPUBLIKY" (only judgments are pronounced in the name of the
+ * Republic). A line counts only when the whole line is the heading, so prose such as
+ * "Rozsudok Krajského súdu ..." never matches. No heading in the opening part -> null.
+ */
+const NSUD_HEADING_MAX_LINES = 12;
+const NSUD_HEADING_FORMS = {
+    uznesenie: "Uznesenie",
+    opravneuznesenie: "Uznesenie",
+    rozsudok: "Rozsudok",
+    rozsudokvmeneslovenskejrepubliky: "Rozsudok",
+    vmeneslovenskejrepubliky: "Rozsudok"
+};
+// The heading region ends where the decision's own prose begins.
+const NSUD_HEADING_STOP = /^(najvyssi sud|takto|rozhodol|odovodnenie)/;
+export function inferNsudDecisionForm(text) {
     if (!text) {
         return null;
     }
-    if (text.includes("Uznesenie")) {
-        return "Uznesenie";
-    }
-    if (text.includes("Rozsudok")) {
-        return "Rozsudok";
+    const lines = text.split(/\r?\n/);
+    const eclIndex = lines.slice(0, 20).findIndex((line) => /^ECLI:\s/.test(line));
+    let seen = 0;
+    for (const line of lines.slice(eclIndex + 1)) {
+        const folded = foldHeadingLine(line);
+        if (!folded) {
+            continue;
+        }
+        if (seen++ >= NSUD_HEADING_MAX_LINES || NSUD_HEADING_STOP.test(folded)) {
+            return null;
+        }
+        // Letters only: the whole line must be the heading, whatever the spacing or punctuation.
+        const form = NSUD_HEADING_FORMS[folded.replace(/[^a-z]/g, "")];
+        if (form) {
+            return form;
+        }
     }
     return null;
+}
+function foldHeadingLine(line) {
+    return collapseLetterSpacing(line.trim())
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase();
 }
 export function extractSpisIdFromEcli(ecli) {
     if (!ecli) {

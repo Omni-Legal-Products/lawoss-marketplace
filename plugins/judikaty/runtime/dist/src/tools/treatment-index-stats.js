@@ -1,7 +1,12 @@
-import { countRefLookups, listToolCallCounts, countDecisionRelations, countDecisionRelationsBySource, countNsudDecisionTexts, countNsudLawIndexRecords, countRelationScanLog, countRelationsByDisposition, getLatestStatsSnapshot, listJobRuns, listRelationModelLabelRuns, loadCrawlState, loadNsudLawIndexState, recordStatsSnapshot } from "../providers/nsud/law-index-store.js";
+import { existsSync } from "node:fs";
+import { countRefLookups, listToolCallCounts, countDecisionRelations, countDecisionRelationsBySource, countNsudDecisionTexts, countNsudLawIndexRecords, countRelationScanLog, countRelationsByDisposition, getIndexDatabasePath, getLatestStatsSnapshot, listJobRuns, listRelationModelLabelRuns, loadCrawlState, loadNsudLawIndexState, recordStatsSnapshot } from "../providers/nsud/law-index-store.js";
+import { describeIndexLocation } from "../infra/data-dir.js";
 import { collectCacheDiskUsage } from "../infra/disk-usage.js";
 import { asToolResult } from "../server/response.js";
 async function gatherCurrent() {
+    // Checked before the first query: opening the store creates an empty index file.
+    const indexPath = getIndexDatabasePath();
+    const existedBeforeOpen = existsSync(indexPath);
     const [corpus, metadataRecords, total, nsud, ustavny, justice, scUstavny, scJustice, stUstavny, stJustice, nsState, byDisposition, modelLabels, jobRuns, disk] = await Promise.all([
         countNsudDecisionTexts(),
         countNsudLawIndexRecords(),
@@ -44,6 +49,11 @@ async function gatherCurrent() {
         crawlCursors: { ustavny: cursor(stUstavny), justice: cursor(stJustice) },
         disk,
         jobRuns,
+        index: describeIndexLocation({
+            indexPath,
+            existedBeforeOpen,
+            empty: metadataRecords === 0 && corpus === 0
+        }),
         generatedAt: new Date().toISOString()
     };
 }
@@ -59,7 +69,7 @@ export async function collectTreatmentIndexStats(input) {
 export function registerGetTreatmentIndexStatsTool(server) {
     server.registerTool("get_treatment_index_stats", {
         title: "Treatment Index Stats",
-        description: "Prehľad stavu indexu osudu rozhodnutí: veľkosť NS textového korpusu, počty vzťahov podľa súdu (NS/ÚS/justice), pokrytie crawlerov a posledný beh. Read-only; nezapisuje snapshot.",
+        description: "Prehľad stavu indexu osudu rozhodnutí: veľkosť NS textového korpusu, počty vzťahov podľa súdu (NS/ÚS/justice), pokrytie crawlerov a posledný beh. Read-only; nezapisuje snapshot. Pole index uvádza cestu k čítanému súboru indexu (JUDIKATY_DATA_DIR alebo pracovný adresár) a pri prázdnom indexe vysvetlí, ako ho nasmerovať.",
         inputSchema: {}
     }, async () => asToolResult(await collectTreatmentIndexStats({ recordSnapshot: false })));
 }

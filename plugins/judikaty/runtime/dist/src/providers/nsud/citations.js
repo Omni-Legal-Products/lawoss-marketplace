@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getJudiciaryDataDir } from "../../infra/data-dir.js";
 // v3: "písmeno b)" letter, standalone OSP token, attribution right after the paragraph,
 // and two-letter paragraph suffixes (151ma, 59ab).
 const CITATION_EXTRACTOR_VERSION = 3;
@@ -206,7 +207,7 @@ function normalizeParagraph(value) {
     return `§ ${match[1]}`;
 }
 function getCitationCachePath(id) {
-    return path.resolve(process.cwd(), ".cache", "judiciary", "nsud", "citations", `${id}.json`);
+    return path.join(getJudiciaryDataDir(), "nsud", "citations", `${id}.json`);
 }
 async function readCitationCache(id) {
     try {

@@ -45,6 +45,16 @@ z neho v podaní vychádzaš.
 
 ## Pasce
 
+- **ÚS metadáta nie sú výrok dokumentu.** `merit` pri ÚS je výsledok prerokovania celého
+  spisu a vypĺňa sa len pri rozhodnutí, ktoré spis končí (nález, odmietnutie, zastavenie).
+  Položky „Namietané ustanovenie“ v `citedRegulations` sú ustanovenia, ktorých porušenie
+  namieta sťažovateľ, nie predpisy citované v rozhodnutí; filter `citedLaw` pre ÚS hľadá
+  práve ich.
+- **Prázdny lokálny index nemusí znamenať „žiadne rozhodnutia“.** Server číta index z
+  `JUDIKATY_DATA_DIR`, inak z `.cache/judiciary` v pracovnom adresári procesu; klient
+  spustený z iného adresára dostane prázdny index. `get_nsud_index_stats` uvádza
+  `indexPath` a `indexNote` — pri prázdnom výsledku ich skontroluj skôr, než
+  vyhlásiš, že judikatúra neexistuje.
 - **Príznak procesného osudu rozlišuje „review" od „mention".** Vo vzorke citačných
   vzťahov bola cieľová značka vo výroku citujúceho rozhodnutia len v 2,4 % prípadov —
   server preto citáciu nehlási ako preskúmanie. Chýbajúci príznak znamená „nevieme",

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { getJudiciaryDataDir } from "../../infra/data-dir.js";
 import { asCaseRef, isSelfRelation, normalizeCaseRef } from "../../domain/relation-extractor.js";
 import { classifyModelLabel, modelLabelApplies } from "../../domain/relation-model-labels.js";
 import { IndexSchemaTooNewError, SCHEMA_VERSION, applySchemaVersion, initSchema, readSchemaVersion } from "./schema.js";
@@ -13,7 +14,7 @@ const STATE_ROW_ID = 1;
 let cachedHandle = null;
 let cachedRoot = null;
 function getIndexRoot() {
-    return path.resolve(process.cwd(), ".cache", "judiciary", "nsud", "law-index");
+    return path.join(getJudiciaryDataDir(), "nsud", "law-index");
 }
 function getDatabasePath() {
     return path.join(getIndexRoot(), "index.sqlite");

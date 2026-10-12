@@ -1,5 +1,7 @@
 import * as z from "zod/v4";
-import { countNsudLawIndexRecords, loadNsudLawIndexState } from "../providers/nsud/law-index-store.js";
+import { existsSync } from "node:fs";
+import { describeIndexLocation } from "../infra/data-dir.js";
+import { countNsudLawIndexRecords, getIndexDatabasePath, loadNsudLawIndexState } from "../providers/nsud/law-index-store.js";
 import { asToolResult } from "../server/response.js";
 /**
  * `highestKnownDecisionId`'s meaning changed with the 2026-08-11 bounded
@@ -53,10 +55,20 @@ export const HEAD_GAP_NOT_YET_AVAILABLE_NOTE = "discoveredHeadDecisionId/remaini
     // (`npm ci --omit=dev`) -- the plain `index:nsud-law:stats` script runs
     // the compiled dist/scripts build and works in prod too.
     "index:nsud-law:stats` for an on-demand live check meanwhile.";
-/** Pure: builds the tool's payload from already-loaded data. No I/O here --
+function currentIndexLocation() {
+    const indexPath = getIndexDatabasePath();
+    return { indexPath, existedBeforeOpen: existsSync(indexPath) };
+}
+/** Builds the tool's payload from already-loaded data. No upstream I/O here --
  * that stays in the caller, so this stays cheap to test and impossible to
- * accidentally turn into an upstream call from the request path. */
-export function buildNsudIndexStats(records, state) {
+ * accidentally turn into an upstream call from the request path. The index
+ * location defaults to the one in force now (a local stat, never a query). */
+export function buildNsudIndexStats(records, state, location = currentIndexLocation()) {
+    const where = describeIndexLocation({
+        indexPath: location.indexPath,
+        existedBeforeOpen: location.existedBeforeOpen,
+        empty: records === 0
+    });
     const mode = state.nextDecisionId === null && typeof state.highestKnownDecisionId === "number"
         ? "recent-only"
         : "backfill";
@@ -81,8 +93,19 @@ export function buildNsudIndexStats(records, state) {
         discoveredHeadDecisionId,
         remainingToHead,
         headGapObservable,
-        headGapNote: headGapObservable ? HEAD_GAP_OBSERVABLE_NOTE : HEAD_GAP_NOT_YET_AVAILABLE_NOTE
+        headGapNote: headGapObservable ? HEAD_GAP_OBSERVABLE_NOTE : HEAD_GAP_NOT_YET_AVAILABLE_NOTE,
+        indexPath: where.path,
+        indexExists: where.exists,
+        indexDataDirSource: where.dataDirSource,
+        indexNote: where.note
     };
+}
+/** Reads the index (never the network) and builds the tool payload. */
+export async function collectNsudIndexStats() {
+    // Checked before the first query: opening the store creates an empty index file.
+    const location = currentIndexLocation();
+    const [records, state] = await Promise.all([countNsudLawIndexRecords(), loadNsudLawIndexState()]);
+    return buildNsudIndexStats(records, state, location);
 }
 export function registerGetNsudIndexStatsTool(server) {
     server.registerTool("get_nsud_index_stats", {
@@ -92,14 +115,10 @@ export function registerGetNsudIndexStatsTool(server) {
             "portal') since the 2026-08-11 bounded catch-up fix. discoveredHeadDecisionId " +
             "(unverified) and remainingToHead are populated once the indexer has persisted " +
             "a discovered head for this state row (headGapObservable=true); see headGapNote " +
-            "when they are still null.",
+            "when they are still null. indexPath/indexExists/indexNote say which index file is read; an empty or missing index explains how to point the server elsewhere (JUDIKATY_DATA_DIR).",
         inputSchema: z.object({}).shape
     }, async () => {
-        const [records, state] = await Promise.all([
-            countNsudLawIndexRecords(),
-            loadNsudLawIndexState()
-        ]);
-        return asToolResult(buildNsudIndexStats(records, state));
+        return asToolResult(await collectNsudIndexStats());
     });
 }
 //# sourceMappingURL=get-nsud-index-stats.js.map

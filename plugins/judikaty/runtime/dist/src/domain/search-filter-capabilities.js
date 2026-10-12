@@ -143,6 +143,12 @@ export const SEARCH_DECISIONS_FILTER_CAPABILITIES = {
     // legalSubArea, citedLaw, and the date range -- courtId/courtType have no
     // filter field (ustavny is a single court). courtName is honoured the
     // same way as nsud: an exact match against the one court it covers.
+    // citedLaw is applied, but to a narrower concept than its name: the DMS
+    // field mkComplainedLegalRegulation holds the complained-of provisions
+    // (rights alleged to be violated, or a challenged regulation), not the
+    // regulations a decision cites. Results are decisions in which the
+    // provision was complained of; UstavnyProvider#searchDecisions adds a
+    // coverage note saying so whenever citedLaw is used.
     ustavny: {
         query: true,
         provider: true,

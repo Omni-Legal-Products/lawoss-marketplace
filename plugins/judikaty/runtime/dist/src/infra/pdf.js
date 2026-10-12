@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { execFile as execFileCallback } from "node:child_process";
 import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getJudiciaryDataDir } from "./data-dir.js";
 const execFile = promisify(execFileCallback);
 const DEFAULT_PDFTOTEXT_CANDIDATES = [
     process.env.PDFTOTEXT_BIN,
@@ -12,7 +13,7 @@ const DEFAULT_PDFTOTEXT_CANDIDATES = [
     "/usr/bin/pdftotext"
 ].filter((value) => Boolean(value));
 export async function downloadPdfToCache(input) {
-    const cacheDir = path.resolve(process.cwd(), ".cache", "judiciary", input.provider, "documents");
+    const cacheDir = path.join(getJudiciaryDataDir(), input.provider, "documents");
     await mkdir(cacheDir, { recursive: true });
     const safeName = sanitizeFileName(input.preferredFileName ?? "decision.pdf");
     const hashedPrefix = createHash("sha256").update(input.url).digest("hex").slice(0, 16);
