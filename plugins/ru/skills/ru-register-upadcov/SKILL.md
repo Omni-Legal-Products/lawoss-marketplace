@@ -33,10 +33,16 @@ stav a históriu. Je iba na čítanie a nie je právne stanovisko.
 
 ## Osvedčené postupnosti
 
-1. Máš IČO — rovno `ru_get_by_ico`, netreba dva kroky.
+1. Máš IČO — rovno `ru_get_by_ico`, netreba dva kroky. Vráti prebiehajúce aj
+   skončené konania; `countPrebiehajuce` a `prebiehajuce` na riadku hovoria,
+   ktoré ešte bežia (podľa registra, nie odhadom).
 2. Máš iba meno alebo spisovú značku — `ru_search` a z výsledku `konanieId`
-   pošli do `ru_get_case`.
-3. Detail vráti len posledný verejný oznam ako metadata, nie plný text —
+   pošli do `ru_get_case`. Predvolene hľadá aj skončené konania, takže sa
+   nájde aj spisová značka uzavretého konania; `zobrazKonania: "prebiehajuce"`
+   zúži výsledok na bežiace.
+3. Viac zhôd ako jedna strana — `hasMore: true`; pokračuj `page: 1, 2, …`
+   (alebo väčší `pageSize`, max. 100). `pocetVysledkov` je celkový počet.
+4. Detail vráti len posledný verejný oznam ako metadata, nie plný text —
    spisovú značku daj do OV-MCP `ov_search` (parameter `mark`), z výsledku
    vezmi `idFormular` a tým zavolaj `ov_get_notice` po plné znenie.
    `ov_get_notice` prijíma výhradne `idFormular`, nie spisovú značku.
@@ -49,13 +55,18 @@ stav a históriu. Je iba na čítanie a nie je právne stanovisko.
 - **`tabCounts` sú len počítadlá, nie obsah.** Register nevracia zoznam
   veriteľov, pohľadávok ani majetku — len to, koľko položiek je na danej
   záložke.
-- **Dátumové polia môžu byť `null`,** ak ich register nezobrazuje alebo má iný
-  layout. `null` nie je dôkaz, že údaj neexistuje — pri rozhodujúcom dátume
-  over `detailUrl` v origináli.
+- **Skončené konanie nie je „čistý štít“.** Výsledok obsahuje aj zastavené,
+  zrušené, skončené a postúpené konania. Čítaj `stav` (napr. „Skončená
+  reštrukturalizácia“, „Zrušený konkurz“) a `prebiehajuce`, nie len počet.
+- **`subjectType` v riadku hľadania je odhad** (FO podľa dátumu narodenia, FOP
+  podľa „podnikateľ“ v mene, inak PO). Záväzný je `subjectType` z `ru_get_case`.
+- **Dátum stavu môže byť `null`,** keď register ukazuje „--“ (napr. postúpený
+  spis). Pri rozhodujúcom dátume over `detailUrl` v origináli.
 - **Full-text vyhľadávanie vracia širšie zhody.** `ru_get_by_ico` preto rozdelí
   odpoveď na `exactMatches` a `nonExactMatches`. `count` je iba počet presných
   zhôd, `returnedCount` zahŕňa oba zoznamy, `konania` je alias presných zhôd,
-  `sourceTotal` môže byť `null` a `truncated` signalizuje neúplnú stránku.
+  `sourceTotal` je počet podľa registra a `truncated` signalizuje, že sa
+  nenačítali všetky zhody.
 - **Prázdny výsledok nie je univerzálny negatívny dôkaz.** Za platný ho považuj
   iba pri `sourceValidated: true` a stále uveď čas a rozsah kontroly zdroja.
 - **Chybu neprekladaj na nulu.** `isError: true` s kódom `RU_INPUT`,

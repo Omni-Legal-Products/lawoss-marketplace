@@ -314,7 +314,7 @@ def validate_public_tree(root: Path) -> None:
         # Reviewed RU SSRF denylist contains blocked network ranges, not endpoints.
         # The exemption applies only to these exact reviewed bytes; edits are scanned.
         reviewed_denylist = (relative.as_posix() == 'plugins/ru/runtime/dist/ru-client.js'
-                            and hashlib.sha256(path.read_bytes()).hexdigest() == 'd9743f413df1381b6d9ebb8ae5f2cf6e80b1bceb130f6812b846c5611737db6c')
+                            and hashlib.sha256(path.read_bytes()).hexdigest() == '31322b2332d7dda1f67c621d8b26a350a451507e15e34ae67eec9c4c98e2fbbd')
         for candidate in IPV4_CANDIDATE.findall('' if reviewed_denylist else text):
             try:
                 address = ipaddress.ip_address(candidate)
