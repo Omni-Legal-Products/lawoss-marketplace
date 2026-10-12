@@ -12,7 +12,7 @@ Source: `Omni-Legal-Products/mcp-eurlex` commit `3c397229e0615e1d8c80a554c37ed7e
 - Output contract: `eurlex_document_export` with `format="xml"` now writes a `.zip`; new fields `totals`, `truncated`, `manifestationType`, `sourceUrl`, `datesEntryIntoForce`.
 - Skill: new sections *Osvedčené postupnosti* and *Pasce*.
 - Source tests: 81 passed (including the organization contract tests); TypeScript build passed. 35 new regression tests replay responses captured from the live CELLAR SPARQL endpoint and fail on the previous source.
-- Catalog: 42 Python tests, `scripts/validate.py`, `claude plugin validate --strict` and instruction mirrors passed. The Codex plugin-creator validator was not available in the preparing environment and still has to run.
+- Catalog: 42 Python tests, `scripts/validate.py`, `claude plugin validate --strict` and instruction mirrors passed. The Codex plugin-creator validator was not run while preparing this release and still has to run.
 - Packaged runtime smoke (stdio, live CELLAR read, 2026-10-12): 12 tools; AI Act on 2024-07-01 `not_in_force` (entry into force 2024-08-01); GDPR ELI resolved; Directive 95/46/EC `repealed_by` 32016R0679; Directive 93/13/EEC versions with two amendments; GDPR SK exported as PDF/A.
 
 Pending before merge: Codex plugin-creator validator and isolated Git-marketplace install/update/rollback acceptance.
