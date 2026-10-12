@@ -5,11 +5,11 @@ import { searchContracts } from "./crz/search.js";
 import { getContract } from "./crz/contract.js";
 import { listAttachments, downloadAttachment, saveAttachmentToPath } from "./crz/attachments.js";
 import { contractToMarkdown, summarizeContract } from "./crz/markdown.js";
-import { extractClauses } from "./crz/clauses.js";
-import { findSimilar } from "./crz/similar.js";
+import { extractClauses, hasNoContractText } from "./crz/clauses.js";
+import { findSimilarDetailed } from "./crz/similar.js";
 import { listRecent, whatsNew } from "./crz/recent.js";
 export const SERVER_NAME = "crz-mcp";
-export const SERVER_VERSION = "1.3.1";
+export const SERVER_VERSION = "1.4.0";
 function jsonContent(obj) {
     return {
         content: [
@@ -32,19 +32,22 @@ export function buildServer() {
     // crz_search ------------------------------------------------------
     server.registerTool("crz_search", {
         title: "Search CRZ contracts",
-        description: "Search the Centrálny register zmlúv (https://crz.gov.sk) by free-text, parties, IČO, contract number, ministry, price range, and date range. Returns metadata rows; use `crz_get_contract` for details.",
+        description: "Search the Centrálny register zmlúv (https://crz.gov.sk) by contract title, parties, IČO, contract number, ministry, price range, and publication date range. Returns metadata rows; use `crz_get_contract` for details. To continue, call again with `page: next_page` and `offset: next_offset` (no rows are skipped). `total_pages_hint` is set only when CRZ shows the exact page count; otherwise `total_pages_at_least` is a lower bound.",
         inputSchema: {
-            q: z.string().optional().describe("Free-text query (title / subject)."),
+            q: z.string().optional().describe("Contract title fragment (CRZ field \"Názov zmluvy\")."),
             dodavatel: z.string().optional().describe("Supplier name fragment."),
             objednavatel: z.string().optional().describe("Contracting authority name fragment."),
-            ico: z.string().optional().describe("IČO (business id) of either party."),
+            ico: z.string().optional().describe("IČO of either party: CRZ is queried both as supplier (art_ico) and as contracting authority (art_ico1) and the rows are merged; each row says where it matched in `ico_zhoda`."),
+            ico_dodavatel: z.string().optional().describe("IČO of the supplier only (CRZ art_ico). Do not combine with `ico`."),
+            ico_objednavatel: z.string().optional().describe("IČO of the contracting authority only (CRZ art_ico1). Do not combine with `ico`."),
             cislo_zmluvy: z.string().optional().describe("Contract number."),
             rezort: z.string().optional().describe("Government ministry / department."),
             cena_min: looseNumber(z.number()).optional().describe("Minimum price (EUR with VAT)."),
             cena_max: looseNumber(z.number()).optional().describe("Maximum price (EUR with VAT)."),
-            datum_od: z.string().optional().describe("Publication date from (YYYY-MM-DD)."),
-            datum_do: z.string().optional().describe("Publication date to (YYYY-MM-DD)."),
+            datum_od: z.string().optional().describe("Publication date from (YYYY-MM-DD; DD.MM.YYYY also accepted). An invalid date is an error, never ignored."),
+            datum_do: z.string().optional().describe("Publication date to (YYYY-MM-DD; DD.MM.YYYY also accepted). An invalid date is an error, never ignored."),
             page: looseNumber(z.number().int().min(1)).optional().describe("Page (1-based)."),
+            offset: looseNumber(z.number().int().min(0).max(39)).optional().describe("Rows of `page` to skip — pass the previous `next_offset` together with `page: next_page`."),
             limit: looseNumber(z.number().int().min(1).max(50)).optional().describe("Max rows to return (default 20, max 50). CRZ paginates at 20/page; the server walks extra pages to fill the limit."),
         },
     }, async (input) => {
@@ -59,18 +62,20 @@ export function buildServer() {
     // crz_recent ------------------------------------------------------
     server.registerTool("crz_recent", {
         title: "List newest CRZ contracts",
-        description: "List the most recently published CRZ contracts (newest first), optionally narrowed by supplier, contracting authority, IČO, ministry, or free text. Walks as many pages as needed to reach `limit`. Returns `max_id` (the highest id seen) — pass it to `crz_whats_new` later to fetch only what appeared since.",
+        description: "List the most recently published CRZ contracts (newest first), optionally narrowed by supplier, contracting authority, IČO, ministry, or contract title. Walks as many pages as needed to reach `limit`. Returns `max_datum` (newest publication date among the returned rows) and `max_id` (highest returned id). For later monitoring pass `max_datum` as `since_date` to `crz_whats_new` and dedupe by id; `max_id` alone cannot guarantee completeness.",
         inputSchema: {
-            q: z.string().optional().describe("Free-text query (title / subject)."),
+            q: z.string().optional().describe("Contract title fragment (CRZ field \"Názov zmluvy\")."),
             dodavatel: z.string().optional().describe("Supplier name fragment."),
             objednavatel: z.string().optional().describe("Contracting authority name fragment."),
-            ico: z.string().optional().describe("IČO (business id) of either party."),
+            ico: z.string().optional().describe("IČO of either party: CRZ is queried both as supplier (art_ico) and as contracting authority (art_ico1) and the rows are merged; each row says where it matched in `ico_zhoda`."),
+            ico_dodavatel: z.string().optional().describe("IČO of the supplier only (CRZ art_ico). Do not combine with `ico`."),
+            ico_objednavatel: z.string().optional().describe("IČO of the contracting authority only (CRZ art_ico1). Do not combine with `ico`."),
             rezort: z.string().optional().describe("Government ministry / department."),
             limit: looseNumber(z.number().int().min(1).max(200)).optional().describe("Max contracts to return (default 20, max 200)."),
         },
-    }, async ({ q, dodavatel, objednavatel, ico, rezort, limit }) => {
+    }, async ({ q, dodavatel, objednavatel, ico, ico_dodavatel, ico_objednavatel, rezort, limit }) => {
         try {
-            const r = await listRecent({ q, dodavatel, objednavatel, ico, rezort }, limit ?? 20);
+            const r = await listRecent({ q, dodavatel, objednavatel, ico, ico_dodavatel, ico_objednavatel, rezort }, limit ?? 20);
             return jsonContent({ count: r.results.length, ...r });
         }
         catch (e) {
@@ -80,20 +85,22 @@ export function buildServer() {
     // crz_whats_new ---------------------------------------------------
     server.registerTool("crz_whats_new", {
         title: "Check for new CRZ contracts since a watermark",
-        description: "Return contracts published since a previous check. Provide `since_id` (the `max_id` from a previous `crz_recent`/`crz_whats_new` call) and/or `since_date` (YYYY-MM-DD). Walks newest-first pages until it reaches already-seen contracts. Returns the new rows plus an updated `max_id` to store for the next check. Optionally filter by party / ministry.",
+        description: "Return contracts published since a previous check. Prefer `since_date` (the `max_datum` of the previous check; dedupe by id on your side): CRZ is ordered by publication date, so the scan stops deterministically and `complete: true` means every match was seen. `since_id` additionally excludes ids ≤ since_id; used alone it is only a heuristic (ids are not issued in publication order) and the result is never marked complete. `truncated: true` means `max_pages` was hit before reaching older contracts — the answer is incomplete, NOT \"nothing new\". Returns `max_datum` and `max_id` of the returned rows plus `warnings`.",
         inputSchema: {
-            since_id: z.string().optional().describe("Highest CRZ contract id already seen (from a previous `max_id`)."),
-            since_date: z.string().optional().describe("Only contracts published on/after this date (YYYY-MM-DD)."),
-            q: z.string().optional().describe("Free-text query (title / subject)."),
+            since_id: z.string().optional().describe("Highest CRZ contract id already seen (from a previous `max_id`). Rows with id ≤ since_id are excluded."),
+            since_date: z.string().optional().describe("Only contracts published on/after this date (YYYY-MM-DD; DD.MM.YYYY also accepted). Recommended watermark: the previous `max_datum`."),
+            q: z.string().optional().describe("Contract title fragment (CRZ field \"Názov zmluvy\")."),
             dodavatel: z.string().optional().describe("Supplier name fragment."),
             objednavatel: z.string().optional().describe("Contracting authority name fragment."),
-            ico: z.string().optional().describe("IČO (business id) of either party."),
+            ico: z.string().optional().describe("IČO of either party: CRZ is queried both as supplier (art_ico) and as contracting authority (art_ico1) and the rows are merged; each row says where it matched in `ico_zhoda`."),
+            ico_dodavatel: z.string().optional().describe("IČO of the supplier only (CRZ art_ico). Do not combine with `ico`."),
+            ico_objednavatel: z.string().optional().describe("IČO of the contracting authority only (CRZ art_ico1). Do not combine with `ico`."),
             rezort: z.string().optional().describe("Government ministry / department."),
-            max_pages: looseNumber(z.number().int().min(1).max(50)).optional().describe("Safety bound on pages to scan back (default 10 = 500 rows)."),
+            max_pages: looseNumber(z.number().int().min(1).max(50)).optional().describe("Safety bound on pages (20 rows each) to scan back per query (default 10 = 200 rows; with `ico` the bound applies to each side). Hitting it sets `truncated: true`."),
         },
-    }, async ({ since_id, since_date, q, dodavatel, objednavatel, ico, rezort, max_pages }) => {
+    }, async ({ since_id, since_date, q, dodavatel, objednavatel, ico, ico_dodavatel, ico_objednavatel, rezort, max_pages }) => {
         try {
-            const r = await whatsNew({ sinceId: since_id, sinceDate: since_date }, { filters: { q, dodavatel, objednavatel, ico, rezort }, maxPages: max_pages });
+            const r = await whatsNew({ sinceId: since_id, sinceDate: since_date }, { filters: { q, dodavatel, objednavatel, ico, ico_dodavatel, ico_objednavatel, rezort }, maxPages: max_pages });
             return jsonContent({ count: r.results.length, ...r });
         }
         catch (e) {
@@ -103,7 +110,7 @@ export function buildServer() {
     // crz_get_contract ------------------------------------------------
     server.registerTool("crz_get_contract", {
         title: "Get CRZ contract metadata",
-        description: "Fetch full parsed metadata for a single CRZ contract by id.",
+        description: "Fetch full parsed metadata for a single CRZ contract by id: parties with IČO, dates, prices, attachments, `predmet` (Popis predmetu zmluvy), `poznamka`, `verejne_obstaravanie_url` (ÚVO link). Rows the parser does not recognize are kept in `ine_polia` and listed in `warnings`.",
         inputSchema: {
             id: z.string().describe("CRZ contract id (numeric, passed as string)."),
             fresh: looseBoolean().optional().describe("Bypass cache and refetch."),
@@ -198,7 +205,7 @@ export function buildServer() {
     // crz_extract_clauses --------------------------------------------
     server.registerTool("crz_extract_clauses", {
         title: "Extract typical contract clauses",
-        description: "Heuristically pull standard Slovak clauses (Predmet, Cena, Platobné podmienky, Sankcie, Doba a ukončenie, Rozhodné právo, Záverečné ustanovenia, Prílohy) from a contract — either by id (which fetches and converts it) or by passing raw markdown.",
+        description: "Heuristically split a contract into standard Slovak clause categories (Predmet, Cena, Platobné podmienky, Sankcie, Doba a ukončenie, Rozhodné právo, Záverečné ustanovenia, Prílohy) by article headings (\"Článok I.\" + title). Bodies are verbatim text. A missing category does NOT mean the contract lacks that clause — read `warnings` (unrecognized structure, empty or scanned attachments, phrases found outside a recognized heading) and `ostatne`. With `id`, only the attachment text is analysed.",
         inputSchema: {
             id: z.string().optional().describe("CRZ contract id (numeric, passed as string) — fetched & converted automatically."),
             markdown: z.string().optional().describe("Raw Markdown / plain text to analyse instead of fetching."),
@@ -207,12 +214,20 @@ export function buildServer() {
         try {
             if (!id && !markdown)
                 throw new Error("Provide either `id` or `markdown`.");
-            let md = markdown;
-            if (!md) {
-                const r = await contractToMarkdown(id);
-                md = r.full_markdown;
-            }
-            return jsonContent(extractClauses(md));
+            if (markdown)
+                return jsonContent(extractClauses(markdown));
+            const r = await contractToMarkdown(id);
+            // Analyse the contract text only; the metadata header is not a clause.
+            const text = r.attachments
+                .filter((a) => !hasNoContractText(a.markdown))
+                .map((a) => `## Príloha: ${a.name}\n\n${a.markdown}`)
+                .join("\n\n");
+            const result = extractClauses(text);
+            const attachmentWarnings = r.attachments.flatMap((a) => a.warnings.map((w) => `attachment ${a.file_id} (${a.name}): ${w}`));
+            if (r.attachments.length === 0)
+                attachmentWarnings.push("no_attachments: the contract has no attachment in CRZ, so there is no text to analyse.");
+            result.warnings = [...attachmentWarnings, ...result.warnings];
+            return jsonContent(result);
         }
         catch (e) {
             return errorContent(e);
@@ -248,8 +263,8 @@ export function buildServer() {
             if (id == null && !dodavatel && !objednavatel && !(keywords && keywords.length)) {
                 throw new Error("Provide either `id` or at least one of `dodavatel`, `objednavatel`, `keywords`.");
             }
-            const r = await findSimilar({ id, parties: { dodavatel, objednavatel }, keywords }, limit ?? 10);
-            return jsonContent({ count: r.length, results: r });
+            const r = await findSimilarDetailed({ id, parties: { dodavatel, objednavatel }, keywords }, limit ?? 10);
+            return jsonContent({ count: r.results.length, results: r.results, warnings: r.warnings });
         }
         catch (e) {
             return errorContent(e);

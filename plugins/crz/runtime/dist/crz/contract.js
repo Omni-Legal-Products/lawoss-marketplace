@@ -9,6 +9,10 @@ function clean(s) {
     const t = s.replace(/\s+/g, " ").trim();
     return t.length ? t : undefined;
 }
+// Free-text fields sometimes carry an escaped "<br />" literally (CRZ double-encodes it).
+function cleanFreeText(s) {
+    return clean(s.replace(/<br\s*\/?>/gi, " "));
+}
 function labelKey(label) {
     return label
         .normalize("NFD")
@@ -90,15 +94,35 @@ export function parseContractHtml(html, id) {
                         break;
                     case "popis":
                     case "predmet":
-                        contract.predmet = valueText;
+                    case "popispredmetuzmluvy":
+                        contract.predmet = cleanFreeText(span.text());
                         break;
+                    case "poznamka":
+                        contract.poznamka = cleanFreeText(span.text());
+                        break;
+                    case "verejneobstaravanie": {
+                        const href = span.find("a[href]").first().attr("href");
+                        if (href)
+                            contract.verejne_obstaravanie_url = href;
+                        else if (valueText)
+                            (contract.ine_polia ??= []).push({ label, value: valueText });
+                        break;
+                    }
                     case "idzmluvy":
                         contract.id = valueText ?? contract.id;
                         break;
                     case "zverejnil":
                         contract.zverejnil = valueText;
                         break;
-                    default: break;
+                    default: {
+                        // Never drop a labelled row silently (e.g. status rows CRZ shows
+                        // for cancelled contracts): keep it and say it was not mapped.
+                        if (valueText) {
+                            (contract.ine_polia ??= []).push({ label, value: valueText });
+                            warnings.push(`unmapped_field: "${label}" (kept in ine_polia)`);
+                        }
+                        break;
+                    }
                 }
             });
         }
@@ -173,6 +197,15 @@ export function parseContractHtml(html, id) {
                 raw,
                 eur: parseEuroAmount(celkovaStr ?? zmluvne_dohodnuta),
             };
+        }
+        else {
+            // A section the parser does not know (e.g. amendments). Keep its text and
+            // flag it instead of dropping it.
+            const text = clean($card.clone().find("> h2.card-header").remove().end().text());
+            if (text) {
+                (contract.ine_polia ??= []).push({ label: clean($card.find("> h2.card-header").first().text()) ?? heading, value: text });
+                warnings.push(`unmapped_section: "${clean($card.find("> h2.card-header").first().text()) ?? heading}" (kept in ine_polia)`);
+            }
         }
     }
     if (!contract.cislo_zmluvy && !contract.nazov && !contract.objednavatel) {
