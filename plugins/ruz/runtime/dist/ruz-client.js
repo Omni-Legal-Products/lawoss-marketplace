@@ -6,9 +6,9 @@ const MAX_ID_PAGES = 10;
  * which reads like a bug in this server rather than a register that is down.
  */
 export class RuzUnavailableError extends Error {
-    constructor(path, expected = "JSON") {
+    constructor(path) {
         super(`Register účtovných závierok je momentálne nedostupný (${path}). ` +
-            `Zdroj vrátil HTML stránku namiesto ${expected}. Skús to neskôr.`);
+            "Zdroj vrátil HTML stránku namiesto JSON. Skús to neskôr.");
         this.name = "RuzUnavailableError";
     }
 }
@@ -125,13 +125,10 @@ export class RuzClient {
             if (!res.ok)
                 throw new Error(`RÚZ príloha ${id} failed: HTTP ${res.status}`);
             const buf = Buffer.from(await res.arrayBuffer());
-            const contentType = res.headers.get("content-type") ?? "application/octet-stream";
-            // The outage page comes with HTTP 200 here too; saving it as "zavierka.pdf"
-            // would hand the caller an HTML file under a PDF name.
-            if (contentType.toLowerCase().includes("text/html") || buf.subarray(0, 64).toString("latin1").trimStart().startsWith("<")) {
-                throw new RuzUnavailableError(`/domain/financialreport/attachment/${id}`, "prílohy");
-            }
-            return { base64: buf.toString("base64"), contentType };
+            return {
+                base64: buf.toString("base64"),
+                contentType: res.headers.get("content-type") ?? "application/octet-stream",
+            };
         }
         finally {
             clearTimeout(t);

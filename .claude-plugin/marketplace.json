@@ -141,7 +141,7 @@
       "name": "ruz",
       "source": "./plugins/ruz",
       "description": "Register účtovných závierok: bundled local MCP, usage guidance and CLI.",
-      "version": "1.3.0",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
