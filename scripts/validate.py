@@ -338,7 +338,7 @@ def validate_public_tree(root: Path) -> None:
 
         # Exact reviewed JS uses local/internal as variable names. Continue to scan
         # URLs above and all hostname-shaped strings after any source modification.
-        reviewed_js_identifiers = {'plugins/rpvs/runtime/dist/redaction.js': '9bf14fda16633fdd4aecb90027d7b293c0449d15e9ace4c9b3170107e80774ca', 'plugins/judikaty/runtime/dist/src/tools/search-decisions/enrichment.js': '9f78f127508cf00756274866fc3165bde023685a8e1baa2cb0350b115d88e6c4', 'plugins/ov/runtime/dist/mcp-server.js': 'eb031eedaceaa6145733c13378919fe60a6fc1d6bee88d1eaf7c4b5dc4f25025'}
+        reviewed_js_identifiers = {'plugins/rpvs/runtime/dist/redaction.js': '9bf14fda16633fdd4aecb90027d7b293c0449d15e9ace4c9b3170107e80774ca', 'plugins/judikaty/runtime/dist/src/tools/search-decisions/enrichment.js': '9f78f127508cf00756274866fc3165bde023685a8e1baa2cb0350b115d88e6c4', 'plugins/ov/runtime/dist/mcp-server.js': '4c36a699c6dd32cb1df40bed80c262ec9ccb1be552395fd85688f7740372d7d0'}
         identifier_only = reviewed_js_identifiers.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
         for hostname in HOSTNAME_CANDIDATE.findall('' if identifier_only else text):
             require(

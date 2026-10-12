@@ -12,10 +12,19 @@ Použi tento skill, keď treba vyhľadať verejné oznámenie podľa mena, presn
 ## Postup
 
 1. Pri presnom IČO použi `ov_get_by_ico`; pri inom kritériu použi `ov_search`.
+   Pri otázke, či je subjekt v konkurze alebo reštrukturalizácii, over aj Register úpadcov — OV k tomu od 1. 10. 2025 nestačí.
 2. Skontroluj `sourceValidated`, `retrievedAt`, `sourceTotal`, `truncated`, `truncationReason`, `warnings` a kapitoly.
 3. Pre rozhodujúci záznam použi `ov_get_notice` s vráteným `idFormular`.
 4. Cituj `sourceUrl` a dátum zdroja. Ak výsledok môže byť skrátený alebo PDF text neúplný, povedz to výslovne.
 5. Nevydávaj technický výsledok za právny záver; pri osobe alebo právnickej osobe over aktuálne registračné údaje aj v príslušnom oficiálnom registri.
+
+## Pasce
+
+- **Prázdny insolvenčný výsledok z OV neznamená „nie je v konkurze“.** Kapitola `OV_KaR` nemá v zdroji oznámenie novšie ako 30. 9. 2025 (overené 9. 10. 2026); odpoveď to uvádza vo `warnings`. Novšie konania over v Registri úpadcov. Je to pozorovaný stav zdroja, nie právny záver.
+- **Skupina `insolvency` neobsahuje `OV_DOch` (Dočasná ochrana)** — ak je relevantná, hľadaj ju cez `kapitola: "OV_DOch"`.
+- **`returnedCount` je počet na vrátenej strane.** `truncated` hlási ďalšie strany; `sourceTotal` je presný len na poslednej strane. `kapitolaDetail.rowCount` a `newest` sú zo strany, `pageCount` a `truncated` hovoria o zvyšku kapitoly.
+- **`ov_get_notice` číta polia len z označenej hlavičky.** Pri oznámeniach súdu bez hlavičky ostane `subjekt` prázdny a dlžník, súd či IČO sú len v `text` — nepreberaj údaje iného subjektu (advokát, správca, navrhovateľ).
+- **Chyba nie je „nenájdené“.** `OV_SCHEMA`, `OV_HTTP` a ďalšie typované chyby znamenajú, že sa nič nezistilo.
 
 ## Kontrakty a limity
 
