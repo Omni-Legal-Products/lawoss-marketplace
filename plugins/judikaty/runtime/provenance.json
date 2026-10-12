@@ -1,6 +1,6 @@
 {
   "repository": "Omni-Legal-Products/mcp-judikaty-sk",
-  "commit": "06b9e1e8604f50d876605a3d5d172c2522f182f5",
+  "commit": "69b0b94c6220237b5aa735a3d946f45917caf3f7",
   "configSha256": "3656934325781457cc00a73ccdaa981d5df1292279f57a9c87727ec806a74fdb",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
@@ -17,7 +17,7 @@
     "dist/src/domain/models.js": "247a83dcbec94df71618c7811fb712a0616a4de4a594aa0c5365a7982688af46",
     "dist/src/domain/provider-contracts.js": "54023bcb71c2302e581eb3c10da793c765ac39271591d19bed1ad534bfc90d47",
     "dist/src/domain/provider-health.js": "8d21830e0daed6148d9cb5402678e80090c6d8ff513008cf87423323e82553f7",
-    "dist/src/domain/relation-extractor.js": "63e18404749d95f2829fdead962c47d41668b31e7c3ed131a598a2ce2a7760fa",
+    "dist/src/domain/relation-extractor.js": "ea4c67613ef3a20107aa8ef982959ef9b5cda430f09324927db6d89ba9ac1181",
     "dist/src/domain/relation-labels/tasks/task-appeal-outcome-v4b.json": "ec41aa7b2e6401de9f71cd2b7134c27b14fb529eba10fde18f23085b5d1093c4",
     "dist/src/domain/relation-labels/tasks/task-citation-outcome-v1.json": "5bc3207598fcbbe5d96bc46d3e6dbd83f2e571494b69362ed0933c7de8855c7a",
     "dist/src/domain/relation-labels/tasks/task-citation-role-v2.json": "061fe3800512d4abb53f3f40519019a9bf4d5d6bd1393930fd27ae8152a46cac",
@@ -108,7 +108,7 @@
     "dist/src/tools/search-decisions.js": "4691965ab054ec9c32f73799056bdea5a9f9261ae6c6ccb60aa0338c54938a04",
     "dist/src/tools/treatment-index-stats.js": "42238b33ed5c7fdd56e1f483ed414456231154ad490b6986e47bbca11f9a0ecb",
     "dist/src/tools/whole-decision-tool-payload.js": "79821342bb90b84e0acb2dafafc019bf8342da5544e76afc084177bc3a8cc068",
-    "package-lock.json": "09e7326fc53c5fc59535bc8990ce88301f6e04b249b0f46da77ec12e2f72f765",
-    "package.json": "d3383044ea5aa1de68b947ff4ab3b658e17af147fe5d56f1bd8c24652dffbb6b"
+    "package-lock.json": "9da86f62e549a00f68e73324665e0a8481a110f94f5e992e49fa2e6bb7da365a",
+    "package.json": "7d227cabe9474618e0c6f576a17a7b00390a6992c54fee89dac50e96a874f276"
   }
 }
