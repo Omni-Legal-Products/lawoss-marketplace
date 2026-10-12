@@ -11,6 +11,7 @@ export function redact(value) {
 }
 const SAFE_MESSAGES = {
     FS_INPUT: "Input validation failed.",
+    FS_AUTH: "Source rejected the request (401/403): set FS_API_KEY to your Financial Administration open-data API key; see the README.",
     FS_HTTP: "Source returned an unsuccessful status.",
     FS_REDIRECT: "Source redirect was rejected.",
     FS_CONTENT_TYPE: "Source did not return JSON.",

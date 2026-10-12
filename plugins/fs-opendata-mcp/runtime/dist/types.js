@@ -1,6 +1,7 @@
 import { z } from "zod";
 export const SLUG_VAT_REGISTERED = "ds_dphs";
 export const SLUG_VAT_DELETED = "ds_dphv";
+/** Payers with grounds for cancelling the VAT registration (still registered) — not cancelled registrations. */
 export const SLUG_VAT_CANCELLED = "ds_dphz";
 export const SLUG_TAX_DEBTORS = "ds_dsdd";
 export const SLUG_VAT_IBAN = "ds_dph_iban";

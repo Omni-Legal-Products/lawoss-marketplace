@@ -33,8 +33,8 @@
     {
       "name": "fs-opendata-mcp",
       "repository": "Omni-Legal-Products/mcp-financna-sprava",
-      "commit": "928095d315ef9d460eb83b8649e463cf8294fef5",
-      "branch": "codex/lawoss-release-2026-09-05",
+      "commit": "f4a6528eb40c4b0745b626b901f62bfc6e19f832",
+      "branch": "codex/rollout-fix-fs",
       "distribution": "local-mcp-skill-cli"
     },
     {
