@@ -1,8 +1,8 @@
 {
-  "plugin": "orsr",
+  "plugin": "disq",
   "plugin_version": "1.2.0",
-  "catalog_commit": "3a7259cf959ce3329d51d59b2620c8ecb71c22b6",
-  "source_repository": "Omni-Legal-Products/mcp-orsr",
-  "source_commit": "d31637dd2ad4a5e8b14ef1ab202663f08acddedb",
-  "runtime_manifest_sha256": "d57d1af53222c09bc0cf5b2c0ade140db6090ecfcebbb655ca73cdc6903a0af3"
+  "catalog_commit": "c3ee8055a6c84c5f857956b0887474fa7c0071ad",
+  "source_repository": "Omni-Legal-Products/mcp-diskvalifikacie",
+  "source_commit": "f3d4f3cea4492216bfb2f797418325b8ee28d1df",
+  "runtime_manifest_sha256": "851fcb979ef288f38590e43b6162343df4080bdb7272b7a89fdbed4b0fec457e"
 }
