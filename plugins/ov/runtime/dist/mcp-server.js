@@ -2,10 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import packageJson from "../package.json" with { type: "json" };
 import { looseNumber } from "./scalars.js";
-import { DEFAULT_OV_BASE_URL, MAX_PAGES, MAX_ROWS, MAX_TEXT_FIELD_BYTES, OvClient, OvSourceError, } from "./ov-client.js";
+import { DEFAULT_OV_BASE_URL, KAR_COVERAGE_WARNING, MAX_PAGES, MAX_ROWS, MAX_TEXT_FIELD_BYTES, OvClient, OvSourceError, } from "./ov-client.js";
 import { createRequestRateLimiter } from "./rate-limiter.js";
 import { safeError, safeLog } from "./redaction.js";
-import { ovGetNoticeInputSchema, ovSearchInputSchema } from "./types.js";
+import { OV_KAR_LAST_NOTICE, ovGetNoticeInputSchema, ovSearchInputSchema } from "./types.js";
 const ovGetByIcoInputSchema = {
     ico: z.string().min(1).max(32),
     limit: looseNumber(z.number().int().min(1).max(MAX_ROWS)).optional(),
@@ -40,7 +40,9 @@ export function createOvMcpServer(options = {}) {
     };
     server.registerTool("ov_search", {
         title: "OV Search",
-        description: "Vyhľadá verejné oznámenia v oficiálnom zdroji Obchodného vestníka. Výsledok je technický výpis verejného zdroja, nie právny záver; truncated a warnings určujú limity úplnosti.",
+        description: "Vyhľadá verejné oznámenia v oficiálnom zdroji Obchodného vestníka. Výsledok je technický výpis verejného zdroja, nie právny záver; truncated a warnings určujú limity úplnosti. " +
+            "Výsledok je jedna strana zdroja (ďalšie cez page). " +
+            `Kapitola OV_KaR nemá oznámenie novšie ako ${OV_KAR_LAST_NOTICE} — novšie konkurzy a reštrukturalizácie over v Registri úpadcov.`,
         inputSchema: ovSearchInputSchema,
     }, async (rawArgs) => {
         try {
@@ -55,7 +57,8 @@ export function createOvMcpServer(options = {}) {
     });
     server.registerTool("ov_get_notice", {
         title: "OV Notice Detail",
-        description: "Načíta PDF detail jedného verejného oznámenia z oficiálneho zdroja podľa idFormular. Text je obmedzený a sourceUrl je kanonická verejná adresa.",
+        description: "Načíta PDF detail jedného verejného oznámenia z oficiálneho zdroja podľa idFormular. Text je obmedzený a sourceUrl je kanonická verejná adresa. " +
+            "Polia sa čítajú len z označenej hlavičky formulára; čo v nej nie je, ostane prázdne a je len v texte.",
         inputSchema: ovGetNoticeInputSchema,
     }, async (rawArgs) => {
         try {
@@ -71,7 +74,8 @@ export function createOvMcpServer(options = {}) {
     });
     server.registerTool("ov_get_by_ico", {
         title: "OV Get by IČO",
-        description: "Stránkuje verejné oznámenia podľa presne osemmiestneho IČO. Najviac 20 strán a 2 000 riadkov; truncated vždy oznamuje, že zdroj môže obsahovať ďalšie výsledky.",
+        description: "Stránkuje verejné oznámenia podľa presne osemmiestneho IČO. Najviac 20 strán a 2 000 riadkov; truncated vždy oznamuje, že zdroj môže obsahovať ďalšie výsledky. " +
+            `Kapitola OV_KaR nemá oznámenie novšie ako ${OV_KAR_LAST_NOTICE}: chýbajúci konkurz neznamená, že subjekt nie je v konkurze — over Register úpadcov.`,
         inputSchema: ovGetByIcoInputSchema,
     }, async (rawArgs) => {
         try {
@@ -123,6 +127,8 @@ function searchEnvelope(result, retrievedAt) {
             label: boundedString(entry.label),
             rowCount: boundedCount(entry.rowCount, 0),
             newest: entry.newest === null ? null : boundedString(entry.newest),
+            pageCount: boundedCount(entry.pageCount, 0),
+            truncated: Boolean(entry.truncated),
         })),
         warnings: (result.warnings ?? []).map((warning) => boundedString(warning)),
     };
@@ -198,7 +204,8 @@ async function byIcoEnvelope(client, ico, limit, now) {
         returnedCount: notices.length,
         truncated,
         truncationReason,
-        warnings: [],
+        // ov_get_by_ico spans every chapter, OV_KaR included.
+        warnings: [KAR_COVERAGE_WARNING],
     };
 }
 function sanitizeRow(row) {

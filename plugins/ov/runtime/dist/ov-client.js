@@ -1,5 +1,6 @@
-import zlib from "node:zlib";
-import { KAPITOLA_CODES, KAPITOLA_GROUPS, } from "./types.js";
+import { KAPITOLA_CODES, KAPITOLA_GROUPS, OV_FACTS_VERIFIED_ON, OV_KAR_LAST_NOTICE, } from "./types.js";
+import { extractPdfText } from "./pdf-text.js";
+export { extractPdfText, parseToUnicode } from "./pdf-text.js";
 export const DEFAULT_OV_BASE_URL = "https://obchodnyvestnik.justice.gov.sk";
 const SEARCH_PATH = "/ObchodnyVestnik/Formular/FormulareVyhladavanie.aspx";
 const DETAIL_PATH = "/ObchodnyVestnik/Formular/FormularDetail.aspx";
@@ -162,6 +163,64 @@ function extractGridViewTable(html) {
     const end = rest.search(/<\/table>/i);
     return end < 0 ? rest : rest.slice(0, end + "</table>".length);
 }
+/** The cell the source renders when a query matched nothing. */
+const EMPTY_RESULT_MARKER = /Vyhľadávacím kritériám nevyhovujú žiadne údaje/i;
+/**
+ * Read a search response. Zero rows count as "nothing found" only when the
+ * source says so in the grid; a page without the grid (error page, changed
+ * layout) or an empty grid without that sentence is an error, never a clean
+ * zero.
+ */
+export function readSearchPage(html) {
+    if (!/<table[^>]*id=["'][^"']*gvVyhladavanieOV[^"']*["']/i.test(html)) {
+        throw new OvSourceError("OV_SCHEMA", "OV result table marker is missing.");
+    }
+    const rows = parseSearchRows(html);
+    const pager = readSelect(html, "cmbAGVPager");
+    const size = readSelect(html, "cmbAGVCountOnPage");
+    if (rows.length === 0) {
+        if (!EMPTY_RESULT_MARKER.test(extractGridViewTable(html) ?? "")) {
+            throw new OvSourceError("OV_SCHEMA", "OV empty result lacks the source's no-data sentence.");
+        }
+        return { rows, pageCount: 0, currentPage: 1, countOnPage: null, pagerName: null, countOnPageName: null };
+    }
+    const pageNumbers = pager?.values.map(Number).filter(Number.isFinite) ?? [];
+    return {
+        rows,
+        pageCount: pageNumbers.length > 0 ? Math.max(...pageNumbers) : 1,
+        currentPage: pager?.selected ? Number(pager.selected) : 1,
+        countOnPage: size?.selected ? Number(size.selected) : null,
+        pagerName: pager?.name ?? null,
+        countOnPageName: size?.name ?? null,
+    };
+}
+function readSelect(html, suffix) {
+    const m = new RegExp(`<select[^>]*name=["']([^"']*${suffix})["'][^>]*>([\\s\\S]*?)<\\/select>`, "i").exec(html);
+    if (!m)
+        return null;
+    const values = [];
+    let selected = null;
+    for (const o of m[2].matchAll(/<option([^>]*)>/gi)) {
+        const value = /value=["']([^"']*)["']/i.exec(o[1])?.[1];
+        if (value === undefined)
+            continue;
+        values.push(value);
+        if (/selected/i.test(o[1]))
+            selected = value;
+    }
+    return { name: decodeHtmlEntities(m[1]), values, selected };
+}
+/** The requested page is beyond the last page the source offers. */
+export class OvPageOutOfRangeError extends OvSourceError {
+    page;
+    pageCount;
+    constructor(page, pageCount) {
+        super("OV_INPUT", "OV page is beyond the last result page.");
+        this.page = page;
+        this.pageCount = pageCount;
+        this.name = "OvPageOutOfRangeError";
+    }
+}
 const DETAIL_DIR = "/ObchodnyVestnik/Formular/";
 function extractDetailUrl(rowHtml) {
     const m = /href=["']([^"']*FormularDetail\.aspx\?IdFormular=\d+)["']/i.exec(rowHtml);
@@ -180,54 +239,93 @@ function extractIdFormular(url) {
 }
 /**
  * Extract structured fields from the plain text of a notice-detail PDF.
- * Pure: operates on already-extracted text. Recognises the shared OV
- * labeled-field layout (Názov, Sídlo, IČO, form code, header band, footer).
+ * Pure: operates on already-extracted text.
+ *
+ * Only labeled header lines count ("Label: value" at the start of a line).
+ * A label found anywhere in the running text picked up other people's data —
+ * the attorney's address as the subject's seat, part of "Názov ulice…" as the
+ * name — so a field the header does not carry stays empty instead.
  */
 export function parseNoticeText(text, idFormular, sourceUrl) {
-    const clean = capUtf8(decodeHtmlEntities(text).replace(/\r\n/g, "\n"), MAX_NOTICE_TEXT_BYTES);
-    const polia = {};
-    const labelValue = (label) => {
-        // "Label: value" or "Label value" on the same line.
-        const re = new RegExp(`${escapeRegExp(label)}\\s*:?\\s*([^\\n]+)`, "i");
-        const m = re.exec(clean);
-        return m ? capUtf8(m[1].trim(), MAX_TEXT_FIELD_BYTES) : undefined;
+    const clean = capUtf8(decodeHtmlEntities(text).replace(/\r\n?/g, "\n"), MAX_NOTICE_TEXT_BYTES);
+    const lines = clean.split("\n").map((l) => l.replace(/\s+/g, " ").trim());
+    // Value of the first line starting with one of the labels; lower-case
+    // continuation lines (a wrapped address) are appended.
+    const labeled = (labels) => {
+        const re = new RegExp(`^(?:${labels.map(escapeRegExp).join("|")})\\s*:\\s*(.*)$`);
+        for (let i = 0; i < lines.length; i += 1) {
+            const m = re.exec(lines[i]);
+            if (!m)
+                continue;
+            let value = m[1];
+            while (i + 1 < lines.length && /^\p{Ll}/u.test(lines[i + 1]))
+                value += ` ${lines[++i]}`;
+            value = capUtf8(value.trim(), MAX_TEXT_FIELD_BYTES);
+            if (value)
+                return value;
+        }
+        return undefined;
     };
-    // Header band: "Obchodný vestník {cislo}/{rocnik}"
-    const cisloOV = /Obchodný vestník\s+(\d+\s*\/\s*\d{4})/i.exec(clean)?.[1]?.replace(/\s+/g, "");
-    const denVydania = /Deň vydania:?\s*(\d{2}\.\d{2}\.\d{4})/i.exec(clean)?.[1];
-    // Form code: a capitalised letter + digits token, e.g. Š004044, R019413, K012345.
-    // Avoid \b around non-ASCII letters; require a non-letter/leading boundary instead.
-    const kodFormulara = /(?:^|[^A-Za-zÀ-ž])([A-ZÀ-Ž][0-9]{4,7})(?![0-9])/m.exec(clean)?.[1];
-    const nazov = labelValue("Názov") ?? labelValue("Obchodné meno") ?? labelValue("Úpadca");
-    const sidlo = labelValue("Sídlo") ?? labelValue("Bydlisko");
-    const ico = /IČO\s*:?\s*(\d{6,8})/i.exec(clean)?.[1];
-    const pravnaForma = labelValue("Právna forma");
-    // Common insolvency / auction fields — best-effort.
-    for (const label of [
-        "Súd",
-        "Spisová značka",
-        "Správca",
-        "Predmet",
-        "Najnižšie podanie",
-        "Termín",
-        "Lehota",
-        "Za rok",
-    ]) {
-        const v = labelValue(label);
-        if (v)
-            polia[capUtf8(label, MAX_TEXT_FIELD_BYTES)] = v;
+    // Header band: "Obchodný vestník {cislo}/{rocnik} [section] Deň vydania: dd.mm.yyyy",
+    // on one line or spread over several.
+    const header = /Obchodný vestník\s+(\d+\s*\/\s*\d{4})([\s\S]{0,200}?)Deň vydania:?\s*(\d{2}\.\d{2}\.\d{4})/i.exec(clean);
+    const cisloOV = header?.[1].replace(/\s+/g, "");
+    const denVydania = header?.[3];
+    const nazovFormulara = header?.[2].replace(/\s+/g, " ").trim() || undefined;
+    // Form code: a line holding only a letter + digits token, e.g. Š004044, K041801, R114765.
+    const kodFormulara = lines.find((l) => /^\p{Lu}\d{4,7}$/u.test(l));
+    const nazov = labeled([
+        "Obchodné meno/Názov/Meno a priezvisko dlžníka/úpadcu",
+        "OBCHODNÉ MENO",
+        "Obchodné meno",
+        "Názov",
+    ]);
+    const sidlo = labeled([
+        "Sídlo/Miesto podnikania/Bydlisko dlžníka/úpadcu",
+        "Sídlo/Bydlisko dlžníka/úpadcu",
+        "SÍDLO",
+        "Sídlo",
+        "Bydlisko",
+    ])
+        // Commercial-register notices spell the address out field by field.
+        ?.replace(/Názov ulice\/verejného priestranstva a orientačné číslo \(príp\. súpisné číslo\):\s*/g, "")
+        .replace(/Názov obce:\s*/g, "")
+        .replace(/PSČ:\s*/g, "")
+        .trim();
+    // IČO is printed with spaces ("31 562 167"); a date of birth in the same
+    // field is not an IČO.
+    const icoRaw = labeled(["IČO/Dátum narodenia dlžníka/úpadcu", "IČO"]);
+    const icoDigits = icoRaw?.replace(/\s+/g, "");
+    const ico = icoDigits && /^\d{6,8}$/.test(icoDigits) ? icoDigits.padStart(8, "0") : undefined;
+    const pravnaForma = labeled(["PRÁVNA FORMA", "Právna forma"]);
+    const polia = {};
+    const set = (key, value) => {
+        if (value)
+            polia[key] = capUtf8(value, MAX_TEXT_FIELD_BYTES);
+    };
+    set("Spisová značka", labeled(["Spisová značka súdneho spisu", "Spisová značka", "Sp. zn."]));
+    set("Spisová značka správcu", labeled(["Spisová značka správcovského spisu"]));
+    // A court from its header label, or a line that is nothing but a court name
+    // ("Krajský súd v Banskej Bystrici", "Okresný súd Žilina - Zmena zápisov");
+    // never from a sentence or a signature line ("… dňa 20.8.2025").
+    set("Súd", labeled(["Príslušný konkurzný súd"]) ??
+        lines
+            .find((l) => /^(?:Najvyšší|Krajský|Okresný|Mestský) súd\b[^:,]{0,60}$/u.test(l) && !/\bdňa\b/u.test(l))
+            ?.replace(/\s+-\s+.*$/, ""));
+    set("Správca", labeled(["Titul, meno a priezvisko správcu", "Správca"]));
+    set("Sídlo správcu", labeled(["Sídlo správcu"]));
+    set("Druh podania", labeled(["Druh podania"]));
+    for (const label of ["Predmet", "Najnižšie podanie", "Termín", "Lehota", "Za rok"]) {
+        set(label, labeled([label]));
     }
     const vydava = /Vydáva\s+Ministerstvo[^\n]*/i.exec(clean)?.[0]?.trim();
-    const nazovFormulara = /Obchodný vestník\s+\d+\s*\/\s*\d{4}\s*\n+\s*([^\n]+)/i
-        .exec(clean)?.[1]
-        ?.trim();
     return {
         idFormular,
         kodFormulara: capOptional(kodFormulara),
         nazovFormulara: capOptional(nazovFormulara),
         cisloOV: capOptional(cisloOV),
         denVydania: capOptional(denVydania),
-        subjekt: { pravnaForma, nazov, sidlo, ico },
+        subjekt: pruneUndefined({ pravnaForma, nazov, sidlo, ico }),
         polia,
         text: clean.trim(),
         vydava: capOptional(vydava),
@@ -306,7 +404,7 @@ export class OvClient {
                     const contentType = response.headers.get("content-type") ?? "";
                     const accepted = expectedType === "html"
                         ? /^text\/html(?:\s*;|$)/i.test(contentType)
-                        : /^application\/pdf(?:\s*;|$)/i.test(contentType);
+                        : /^application\/(?:pdf|octet-stream)(?:\s*;|$)/i.test(contentType);
                     if (!accepted) {
                         await cancelResponseBody(response);
                         throw new OvSourceError("OV_CONTENT_TYPE", "OV public source returned an unsupported content type.");
@@ -344,18 +442,32 @@ export class OvClient {
         if (kapitoly.length > 1) {
             const results = [];
             const breakdown = [];
+            const outOfRange = [];
             for (const kapitola of kapitoly) {
-                const result = await this.searchSingleWithRetry({
-                    ...params,
-                    kapitola,
-                    kapitolaGroup: undefined,
-                });
+                let result;
+                try {
+                    result = await this.searchSingleWithRetry({
+                        ...params,
+                        kapitola,
+                        kapitolaGroup: undefined,
+                    });
+                }
+                catch (error) {
+                    // A chapter with fewer pages than requested has nothing on this
+                    // page; that is not a failure of the whole group.
+                    if (!(error instanceof OvPageOutOfRangeError))
+                        throw error;
+                    outOfRange.push(`${kapitola} (${error.pageCount})`);
+                    result = emptyResult(params, kapitola, error.pageCount);
+                }
                 results.push(result);
                 breakdown.push({
                     kapitola,
                     label: KAPITOLA_CODES[kapitola] ?? kapitola,
                     rowCount: result.rows.length,
                     newest: newestDate(result.rows),
+                    pageCount: result.pageCount,
+                    truncated: result.truncated,
                 });
             }
             const rowsById = new Map();
@@ -371,16 +483,25 @@ export class OvClient {
                 countOnPage: params.countOnPage ?? 10,
                 rowCount: rows.length,
                 rows,
+                pageCount: Math.max(0, ...results.map((result) => result.pageCount)),
                 sourceTotal: results.every((result) => result.sourceTotal !== null)
                     ? results.reduce((sum, result) => sum + (result.sourceTotal ?? 0), 0)
                     : null,
                 truncated: results.some((result) => result.truncated),
                 truncationReason: results.some((result) => result.truncated) ? "source_has_more_rows" : null,
                 kapitolyDetail: breakdown,
-                warnings: buildKapitolaWarnings(breakdown) ?? [],
+                warnings: [
+                    ...(buildKapitolaWarnings(breakdown) ?? []),
+                    ...(outOfRange.length > 0
+                        ? [`Kapitoly ${outOfRange.join(", ")} nemajú stranu ${params.page ?? 1}; ich záznamy sú na nižších stranách.`]
+                        : []),
+                    ...coverageWarnings(kapitoly, params),
+                ],
             };
         }
-        return this.searchSingleWithRetry({ ...params, kapitola: kapitoly[0] ?? params.kapitola });
+        const kapitola = kapitoly[0] ?? params.kapitola;
+        const result = await this.searchSingleWithRetry({ ...params, kapitola });
+        return { ...result, warnings: [...result.warnings, ...coverageWarnings(kapitola ? [kapitola] : [], params)] };
     }
     async searchSingleWithRetry(params) {
         let lastError;
@@ -409,35 +530,13 @@ export class OvClient {
         const cookie = formResponse.response.headers.get("set-cookie") ?? "";
         const tokens = parseViewStateTokens(html);
         validateSearchForm(html);
-        // 2) Build the POST body.
-        const page = params.page ?? 1;
+        // 2) POST the search. The source always answers a new search with page 1.
+        const requestedPage = params.page ?? 1;
         const countOnPage = params.countOnPage ?? 10;
         const kapitola = params.kapitola;
-        const body = new URLSearchParams();
-        body.set("__EVENTTARGET", "");
-        body.set("__EVENTARGUMENT", "");
-        body.set("__VIEWSTATE", tokens.__VIEWSTATE);
-        body.set("__VIEWSTATEGENERATOR", tokens.__VIEWSTATEGENERATOR);
-        body.set("__EVENTVALIDATION", tokens.__EVENTVALIDATION);
-        setField(body, "txtKlucoveSlova", params.keywords);
-        setField(body, "txtZnackaCisloKod", params.mark);
-        setField(body, "txtObchodneMenoMenoPriezvisko", params.name);
-        setField(body, "txtIco", params.ico);
-        setField(body, "txtSidloBydlisko", params.seat);
-        setField(body, "cmbObchodnyVestnikRocnik", params.year ?? "");
-        setField(body, "cmbKapitola", kapitola ?? "");
-        setField(body, "hfKapitola", kapitola ?? "");
-        setField(body, "cmbTypPodania", "");
-        if (params.date) {
-            setField(body, "DatumZverejnenia", "rbDen");
-            setField(body, "txtDatumZverejnenia", params.date);
-        }
+        const body = searchFormBody(tokens, params);
         setField(body, "btnVyhladat", "Vyhľadať");
         setField(body, "gvVyhladavanieOV$ctl13$ctl00$cmbAGVCountOnPage", String(countOnPage));
-        if (page > 1) {
-            setField(body, "gvVyhladavanieOV$ctl13$ctl00$cmbAGVPager", String(page));
-        }
-        // 3) POST.
         const headers = {
             "User-Agent": "obchodny-vestnik-mcp/0.1",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -445,19 +544,42 @@ export class OvClient {
         };
         if (cookie)
             headers.Cookie = cookie.split(";")[0] ?? "";
-        const searchResponse = await this.request(url, { method: "POST", headers, body: body.toString() }, "html", MAX_RESPONSE_BYTES);
-        const resultHtml = searchResponse.buffer.toString("utf8");
-        const rows = parseSearchRows(resultHtml);
-        const sourceTotal = validateSearchDocument(resultHtml, rows);
-        const truncated = sourceTotal === null
-            ? (parseHasNextPage(resultHtml, page) ?? rows.length >= countOnPage)
-            : page * countOnPage < sourceTotal;
+        const post = async (form) => (await this.request(url, { method: "POST", headers, body: form.toString() }, "html", MAX_RESPONSE_BYTES))
+            .buffer.toString("utf8");
+        let resultHtml = await post(body);
+        let page = readSearchPage(resultHtml);
+        // 3) Further pages are a postback of the pager on the result page, with
+        // that page's ViewState. Setting the pager next to the search button
+        // started a new search and silently returned page 1 again.
+        if (requestedPage > 1) {
+            if (requestedPage > page.pageCount || !page.pagerName) {
+                throw new OvPageOutOfRangeError(requestedPage, page.pageCount);
+            }
+            const pagerBody = searchFormBody(parseViewStateTokens(resultHtml), params);
+            pagerBody.set("__EVENTTARGET", page.pagerName);
+            pagerBody.set(page.pagerName, String(requestedPage));
+            if (page.countOnPageName)
+                pagerBody.set(page.countOnPageName, String(page.countOnPage ?? countOnPage));
+            resultHtml = await post(pagerBody);
+            page = readSearchPage(resultHtml);
+            if (page.currentPage !== requestedPage)
+                throw new OvSourceError("OV_SCHEMA", "OV returned a different result page.");
+        }
+        validateSearchRows(page.rows);
+        const size = page.countOnPage ?? countOnPage;
+        // A full page without a pager is not proof of completeness: stay
+        // conservative rather than call it the whole result.
+        const unknownMore = !page.pagerName && page.rows.length >= size;
+        const truncated = page.currentPage < page.pageCount || unknownMore;
+        // The source prints no total, only a pager: the total is exact on the last page.
+        const sourceTotal = truncated ? null : Math.max(0, page.pageCount - 1) * size + page.rows.length;
         return {
             query: pruneUndefined({ ...params, kapitola }),
-            page,
-            countOnPage,
-            rowCount: rows.length,
-            rows,
+            page: requestedPage,
+            countOnPage: size,
+            rowCount: page.rows.length,
+            rows: page.rows,
+            pageCount: page.pageCount,
             sourceTotal,
             truncated,
             truncationReason: truncated ? "source_has_more_rows" : null,
@@ -488,6 +610,31 @@ export class OvClient {
 // ===========================================================================
 // Helpers
 // ===========================================================================
+/** Pointer used wherever OV_KaR can be part of the answer. */
+export const KAR_COVERAGE_WARNING = `Kapitola OV_KaR (Konkurzy a reštrukturalizácie) nemá v Obchodnom vestníku žiadne oznámenie ` +
+    `novšie ako ${OV_KAR_LAST_NOTICE} (overené ${OV_FACTS_VERIFIED_ON}). Prázdny alebo starší výsledok ` +
+    "preto neznamená, že subjekt nie je v konkurze či reštrukturalizácii — novšie konania over " +
+    "v Registri úpadcov (napr. ru_get_by_ico).";
+const DOCH_NOTE = "Skupina insolvency nezahŕňa kapitolu OV_DOch (Dočasná ochrana); ak je relevantná, " +
+    "hľadaj ju samostatne cez kapitola: \"OV_DOch\".";
+/** Notes about what the searched chapters cannot contain, independent of the rows. */
+export function coverageWarnings(kapitoly, params) {
+    const out = [];
+    if (kapitoly.includes("OV_KaR") && karCutoffRelevant(params))
+        out.push(KAR_COVERAGE_WARNING);
+    if (params.kapitolaGroup === "insolvency")
+        out.push(DOCH_NOTE);
+    return out;
+}
+/** Whether the query reaches past the last OV_KaR notice. */
+function karCutoffRelevant(params) {
+    const cutoff = parseOvDate(OV_KAR_LAST_NOTICE);
+    if (params.date)
+        return parseOvDate(params.date) > cutoff;
+    if (params.year)
+        return Number(params.year) >= Number(OV_KAR_LAST_NOTICE.slice(-4));
+    return true;
+}
 function resolveKapitoly(params) {
     if (params.kapitola)
         return [params.kapitola];
@@ -511,18 +658,30 @@ export function newestDate(rows) {
 /**
  * A chapter that returns nothing while its siblings return rows is the thing a
  * merged result hides best — and for an insolvency check that reads as "no
- * proceedings found" rather than "one chapter answered nothing".
+ * proceedings found" rather than "one chapter answered nothing". All chapters
+ * empty is no safer: it is what the gazette holds, not proof that no
+ * proceedings exist.
  */
 export function buildKapitolaWarnings(breakdown) {
+    const out = [];
     const empty = breakdown.filter((b) => b.rowCount === 0);
-    if (empty.length === 0 || empty.length === breakdown.length)
-        return undefined;
-    const names = empty.map((b) => `${b.kapitola} (${b.label})`).join(", ");
-    return [
-        `Kapitoly ${names} nevrátili k tomuto dopytu žiadny záznam, kým ostatné áno. ` +
+    const names = (list) => list.map((b) => `${b.kapitola} (${b.label})`).join(", ");
+    if (empty.length > 0 && empty.length === breakdown.length) {
+        out.push(`Žiadna z kapitol ${names(empty)} nevrátila k tomuto dopytu záznam. Je to odpoveď ` +
+            "Obchodného vestníka, nie dôkaz, že konanie neexistuje — skontroluj ostatné " +
+            "varovania o pokrytí kapitol a príslušný register.");
+    }
+    else if (empty.length > 0) {
+        out.push(`Kapitoly ${names(empty)} nevrátili k tomuto dopytu žiadny záznam, kým ostatné áno. ` +
             "Výsledok preto nemožno čítať ako úplný — over si tieto kapitoly samostatne " +
-            "cez ov_search s parametrom kapitola.",
-    ];
+            "cez ov_search s parametrom kapitola.");
+    }
+    const truncated = breakdown.filter((b) => b.truncated);
+    if (truncated.length > 0) {
+        out.push(`Kapitoly ${names(truncated)} majú ďalšie strany. rowCount a newest v kapitolyDetail ` +
+            "sa týkajú len vrátenej strany — ďalšie záznamy získaš parametrom page.");
+    }
+    return out.length > 0 ? out : undefined;
 }
 function isTransientSearchError(error) {
     if (error instanceof OvSourceError)
@@ -589,42 +748,14 @@ function validateSearchParams(params) {
     if (!params.name && !params.ico && !params.keywords && !params.mark && !params.seat && !params.kapitola && !params.kapitolaGroup)
         throw new OvSourceError("OV_INPUT", "OV search criterion is required.");
 }
-function parseSourceTotal(html) {
-    const candidates = [
-        /(?:Celkový\s+počet\s+záznamov|Počet\s+záznamov|Počet\s+výsledkov)\s*:?\s*<[^>]*>?\s*([0-9][0-9\s]*)/i,
-        /(?:Celkový\s+počet\s+záznamov|Počet\s+záznamov|Počet\s+výsledkov)\s*:?\s*([0-9][0-9\s]*)/i,
-        /id=["'][^"']*(?:lblPocetZaznamov|lblCount|TotalCount)[^"']*["'][^>]*>\s*([^<]+)/i,
-    ];
-    for (const candidate of candidates) {
-        const match = candidate.exec(html)?.[1];
-        const digits = match?.replace(/\s+/g, "");
-        if (digits && /^\d+$/.test(digits)) {
-            const total = Number(digits);
-            if (Number.isSafeInteger(total) && total >= 0 && total <= Number.MAX_SAFE_INTEGER)
-                return total;
-        }
-    }
-    return undefined;
-}
 function validateSearchForm(html) {
     parseViewStateTokens(html);
     if (!/<table[^>]*id=["'][^"']*gvVyhladavanieOV[^"']*["']/i.test(html))
         throw new OvSourceError("OV_SCHEMA", "OV result table marker is missing.");
 }
-function parseHasNextPage(html, page) {
-    const pager = /<select[^>]*(?:name|id)=["'][^"']*cmbAGVPager[^"']*["'][^>]*>([\s\S]*?)<\/select>/i.exec(html)?.[1];
-    if (!pager)
-        return null;
-    return Array.from(pager.matchAll(/<option[^>]*value=["'](\d+)["']/gi))
-        .some((match) => Number(match[1]) > page);
-}
-function validateSearchDocument(html, rows = []) {
-    validateSearchForm(html);
-    const total = parseSourceTotal(html);
-    if (total === undefined && rows.length === 0)
-        throw new OvSourceError("OV_SCHEMA", "OV explicit result total is missing.");
-    if ((total !== undefined && rows.length > total) || rows.length > MAX_ROWS)
-        throw new OvSourceError("OV_SCHEMA", "OV result count contradicts the source total.");
+function validateSearchRows(rows) {
+    if (rows.length > MAX_ROWS)
+        throw new OvSourceError("OV_SCHEMA", "OV result count exceeds its bound.");
     const seen = new Set();
     for (const row of rows) {
         if (!Number.isSafeInteger(row.idFormular) || row.idFormular < 1 || seen.has(row.idFormular))
@@ -637,7 +768,46 @@ function validateSearchDocument(html, rows = []) {
                 throw new OvSourceError("OV_SCHEMA", "OV result field exceeds its bound.");
         }
     }
-    return total ?? null;
+}
+/** Filter fields of the search form, shared by the search and the pager postback. */
+function searchFormBody(tokens, params) {
+    const body = new URLSearchParams();
+    body.set("__EVENTTARGET", "");
+    body.set("__EVENTARGUMENT", "");
+    body.set("__VIEWSTATE", tokens.__VIEWSTATE);
+    body.set("__VIEWSTATEGENERATOR", tokens.__VIEWSTATEGENERATOR);
+    body.set("__EVENTVALIDATION", tokens.__EVENTVALIDATION);
+    setField(body, "txtKlucoveSlova", params.keywords);
+    setField(body, "txtZnackaCisloKod", params.mark);
+    setField(body, "txtObchodneMenoMenoPriezvisko", params.name);
+    setField(body, "txtIco", params.ico);
+    setField(body, "txtSidloBydlisko", params.seat);
+    setField(body, "cmbObchodnyVestnikRocnik", params.year ?? "");
+    setField(body, "cmbKapitola", params.kapitola ?? "");
+    setField(body, "hfKapitola", params.kapitola ?? "");
+    setField(body, "cmbTypPodania", "");
+    if (params.date) {
+        // The radio's value is the control id; "rbDen" matched no option, so the
+        // source ignored the date and returned other days.
+        setField(body, "DatumZverejnenia", "rbDatumZverejneniaDen");
+        setField(body, "txtDatumZverejnenia", params.date);
+    }
+    return body;
+}
+function emptyResult(params, kapitola, pageCount) {
+    return {
+        query: pruneUndefined({ ...params, kapitola, kapitolaGroup: undefined }),
+        page: params.page ?? 1,
+        countOnPage: params.countOnPage ?? 10,
+        rowCount: 0,
+        rows: [],
+        pageCount,
+        sourceTotal: null,
+        truncated: false,
+        truncationReason: null,
+        kapitolyDetail: [],
+        warnings: [],
+    };
 }
 function isRedirectStatus(status) {
     return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
@@ -714,87 +884,4 @@ export function decodeHtmlEntities(s) {
 }
 function escapeRegExp(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-/**
- * Minimal PDF text extractor: pulls text from content streams using the
- * Tj / TJ show-text operators. No external dependency. Handles uncompressed
- * (and FlateDecode via zlib) content streams. Best-effort — sufficient for the
- * labeled-field layout of OV notice PDFs.
- */
-export function extractPdfText(pdf) {
-    const chunks = [];
-    // Find stream...endstream blocks.
-    const streamRe = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
-    let m;
-    let any = false;
-    while ((m = streamRe.exec(pdf.toString("latin1"))) !== null) {
-        any = true;
-        const raw = Buffer.from(m[1], "latin1");
-        // Try zlib inflate (FlateDecode); fall back to raw bytes.
-        let content = "";
-        try {
-            content = zlib.inflateSync(raw, { maxOutputLength: MAX_NOTICE_TEXT_BYTES }).toString("latin1");
-        }
-        catch {
-            content = raw.toString("latin1");
-        }
-        chunks.push(extractTextOperators(content));
-    }
-    const joined = chunks.join("\n");
-    if (joined.trim().length > 0)
-        return recoverUtf8(joined);
-    // Last resort: scan parenthesised strings across the whole file.
-    return any ? joined : recoverUtf8(extractTextOperators(pdf.toString("latin1")));
-}
-/**
- * PDF literal strings are read as latin1 bytes. When the producer emitted UTF-8
- * bytes (common for Slovak diacritics), re-decode the latin1 string through
- * UTF-8 to recover characters like č, š, ž, á. If the bytes are not valid UTF-8
- * the original string is returned unchanged.
- */
-function recoverUtf8(s) {
-    if (!/[-ÿ]/.test(s))
-        return s; // pure ASCII — nothing to recover
-    try {
-        const bytes = Buffer.from(s, "latin1");
-        const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-        // Heuristic: prefer the decode that yields fewer replacement chars.
-        const badIn = (s.match(/�/g) ?? []).length;
-        const badOut = (decoded.match(/�/g) ?? []).length;
-        return badOut <= badIn ? decoded : s;
-    }
-    catch {
-        return s;
-    }
-}
-/** Pull text out of PDF show-text operators: (str)Tj and [(a)(b)]TJ. */
-function extractTextOperators(content) {
-    const out = [];
-    // (string) Tj
-    const tjRe = /\(((?:\\.|[^\\)])*)\)\s*Tj/g;
-    let m;
-    while ((m = tjRe.exec(content)) !== null)
-        out.push(unescapePdfString(m[1]));
-    // [ (a) (b) ... ] TJ
-    const tjArrRe = /\[((?:[^\]\\]|\\.)*)\]\s*TJ/g;
-    while ((m = tjArrRe.exec(content)) !== null) {
-        const inner = m[1];
-        const strRe = /\(((?:\\.|[^\\)])*)\)/g;
-        let s;
-        const parts = [];
-        while ((s = strRe.exec(inner)) !== null)
-            parts.push(unescapePdfString(s[1]));
-        out.push(parts.join(""));
-    }
-    return out.join("\n");
-}
-function unescapePdfString(s) {
-    return s
-        .replace(/\\n/g, "\n")
-        .replace(/\\r/g, "\r")
-        .replace(/\\t/g, "\t")
-        .replace(/\\\(/g, "(")
-        .replace(/\\\)/g, ")")
-        .replace(/\\\\/g, "\\")
-        .replace(/\\(\d{1,3})/g, (_, o) => String.fromCharCode(parseInt(o, 8)));
 }

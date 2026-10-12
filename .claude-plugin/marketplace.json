@@ -97,7 +97,7 @@
       "name": "ov",
       "source": "./plugins/ov",
       "description": "Obchodný vestník: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
