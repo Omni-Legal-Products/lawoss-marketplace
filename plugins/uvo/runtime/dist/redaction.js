@@ -31,6 +31,9 @@ const messages = {
     UVO_TIMEOUT: "Public source request timed out.",
     UVO_CONTENT_TYPE: "Public source returned an unsupported content type.",
     UVO_SCHEMA: "Public source response was invalid.",
+    UVO_UNAVAILABLE: "Public source is temporarily unavailable; this is not an empty result.",
+    UVO_NOT_FOUND: "Public source has no such record.",
+    UVO_PAGE_OUT_OF_RANGE: "Requested page is beyond the last result page.",
 };
 export function safeError(error) {
     const candidate = error;
