@@ -28,13 +28,12 @@ export function redact(value, seen = new WeakSet()) {
 }
 export function safeError(error) {
     const candidate = error;
-    const code = candidate && typeof candidate.code === "string" && ["DISQ_HTTP", "DISQ_NOT_FOUND", "DISQ_TIMEOUT", "DISQ_CONTENT_TYPE", "DISQ_SCHEMA", "DISQ_INPUT"].includes(candidate.code)
+    const code = candidate && typeof candidate.code === "string" && ["DISQ_HTTP", "DISQ_TIMEOUT", "DISQ_CONTENT_TYPE", "DISQ_SCHEMA", "DISQ_INPUT"].includes(candidate.code)
         ? candidate.code
         : undefined;
     if (error instanceof DisqSourceError || code) {
         const messages = {
             DISQ_HTTP: "Public source request failed.", DISQ_TIMEOUT: "Public source request timed out.",
-            DISQ_NOT_FOUND: "The public source has no record with this registreGuid (HTTP 404).",
             DISQ_CONTENT_TYPE: "Public source returned an unsupported content type.", DISQ_SCHEMA: "Public source response was invalid.",
             DISQ_INPUT: "Input was invalid.",
         };

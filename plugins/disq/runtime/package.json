@@ -1,7 +1,7 @@
 {
   "name": "register-diskvalifikacii-mcp",
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "Read-only MCP server for the DISQ register (Register diskvalifikácií / disqualified directors, Ministerstvo spravodlivosti SR)",
   "type": "module",
   "main": "dist/server.js",

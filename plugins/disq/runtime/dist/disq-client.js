@@ -8,7 +8,6 @@ const UNSAFE_INPUT = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a
 let activeUpstreamRequests = 0;
 const SAFE_MESSAGES = {
     DISQ_HTTP: "Public source request failed.",
-    DISQ_NOT_FOUND: "The public source has no record with this registreGuid (HTTP 404).",
     DISQ_TIMEOUT: "Public source request timed out.",
     DISQ_CONTENT_TYPE: "Public source returned an unsupported content type.",
     DISQ_SCHEMA: "Public source response was invalid.",
@@ -170,8 +169,6 @@ export class DisqClient {
             if (response.status !== 200) {
                 if (response.status >= 500)
                     throw Object.assign(new DisqSourceError("DISQ_HTTP"), { retryable: true });
-                if (response.status === 404)
-                    throw new DisqSourceError("DISQ_NOT_FOUND");
                 throw new DisqSourceError("DISQ_HTTP");
             }
             if (!isJsonContentType(response.headers.get("content-type")))
@@ -218,17 +215,7 @@ export class DisqClient {
             if (normalized[key] !== undefined)
                 normalized[key] = boundedInput(normalized[key]);
         }
-        let raw;
-        try {
-            raw = await this.getJson(`v1/diskvalifikacia?${buildSearchQuery(normalized)}`);
-        }
-        catch (error) {
-            // Only a detail lookup can legitimately miss a record.
-            if (error instanceof DisqSourceError && error.code === "DISQ_NOT_FOUND")
-                throw new DisqSourceError("DISQ_HTTP");
-            throw error;
-        }
-        return parseSearch(raw);
+        return parseSearch(await this.getJson(`v1/diskvalifikacia?${buildSearchQuery(normalized)}`));
     }
     async getByGuid(registreGuid) {
         const guid = boundedInput(registreGuid);
@@ -246,17 +233,10 @@ export class DisqClient {
             schemaError();
         return parsed.data.slice(0, MAX_ROWS);
     }
-    /**
-     * Name query. Titles and single-letter initials are removed first (the
-     * source returns 0 for them, see normalizeNameQuery); a query left empty is
-     * rejected because it would list the whole register.
-     */
     async check(name, size = 200) {
-        const normalized = normalizeNameQuery(name);
-        if (!normalized.query)
-            inputError();
-        const result = await this.search({ query: normalized.query, size });
-        return toCheckView(normalized, result, this.clock);
+        const folded = foldName(name);
+        const result = await this.search({ query: folded, size });
+        return toCheckView(folded, result, this.clock);
     }
 }
 export function buildSearchQuery(params) {
@@ -280,83 +260,18 @@ export function foldName(name) {
         inputError();
     return folded;
 }
-// Academic and professional titles (folded, without the dot), removed with or without the dot.
-const TITLES = new Set([
-    "bc", "bca", "mgr", "ing", "judr", "mudr", "mvdr", "mddr", "phdr", "rndr",
-    "paeddr", "pharmdr", "thdr", "thlic", "jcdr", "icdr", "phd", "artd", "csc",
-    "drsc", "doc", "prof", "dr", "hc", "mba", "llm", "dis", "akad", "dipl",
-]);
-// Ambiguous short forms, removed only when written with the dot ("Ing. arch.").
-const DOTTED_ONLY_TITLES = new Set(["arch", "art", "ma", "ba", "msc", "bsc", "mpa", "mph"]);
-/**
- * The source matches every query token as a word prefix, in any order, and
- * ignores diacritics (verified 2026-10-09). A token it cannot match makes the
- * whole query return 0: "Ing. <name> <surname>", "ing <name> <surname>" and
- * "M. <surname>" all came back empty for a person who is in the register.
- * Titles and single-letter initials are therefore removed.
- */
-export function normalizeNameQuery(name) {
-    const folded = foldName(name)
-        .replace(/\bll\.\s?m\./g, "llm.")
-        .replace(/\bh\.\s?c\./g, "hc.")
-        .replace(/(\p{L})\.(?=\p{L}{2})/gu, "$1. ");
-    const removedTitles = [];
-    const removedInitials = [];
-    const kept = [];
-    for (const raw of folded.split(/[\s,;]+/u)) {
-        const token = raw.replace(/^[^\p{L}\p{N}]+/u, "");
-        const bare = token.replace(/\.+$/u, "");
-        if (!bare)
-            continue;
-        if (TITLES.has(bare) || (token.endsWith(".") && DOTTED_ONLY_TITLES.has(bare)))
-            removedTitles.push(token);
-        else if (/^\p{L}$/u.test(bare))
-            removedInitials.push(token);
-        else
-            kept.push(bare);
-    }
-    return { query: kept.join(" "), removedTitles, removedInitials };
-}
-function nameTokens(value) {
-    try {
-        return normalizeNameQuery(value).query.split(" ").filter(Boolean).sort().join(" ");
-    }
-    catch {
-        return "";
-    }
-}
-/** "exact" when the register name and the query carry the same tokens, otherwise "prefix". */
-export function classifyNameMatch(query, meno) {
-    const record = nameTokens(meno);
-    return record !== "" && record === query.split(" ").filter(Boolean).sort().join(" ") ? "exact" : "prefix";
-}
-export function toMatchView(value, query = "") {
+export function toMatchView(value) {
     const result = { registreGuid: value.registreGuid, meno: value.meno };
     for (const key of ["datumRozhodnutia", "sud", "adresa"])
         if (value[key] !== undefined)
             result[key] = value[key];
-    result.matchType = classifyNameMatch(query, value.meno);
     return result;
 }
-export function toCheckView(normalized, response, clock = () => new Date()) {
-    const q = typeof normalized === "string" ? { query: normalized, removedTitles: [], removedInitials: [] } : normalized;
-    const matches = response.diskvalifikaciaList.map((row) => toMatchView(row, q.query));
+export function toCheckView(query, response, clock = () => new Date()) {
+    const matches = response.diskvalifikaciaList.map(toMatchView);
     const reason = response.truncationReason;
     const truncated = Boolean(reason);
-    const nameMatchFound = response.numFound > 0;
-    const exactNameMatches = matches.filter((match) => match.matchType === "exact").length;
-    const status = truncated ? "incomplete" : nameMatchFound ? "matches" : "no_match";
-    const warnings = [];
-    if (reason)
-        warnings.push(`SOURCE_RESULTS_TRUNCATED_${reason}`);
-    if (q.removedTitles.length)
-        warnings.push("QUERY_TITLES_REMOVED");
-    if (q.removedInitials.length)
-        warnings.push("QUERY_INITIALS_REMOVED_BROADENED");
-    if (nameMatchFound)
-        warnings.push("NAME_MATCH_ONLY_IDENTITY_NOT_VERIFIED");
-    if (exactNameMatches < matches.length)
-        warnings.push("NON_EXACT_NAME_MATCHES_PRESENT");
+    const status = truncated ? "incomplete" : response.numFound === 0 ? "no_match" : "matches";
     return {
         status,
         sourceValidated: true,
@@ -366,73 +281,49 @@ export function toCheckView(normalized, response, clock = () => new Date()) {
         returnedCount: matches.length,
         truncated,
         ...(reason ? { truncationReason: reason } : {}),
-        warnings,
-        query: q.query,
-        ...(q.removedTitles.length ? { removedTitles: q.removedTitles } : {}),
-        ...(q.removedInitials.length ? { removedInitials: q.removedInitials } : {}),
-        nameMatchFound,
-        identityVerified: false,
-        exactNameMatches,
-        disqualified: nameMatchFound,
+        warnings: reason ? [`SOURCE_RESULTS_TRUNCATED_${reason}`] : [],
+        query,
+        disqualified: response.numFound > 0,
         matches,
     };
 }
-const INTERVAL_TIME_ZONE = "Europe/Bratislava";
-export const INTERVAL_BASIS = "Assumption: both ends are inclusive (vylucenieOd <= today <= vylucenieDo), today being the calendar date in Europe/Bratislava. " +
-    "Whether vylucenieDo is legally the last day of the ban is not assessed.";
-/** Strict DD.MM.YYYY as a sortable YYYYMMDD number; impossible dates (31.02.) are rejected. */
-function skDayKey(value) {
+function utcDate(value) {
     if (!isStrictSkDate(value))
         return undefined;
     const [day, month, year] = value.split(".").map(Number);
-    return year * 10_000 + month * 100 + day;
-}
-/** The calendar day of `instant` in Europe/Bratislava, independent of the process time zone. */
-function bratislavaDay(instant) {
-    const parts = new Intl.DateTimeFormat("en-US", { timeZone: INTERVAL_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(instant);
-    const get = (type) => parts.find((part) => part.type === type).value;
-    const [year, month, day] = [get("year"), get("month"), get("day")];
-    return { key: Number(`${year}${month}${day}`), iso: `${year}-${month}-${day}` };
+    return new Date(Date.UTC(year, month - 1, day));
 }
 export function toDetailView(value, clock = () => new Date()) {
     const updateDate = typeof value.updateDate === "string" && isStrictSkDate(value.updateDate) ? value.updateDate : undefined;
     if (!value.registreGuid || !value.meno || !updateDate)
         schemaError();
     const warnings = [];
-    const instant = clock();
-    const today = bratislavaDay(instant);
-    const hasOd = typeof value.vylucenieOd === "string" && value.vylucenieOd !== "";
-    const hasDo = typeof value.vylucenieDo === "string" && value.vylucenieDo !== "";
-    const from = hasOd ? skDayKey(value.vylucenieOd) : undefined;
-    const to = hasDo ? skDayKey(value.vylucenieDo) : undefined;
+    const from = typeof value.vylucenieOd === "string" ? utcDate(value.vylucenieOd) : undefined;
+    const to = typeof value.vylucenieDo === "string" ? utcDate(value.vylucenieDo) : undefined;
     let currentlyDisqualified;
-    if (from !== undefined && to !== undefined && from <= to) {
-        currentlyDisqualified = today.key >= from && today.key <= to;
+    if (from && to && from <= to) {
+        const instant = clock();
+        const today = Date.UTC(instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate());
+        currentlyDisqualified = today >= from.getTime() && today <= to.getTime();
     }
-    else {
+    else
         warnings.push("DISQUALIFICATION_INTERVAL_UNAVAILABLE");
-        if ((hasOd && from === undefined) || (hasDo && to === undefined) || (from !== undefined && to !== undefined)) {
-            warnings.push("DISQUALIFICATION_INTERVAL_INVALID");
-        }
-    }
     const result = {
         status: "detail",
         sourceValidated: true,
-        retrievedAt: instant.toISOString(),
+        retrievedAt: clock().toISOString(),
         updateDate,
         registreGuid: value.registreGuid,
         meno: value.meno,
-        evaluatedOn: today.iso,
-        intervalBasis: INTERVAL_BASIS,
         warnings,
     };
     const optional = ["datumRozhodnutia", "sud", "adresa", "spisovaZnacka", "cisloKonania", "poznamka"];
     for (const key of optional)
         if (typeof value[key] === "string")
             result[key] = value[key];
-    if (from !== undefined && typeof value.vylucenieOd === "string")
+    if (from && typeof value.vylucenieOd === "string")
         result.vylucenieOd = value.vylucenieOd;
-    if (to !== undefined && typeof value.vylucenieDo === "string")
+    if (to && typeof value.vylucenieDo === "string")
         result.vylucenieDo = value.vylucenieDo;
     if (currentlyDisqualified !== undefined)
         result.currentlyDisqualified = currentlyDisqualified;

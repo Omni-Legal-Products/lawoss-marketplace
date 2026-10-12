@@ -19,7 +19,7 @@
     {
       "name": "disq",
       "repository": "Omni-Legal-Products/mcp-diskvalifikacie",
-      "commit": "f3d4f3cea4492216bfb2f797418325b8ee28d1df",
+      "commit": "b6d3d3033717af94d0fe876bcd64a3c479866df4",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },
