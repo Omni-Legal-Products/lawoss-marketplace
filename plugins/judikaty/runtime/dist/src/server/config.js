@@ -1,6 +1,7 @@
 import * as z from "zod/v4";
 import { isCanonicalIssuerUrl, isValidOAuthScope } from "./oauth-validation.js";
 import { parseTrustedProxyCidrs } from "./trusted-proxy.js";
+import { readPackageVersion } from "./package-version.js";
 const DEFAULT_MAX_BODY_BYTES = 1_048_576; // 1 MiB
 const DEFAULT_RATE_LIMIT_RPM = 120;
 const DEFAULT_RATE_LIMIT_BURST = 30;
@@ -28,7 +29,12 @@ const strictlyPositiveInt = z.preprocess((value) => {
 const grantLimit = strictlyPositiveInt.refine((value) => value === undefined || value >= 2, "OAuth live grant limits must be at least 2.");
 const ApplicationServerConfigSchema = z.object({
     name: z.string().default("slovak-judiciary"),
-    version: z.string().default("0.2.2"),
+    /**
+     * The running package's version. It is deliberately not read from the
+     * environment: a pinned MCP_SERVER_VERSION made production report "0.1.0" on
+     * /healthz for every release after it.
+     */
+    version: z.string().default(() => readPackageVersion()),
     authMode: z.literal("oauth").default("oauth"),
     maxBodyBytes: positiveInt.transform((value) => value ?? DEFAULT_MAX_BODY_BYTES),
     rateLimitPerMinute: positiveInt.transform((value) => value ?? DEFAULT_RATE_LIMIT_RPM),
@@ -74,7 +80,6 @@ export const ServerConfigSchema = ApplicationServerConfigSchema
 function environmentConfig(environment) {
     return {
         name: environment.MCP_SERVER_NAME,
-        version: environment.MCP_SERVER_VERSION,
         authMode: environment.MCP_AUTH_MODE,
         maxBodyBytes: environment.MCP_MAX_BODY_BYTES,
         rateLimitPerMinute: environment.MCP_RATE_LIMIT_RPM,
