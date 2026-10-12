@@ -140,7 +140,10 @@ export function parseSearchRows(html) {
             continue;
         const text = cells.map(stripTags);
         rows.push({
-            idx: parseInt(text[0], 10) || rows.length + 1,
+            // The source's own running number (it continues across pages: page 2
+            // starts at 11). 0 when the cell has none — never a made-up position;
+            // the response envelope rejects such a row as OV_SCHEMA.
+            idx: /^\d+$/.test(text[0] ?? "") ? Number(text[0]) : 0,
             kapitola: text[1] ?? "",
             subjekt: text[2] ?? "",
             cisloOV: text[3] ?? "",

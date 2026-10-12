@@ -1,7 +1,7 @@
 {
   "name": "obchodny-vestnik-mcp",
   "license": "MIT",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read-only MCP server for public notices in the Slovak Commercial Gazette (Obchodný vestník)",
   "type": "module",
   "main": "dist/server.js",
