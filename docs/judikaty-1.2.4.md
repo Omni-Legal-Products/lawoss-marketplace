@@ -11,3 +11,9 @@ Source: `Omni-Legal-Products/mcp-judikaty-sk` commit `69b0b94c6220237b5aa735a3d9
 - **Source checks:** `npm ci`, `npm run check`, `npm run build`, and `npm test` with 911 tests (898 passed, 0 failed, 13 live tests skipped).
 - **Catalog checks:** 42 Python tests, `scripts/validate.py`, `claude plugin validate --strict .` and instruction mirrors passed.
 - **Packaged runtime smoke (stdio, 2026-10-12):** the server info reported version 0.2.4, and auto-mode `resolve_decision_identity` "PL. ÚS 3/09" resolved at the Constitutional Court.
+- **Codex gate:** Codex CLI 0.162.1 has no plugin-creator validator, so the isolated install acceptance from `docs/RELEASES.md` ran (2026-10-12):
+  - installing from `main` gave 1.2.3;
+  - with the ref set to `release/judikaty-1.2.4`, the updater reported `updated 1.2.3 -> 1.2.4` and the installed runtime advertised version 0.2.4;
+  - with the ref set back to `main`, the updater reported `updated 1.2.4 -> 1.2.3` and `doctor` reported commit 06b9e1e.
+
+Tests and the offline measurement establish technical behaviour and agreement with model labels, not legal correctness.
