@@ -1,0 +1,22 @@
+# FS Open Data 1.2.0 acceptance
+
+Source: `Omni-Legal-Products/mcp-financna-sprava` commit `4272a4b209a9955046ed7c00678d93aa2eefa1e8` (branch `fix/fs-audit-release`, PR into `codex/rollout-fix-fs`), server version 0.2.1. It fixes the release-line findings from the audit of 2026-10-09.
+
+Release-record correction: the previous source commit `928095d` is on `codex/rollout-fix-fs`, not on `codex/lawoss-release-2026-09-05` as `releases.json` stated (that branch ends at `435a084`, two commits earlier). The record now names `codex/rollout-fix-fs`.
+
+- C-6: rows are de-duplicated only when they are the same source row (`id`) or identical. Before, the keys named columns the lists do not have: every published account of one IČ DPH collapsed into one (`cislo_uctu` instead of `iban`), homonym debtors were merged and tax periods of one IČO were merged.
+- C-3b / C-1b: the debtor `arrearsAmount` comes from `ciastka` (it was always `null`); addresses are composed from the published parts; VAT rows keep `violationYear`, `publicationDate` and `deletionDate`.
+- C-1: `ds_dphz` (payers for whom grounds for cancelling the VAT registration arose; still registered) is reported as `cancellationGroundsPublished` / `cancellationGrounds`, no longer as a deregistration. `isDeregistered` covers `ds_dphv` only. Due diligence adds the findings `vat_cancellation_grounds_published` and `vat_deleted`, and the warning `vat_previously_deleted`.
+- C-8: a subject outside the VAT lists is an answer, not `FS_SCHEMA`. `ds_dphv` (searchable by IČ DPH only) is also tried with SK + DIČ from `ds_dsrdp`; otherwise `isDeregistered` is `null`, `unverifiedLists` names `ds_dphv`, and due diligence marks `vatStatus` as incomplete.
+- C-1c: the debtor no-hit note states the exact-full-name limitation instead of implying a clean result. The tool also sends the with/without-comma spelling before a legal form, resolves the name from the IČO when no name is given, and returns `searchedNames`.
+- C-9: `validity.listUpdateDates` carries `update_date` from `/lists`; `fs_list_metadata` keeps `url` and `update_date`.
+- C-16: 401/403 is reported as `FS_AUTH` and names `FS_API_KEY`.
+- Tool names and input schemas are unchanged. Output changes: `isDeregistered: boolean | null`, new fields listed above, `summary.warnings`.
+- Source tests: 110 passed in 11 files, including the documentation and diagram contracts; the TypeScript check and build passed. 13 of the 15 new regression tests failed on `928095d`; the other two guard behavior that release already had right (leading-zero IČO, non-payer due diligence not clean). The fixtures keep the row shapes captured from the live API on 2026-10-09, with every identifying value replaced by a synthetic one.
+- `npm audit --omit=dev` reports 4 advisories (`@modelcontextprotocol/sdk`, `fast-uri`, `ip-address`, `proxy-addr`) that were already present at `928095d`. This release does not change dependencies.
+- Packaged runtime smoke (stdio, 2026-10-12, no key): server 0.2.1, nine tools; every lookup returned `FS_AUTH` and due diligence returned `incomplete` with all six mandatory sections listed.
+- Packaged runtime live smoke (stdio, 2026-10-12, with a maintainer's own `FS_API_KEY`, lists dated 2026-09-16): a VAT-group member with a leading-zero IČO was found by IČO (`isVatPayer: true`, `§4b`); a payer present in `ds_dphz` and in `ds_dphv` returned `cancellationGroundsPublished: true` (violation year 2025), `isDeregistered: true` with its deletion date, registration date and type filled; the debtor check without the comma before `s.r.o.` found the record through the comma variant with its arrears amount; all nine published accounts of that IČ DPH were returned (`sourceTotal` 9); due diligence returned `findings` (`vat_cancellation_grounds_published`, `tax_debtor`) with the warning `vat_previously_deleted` and no incomplete section. Every result carried `listUpdateDates`.
+
+Pending before merge: the Codex plugin-creator validator and isolated Git-marketplace install/update/rollback acceptance. After approval, fast-forward `codex/rollout-fix-fs` in the source repository to the recorded commit before merging this pull request.
+
+Tests establish behavior for the captured row shapes and selected cases. They do not establish legal meaning, for example whether published cancellation grounds or a non-VAT-payer status is a risk for a given transaction.
