@@ -37,9 +37,12 @@ Keď máš názov a nie IČO, netreba dva kroky — `*_by_query` nástroje si su
 dohľadajú samy.
 
 1. **Na zmluvu:** `orsr_get_company_data` s úrovňou `basic`. Vráti presne to,
-   čo patrí do záhlavia, bez balastu.
-2. **Na preverenie:** `orsr_get_company_profile` — konatelia, spoločníci,
-   podiely a spôsob konania naraz.
+   čo patrí do záhlavia, vrátane základného imania (`equityCurrent`) a stavu
+   subjektu. Najprv skontroluj `subject.terminated` — vymazaný subjekt zmluvu
+   neuzavrie.
+2. **Na preverenie:** `orsr_get_company_profile` — stav, imanie, konatelia,
+   spoločníci, vklady a spôsob konania naraz. Odkedy niekto funkciu vykonáva,
+   ber z `functionCreationDate`, nie z `od`.
 3. **Keď treba históriu:** `orsr_get_extract_full`, nie `orsr_get_extract`.
    Základný výpis historické údaje neobsahuje.
 4. **Keď hľadáš:** `orsr_search_entities`, prípadne `orsr_lookup_legal_person`
@@ -47,10 +50,24 @@ dohľadajú samy.
 
 ## Pasce
 
-- **ORSR web je citlivý na diakritiku a právnu formu.** Ak názov nezaberie,
+- **ORSR je citlivé na diakritiku a právnu formu.** Ak názov nezaberie,
   použi IČO alebo spisovú značku — sú spoľahlivejšie.
-- **Server parsuje verejný web bez oficiálneho API.** Ak ORSR zmení štruktúru
-  stránky, parsovanie môže dočasne vypadnúť — skús neskôr.
+- **`od`/`do` pri osobách nie je trvanie funkcie.** Je to obdobie zápisu
+  v registri (zápis a výmaz). Vznik a skončenie funkcie sú vo
+  `functionCreationDate`/`functionTerminationDate`; `null` znamená, že register
+  údaj neuvádza — nedopĺňaj ho z `od`. Skončenie funkcie nesie výmazový záznam
+  (`registryDeletionRecord: true`, `od` je po `do` zámerne).
+- **Vymazaný subjekt.** `subject.terminated: true` a `terminationDate`;
+  `nameCurrent`/`addressCurrent` sú vtedy `null`, posledný stav je
+  v `nameLastRegistered`/`addressLastRegistered`, dôvod v `legalStatusEvents`
+  (napr. zánik zlúčením). `*_by_query` hľadá vymazané subjekty až vtedy, keď
+  medzi aktívnymi nič nenájde; `NOT_FOUND` s `searched_including_terminated: true`
+  znamená, že ORSR subjekt neeviduje ani medzi vymazanými.
+- **Podiely nie sú konečné vlastníctvo.** `ownership.contributions` sú podiely
+  na upísaných vkladoch (`value`, splatené v `paidValue`); `coOwned` je vklad
+  v spoluvlastníctve. Konečného užívateľa výhod hľadaj v RPVS.
+- **Server číta JSON API `sluzby.orsr.sk`.** Pri odstávke vráti ORSR HTML
+  namiesto dát — server to hlási ako chybu upstreamu, skús neskôr.
 - **Spôsob konania rozhoduje o platnosti podpisu.** Samotný zoznam konateľov
   nestačí; prečítaj aj to, ako konajú.
 - **Zápis má dátum.** Pri spore o staršiu skutkovú situáciu potrebuješ stav
