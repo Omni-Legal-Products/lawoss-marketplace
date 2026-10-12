@@ -23,26 +23,29 @@ export function createFsMcpServer(options = {}) {
     };
     const server = new McpServer({
         name: "fs-opendata-mcp",
-        version: "0.2.0",
+        version: "0.2.1",
     });
     server.registerTool("fs_vat_status", {
         title: "FS VAT Status",
-        description: "Overí stav platiteľa DPH v zoznamoch Finančnej správy SR podľa IČ DPH (SK + 10 číslic) a/alebo IČO (8 číslic). " +
-            "Vráti registráciu (ds_dphs) aj vymazané/zrušené registrácie (ds_dphv/ds_dphz). " +
+        description: "Overí stav platiteľa DPH v zoznamoch Finančnej správy SR podľa IČ DPH (SK + 10 číslic) a/alebo IČO (8 číslic vrátane úvodných núl). " +
+            "isVatPayer = zoznam registrovaných (ds_dphs). isDeregistered/deregistered = iba zoznam vymazaných platiteľov (ds_dphv); null = ds_dphv sa nedal dopytovať (pozri unverifiedLists). " +
+            "cancellationGroundsPublished/cancellationGrounds = zoznam platiteľov, u ktorých nastali dôvody na zrušenie registrácie (ds_dphz) — stále registrovaní, nejde o zrušenú registráciu. " +
+            "validity.listUpdateDates uvádza dátum aktualizácie zoznamov. " +
             "Index daňovej spoľahlivosti sa v zoznamoch DPH nevracia — je v samostatnom zozname ds_iz_ran; " +
             "získaj ho cez fs_tax_reliability_index alebo fs_full_due_diligence, ktorý ho doplní.",
         inputSchema: vatStatusInputSchema,
     }, async (args) => invoke("fs_vat_status", () => client.getVatStatus(args)));
     server.registerTool("fs_tax_debtor_check", {
         title: "FS Tax Debtor Check",
-        description: "Overí, či je subjekt v zozname daňových dlžníkov Finančnej správy SR (ds_dsdd) podľa názvu subjektu. " +
-            "Aktuálne FS API pre ds_dsdd zverejňuje ako searchable iba nazov_subjektu; samotné IČO nestačí. " +
-            "Prázdny výsledok = subjekt NIE je dlžník (čistý výsledok).",
+        description: "Overí, či je subjekt v zozname daňových dlžníkov Finančnej správy SR (ds_dsdd). " +
+            "Zdroj hľadá iba presnou zhodou celého názvu a zoznam neobsahuje IČO; nástroj pošle aj variant s čiarkou/bez čiarky pred právnou formou (searchedNames) " +
+            "a pri samotnom IČO si názov zistí z ds_dsrdp/ds_dphs/ds_iz_ran. " +
+            "isDebtor false znamená iba, že presne tieto názvy v zozname nie sú — nie potvrdenie bezdlžnosti. arrearsAmount = suma nedoplatkov (ciastka).",
         inputSchema: taxDebtorInputSchema,
     }, async (args) => invoke("fs_tax_debtor_check", () => client.checkTaxDebtor(args)));
     server.registerTool("fs_list_metadata", {
         title: "FS List Metadata",
-        description: "Vráti verejné metadata Information Lists API Finančnej správy SR vrátane slugov a searchable stĺpcov. Nevypisuje API kľúč.",
+        description: "Vráti verejné metadata Information Lists API Finančnej správy SR vrátane slugov, searchable stĺpcov a updateDate zoznamov. Nevypisuje API kľúč.",
         inputSchema: {},
     }, async () => invoke("fs_list_metadata", () => client.listDatasets()));
     server.registerTool("fs_vat_bank_accounts", {
