@@ -25,6 +25,18 @@ python3 "$CODEX_HOME/skills/.system/plugin-creator/scripts/validate_plugin.py" "
 
 These checks are an explicit local release gate. The hosted workflow does not install unreviewed validator packages or replace this prerequisite.
 
+Current Codex releases no longer ship that script: Codex CLI 0.159.3 has no plugin validation command and the curated `plugin-creator` plugin 0.1.26 contains only skills. Where the script is absent, the Codex gate is an actual install in an isolated profile. It installs the plugin from `main`, updates it to the release branch, starts the installed runtime and rolls it back. Record in the plugin's acceptance note which of the two Codex gates ran.
+
+```bash
+export CODEX_HOME="$(mktemp -d)" LAWOSS_CACHE_DIR="$(mktemp -d)"
+codex plugin marketplace add https://github.com/Omni-Legal-Products/lawoss-marketplace.git --ref main
+codex plugin add "$PLUGIN@lawoss"
+# set ref = "<release branch>" under [marketplaces.lawoss] in $CODEX_HOME/config.toml
+python3 scripts/update_plugins.py --marketplace lawoss --apply   # expect: updated <old> -> <new>
+# start $CODEX_HOME/plugins/cache/lawoss/$PLUGIN/<new>/scripts/run.mjs mcp over stdio and call one tool
+# set ref back to "main" and run the updater again             # expect: updated <new> -> <old>
+```
+
 After source tests, packaging, catalog validation, and local launcher checks pass, the workflow uploads the complete candidate and pushes a release branch. Its summary links to a branch comparison. It does not open or merge a pull request. A reviewer must inspect the comparison, complete platform install/update/rollback acceptance, and decide whether to open a pull request under the organization release policy.
 
 The former CRZ-only release path (`release_crz.py`, `package_crz.py` and the **Prepare CRZ release** workflow) was removed in CRZ 1.4.3 because it produced a runtime without `runtime-config.json` and with a different launcher. The workflow does not publish a repository, deploy a gateway, change authentication, or transfer operator credentials and state.
