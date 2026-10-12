@@ -65,8 +65,7 @@ Errors:
             `*Window: chars ${offset_chars}–${offset_chars + result.content.length} of ${result.totalChars}*`,
             `*MCP_WINDOW_COMPLETE: ${result.complete}*`,
             result.nextOffset !== undefined ? `*MCP_NEXT_OFFSET: ${result.nextOffset}*` : "",
-            "",
-        ].filter(Boolean).join("\n");
+        ].filter(Boolean).join("\n") + "\n\n";
         return {
             content: [{ type: "text", text: header + result.content }],
         };
@@ -85,9 +84,13 @@ Args:
 
 Returns:
   - filePath: absolute path to the saved file
-  - format: the saved format
+  - format: the requested format
   - sizeBytes: file size in bytes
   - celexNumber: normalized CELEX number
+  - manifestationType: the CELLAR manifestation exported (e.g. "pdfa1a", "pdf", "xhtml", "fmx4")
+  - sourceUrl: the CELLAR content stream that was downloaded
+
+The best available manifestation is chosen (PDF/A before plain PDF; XHTML before HTML). XML is the official Formex 4 package, which is multi-file, so it is saved as a .zip archive.
 
 Examples:
   - Export GDPR in Slovak as PDF: celex="32016R0679", lang="sk", format="pdf"
@@ -122,7 +125,9 @@ Errors:
             `**Format:** ${result.format.toUpperCase()}`,
             `**File:** \`${result.filePath}\``,
             `**Size:** ${sizeKB} KB`,
-        ].join("\n");
+            result.manifestationType ? `**Source manifestation:** ${result.manifestationType} (${result.sourceUrl})` : "",
+            result.note ? `**Note:** ${result.note}` : "",
+        ].filter(Boolean).join("\n");
         return {
             content: [{ type: "text", text }],
             structuredContent: result,
@@ -249,25 +254,26 @@ Errors:
         title: "Compare Two Document Versions or Language Editions",
         description: `Compare two EU legal documents — either different versions of the same act or the same act in different languages.
 
-Useful for: identifying differences between an original act and its amendment, comparing Slovak and English texts for interpretation, or comparing pre- and post-amendment versions.
+Useful for: identifying differences between an original act and a consolidated version, or reading Slovak and English texts side by side.
 
 Args:
   - celex_a (string): CELEX number of the first document
   - lang_a (string): Language for document A (default: "en")
   - celex_b (string): CELEX number of the second document (same or different CELEX)
   - lang_b (string): Language for document B (default: "sk")
-  - max_chars (number): Maximum chars from each document to compare (default: 10000)
+  - max_chars (number): Characters compared from the start of each document (default: 10000, max: 20000)
 
 Returns:
-  Side-by-side comparison showing excerpts from both documents. For detailed differences, use eurlex_document_get on each document separately.
+  - Same language: a line-level diff of the first max_chars characters of each document (only changed lines with context), plus counts.
+  - Different languages: no automatic diff (it would be meaningless); both windows are shown in full for side-by-side reading.
+  Each document states how many characters were compared and whether it was truncated.
 
 Examples:
-  - Compare GDPR in EN vs SK: celex_a="32016R0679", lang_a="en", celex_b="32016R0679", lang_b="sk"
-  - Compare original vs amendment: celex_a="31993L0013", celex_b="32011L0083", lang_a="en", lang_b="en"
+  - Original vs consolidated text: celex_a="31993L0013", celex_b="01993L0013-20220528", lang_a="en", lang_b="en"
+  - GDPR in EN vs SK: celex_a="32016R0679", lang_a="en", celex_b="32016R0679", lang_b="sk"
 
 Notes:
-  - Full diff analysis requires reading both documents completely with eurlex_document_get
-  - This tool shows a structured excerpt comparison`,
+  - Only the compared windows are covered; for long acts use eurlex_document_find or eurlex_document_get with offsets for specific provisions`,
         inputSchema: z.object({
             celex_a: z.string().min(6).describe("First document CELEX (e.g., '32016R0679')"),
             lang_a: langSchema,
@@ -306,7 +312,7 @@ Args:
   - response_format ("markdown" | "json"): Output format (default: "markdown")
 
 Returns:
-  - matchCount: total occurrences in the document
+  - matchCount: occurrences in the document (counting stops at 200; matchCountCapped=true means there are more)
   - matches[]: each with position (char offset), lineNumber, excerpt (context window around match)
   - truncated: true if more matches exist than max_matches
 
@@ -348,7 +354,7 @@ Errors:
         const lines = [
             `## Search: "${query}" in ${normalized} (${lang.toUpperCase()})`,
             `*Document size: ${result.totalChars.toLocaleString()} chars*`,
-            `*Matches found: ${result.matchCount}${result.truncated ? ` (showing first ${max_matches})` : ""}*`,
+            `*Matches found: ${result.matchCountCapped ? `more than ${result.matchCount} (counting stops at ${result.matchCount})` : result.matchCount}${result.truncated ? ` (showing first ${max_matches})` : ""}*`,
             "",
         ];
         if (result.matchCount === 0) {
@@ -367,7 +373,7 @@ Errors:
                 lines.push("");
             }
             if (result.truncated) {
-                lines.push(`*${result.matchCount - max_matches} more match(es) — increase max_matches or refine query.*`);
+                lines.push(`*${result.matchCountCapped ? "Many" : result.matchCount - max_matches} more match(es) — increase max_matches or refine query.*`);
             }
         }
         return {

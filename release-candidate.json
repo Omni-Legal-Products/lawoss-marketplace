@@ -1,8 +1,8 @@
 {
-  "plugin": "slovlex",
-  "plugin_version": "1.1.2",
-  "catalog_commit": "350bf90bc087c79d2c08dfb362925863f6e4b678",
-  "source_repository": "Omni-Legal-Products/mcp-slovlex",
-  "source_commit": "3a7686c07e904315c0ed9f1d2fe0ea4b482f5bad",
-  "runtime_manifest_sha256": "8ba7027cefbf413b4e272d3d84a2c8eba42dc9d35ef7af5804053778259a2753"
+  "plugin": "eurlex-celex",
+  "plugin_version": "1.2.0",
+  "catalog_commit": "330d6e056fb832c0c58f5be93c36b5d563bae174",
+  "source_repository": "Omni-Legal-Products/mcp-eurlex",
+  "source_commit": "3c397229e0615e1d8c80a554c37ed7e07fd6c5a6",
+  "runtime_manifest_sha256": "202448d3a5f5e1694ea87c6194a90590d0d228f8be1b437a4ec8e308abb2da80"
 }

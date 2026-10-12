@@ -44,6 +44,7 @@ export const CELEX_SECTORS = {
     "E": "EFTA documents",
 };
 // Document type codes — Sector 3 / 0 (Acts of institutions & Consolidated)
+// Verified against CELLAR cdm:work_has_resource-type (dominant resource type per code, 2026-10).
 export const CELEX_ACT_TYPES = {
     "R": "Regulation",
     "L": "Directive",
@@ -52,19 +53,21 @@ export const CELEX_ACT_TYPES = {
     "F": "Framework Decision",
     "G": "Resolution",
     "B": "Budget",
-    "Q": "Rules of Procedure",
-    "S": "ECSC Recommendation",
-    "K": "ECSC Decision",
-    "A": "Internal Agreement",
+    "Q": "Rules of procedure / internal arrangement",
+    "S": "ECSC Decision",
+    "K": "ECSC Recommendation",
+    "A": "Opinion",
     "M": "Non-opposition to notified concentration",
     "X": "Other act",
-    "C": "Communication",
-    "E": "Council common position",
+    "C": "Declaration",
+    "E": "CFSP act (common position, joint action, common strategy)",
     "I": "Interinstitutional Agreement",
-    "J": "Opinion of an institution",
+    "J": "Decision (sui generis)",
     "N": "Action plan",
+    "O": "ECB Guideline",
     "P": "Codecision procedure common position",
-    "PC": "Proposal (Commission)",
+    "Y": "Other document published in the OJ C series",
+    "PC": "Commission proposal (COM)",
     "DC": "Commission document (COM)",
     "SC": "Commission staff working document (SWD)",
     "AC": "Act adopted under codecision",
@@ -104,7 +107,7 @@ export const CELEX_CASE_LAW_TYPES = {
 };
 // Document type codes — Sector 5 (Preparatory acts)
 export const CELEX_PREP_TYPES = {
-    "PC": "Proposal for Council act",
+    "PC": "Commission proposal (COM) — legislative or non-legislative",
     "SC": "Commission staff working document",
     "DC": "Commission document",
     "AC": "Act adopted under codecision",
