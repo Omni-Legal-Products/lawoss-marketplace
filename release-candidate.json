@@ -1,8 +1,8 @@
 {
-  "plugin": "rpvs",
+  "plugin": "kalkulacky",
   "plugin_version": "1.2.0",
-  "catalog_commit": "b0a77a1f9a27e35ee4e08eb412ef88571257bbbe",
-  "source_repository": "Omni-Legal-Products/mcp-rpvs",
-  "source_commit": "ef900abda5dd3dca2c3991c62df87b8bcc5b1cde",
-  "runtime_manifest_sha256": "0a2b7451b3aacad28ece1ade5ea62a3a01c9ad456844bc580761633e5779061c"
+  "catalog_commit": "d76ae091d2754603384b15503b92becec2ef6096",
+  "source_repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
+  "source_commit": "5ff45d0d03887bd3a166f80f40635a508a2d1a3f",
+  "runtime_manifest_sha256": "da8d1ad6f32d6433de610ec0779f17ba2fdcb1043784fdbdea4198e1a8dd00d3"
 }
