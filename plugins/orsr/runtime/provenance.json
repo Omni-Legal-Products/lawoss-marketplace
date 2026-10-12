@@ -1,16 +1,16 @@
 {
   "repository": "Omni-Legal-Products/mcp-orsr",
-  "commit": "e2901bea9baaf574d5a834256d918604717a7dca",
+  "commit": "d31637dd2ad4a5e8b14ef1ab202663f08acddedb",
   "configSha256": "78277f9ca079bf65a9b9c50c384786e3e4f4ad9cf82d926dcf2a2ae7e5ca6730",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
-    "dist/company-profile.js": "afe93a53566b29faa5f6783ebbb72b6a2f76e51aaade5cff4f123610dfb8939d",
-    "dist/mcp-server.js": "5f339780eac670284a20c79577e13f4b3891f4a0068c759e6cf346597c5088f0",
-    "dist/orsr-client.js": "bbd82d6fb29d9684896b4c20dade3a89d181bd739749a831b69f736c6dbe1f8c",
+    "dist/company-profile.js": "7fae537c99085ba608594e2f18efc6d0e6dbf4cb766735ec407de9d44c829b24",
+    "dist/mcp-server.js": "5fe87675bced3984b9a25f202056de1a7c55ac208bcfc12055798d035d6e7c01",
+    "dist/orsr-client.js": "9b85a42c66a20c29f6da9253bfec596240c5a277ff375356a3dac084bdd32db3",
     "dist/redaction.js": "a17ec4fa5ade54a2f9b7b031d944e03eef0f9b0844c294ab575d544e914edce0",
     "dist/scalars.js": "03d40fd57b6002a6ae030b6ef66b255fe82cb070d084b7ea364bc03e62b54342",
     "dist/server.js": "2545bd86eb1430ab513c4ff2318ca5e0867a854d6abe09ba8e231723682c1212",
-    "package-lock.json": "a25355f745e3589946e6f5894f482a733398d807fc8f6a09c60223531bccad8b",
-    "package.json": "b062b7dcca26cca88b2893ba9d532042681afe6f690d3767563db05080761c71"
+    "package-lock.json": "db96ee7f1b2d2f69f886d5eb713a2fe82231ff21de249456e375a84a281c86f3",
+    "package.json": "7db2cffb0a6c5bc31d1728e45c478dfea673434f997e9f61bdd7afccfd2fb457"
   }
 }

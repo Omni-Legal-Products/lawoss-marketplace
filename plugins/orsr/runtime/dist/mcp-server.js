@@ -8,7 +8,7 @@ export function createOrsrMcpServer() {
     const client = new OrsrClient();
     const server = new McpServer({
         name: "orsr-mcp",
-        version: "0.1.0",
+        version: "1.2.0",
     });
     /**
      * Nine of the thirteen tools had no error handling, so an upstream failure
@@ -128,7 +128,8 @@ export function createOrsrMcpServer() {
     }, guard("orsr_codelist_get", async (args) => client.getCodelist(args.codelistCode)));
     server.registerTool("orsr_get_company_profile", {
         title: "ORSR Company Profile",
-        description: "Strukturovany profil subjektu: historicki/aktualni konatelia, spolocnici, podiely, akcie, sposob konania, uctovne zavierky, indikatory fuzie/nastupnictva.",
+        description: "Strukturovany profil subjektu: stav (aj likvidacia, vymaz/zanik), zakladne imanie, historicki/aktualni konatelia, spolocnici, vklady, akcie, sposob konania, uctovne zavierky, indikatory fuzie/nastupnictva. " +
+            "Pri osobach su od/do datumy zapisu v registri; vznik a skoncenie funkcie su vo functionCreationDate/functionTerminationDate.",
         inputSchema: fileReferenceSchema,
     }, async (args) => {
         try {
@@ -145,25 +146,19 @@ export function createOrsrMcpServer() {
     });
     server.registerTool("orsr_get_company_profile_by_query", {
         title: "ORSR Company Profile By Query",
-        description: "Vyhlada subjekt podla nazvu/ICO a vrati strukturovany profil s detailmi konatelov, spolocnikov, podielov, sposobu konania a udalosti.",
+        description: "Vyhlada subjekt podla nazvu/ICO (najprv medzi aktivnymi, ak nic, aj medzi vymazanymi) a vrati strukturovany profil ako orsr_get_company_profile. " +
+            "Viac zhod = AMBIGUOUS s kandidatmi; NOT_FOUND az po hladani vratane vymazanych.",
         inputSchema: {
             query: z.string().min(1),
         },
     }, async (args) => {
         try {
-            const search = (await client.searchLegalPersons({
-                take: 20,
-                sortDirection: "Ascending",
-                sortFieldName: "CorporateBodyFullName",
-                filters: {
-                    corporateBodyFullNameOrRegistrationNumber: args.query,
-                },
-            }));
-            const resolved = resolveCompanySearchResult(args.query, Array.isArray(search?.data) ? search.data : []);
+            const resolved = await findCompany(client, args.query);
             if (resolved.kind !== "selected") {
                 return toTextResult({
                     query: "[REDACTED]",
                     error_code: resolved.kind === "ambiguous" ? "AMBIGUOUS" : "NOT_FOUND",
+                    searched_including_terminated: resolved.searchedIncludingTerminated,
                     ...(resolved.kind === "ambiguous" ? {
                         candidates: resolved.candidates,
                         candidates_truncated: resolved.candidates_truncated,
@@ -193,7 +188,9 @@ export function createOrsrMcpServer() {
     });
     server.registerTool("orsr_get_company_data", {
         title: "ORSR Company Data",
-        description: "Vrati data firmy v dvoch urovniach: basic (predvolene, pre zmluvy) alebo deep (hlbsi resers).",
+        description: "Vrati data firmy v dvoch urovniach: basic (predvolene, pre zmluvy: stav, sidlo, zakladne imanie, aktualni statutari a spolocnici) alebo deep (profil ako orsr_get_company_profile). " +
+            "od/do su datumy zapisu v registri, vznik/skoncenie funkcie su vo functionCreationDate/functionTerminationDate. " +
+            "normalizeDates iba oznaci vymazove zaznamy (od > do), datumy nemeni.",
         inputSchema: {
             ...fileReferenceSchema,
             level: z.enum(["basic", "deep"]).optional(),
@@ -222,7 +219,7 @@ export function createOrsrMcpServer() {
     });
     server.registerTool("orsr_get_company_data_by_query", {
         title: "ORSR Company Data By Query",
-        description: "Najde firmu podla nazvu/ICO a vrati basic (default) alebo deep data podla level.",
+        description: "Najde firmu podla nazvu/ICO (najprv medzi aktivnymi, ak nic, aj medzi vymazanymi) a vrati basic (default) alebo deep data ako orsr_get_company_data.",
         inputSchema: {
             query: z.string().min(1),
             level: z.enum(["basic", "deep"]).optional(),
@@ -232,20 +229,13 @@ export function createOrsrMcpServer() {
         try {
             const level = args.level ?? "basic";
             const options = pickOutputOptions(args);
-            const search = (await client.searchLegalPersons({
-                take: 20,
-                sortDirection: "Ascending",
-                sortFieldName: "CorporateBodyFullName",
-                filters: {
-                    corporateBodyFullNameOrRegistrationNumber: args.query,
-                },
-            }));
-            const resolved = resolveCompanySearchResult(args.query, Array.isArray(search?.data) ? search.data : []);
+            const resolved = await findCompany(client, args.query);
             if (resolved.kind !== "selected") {
                 return toTextResult({
                     query: "[REDACTED]",
                     level,
                     error_code: resolved.kind === "ambiguous" ? "AMBIGUOUS" : "NOT_FOUND",
+                    searched_including_terminated: resolved.searchedIncludingTerminated,
                     ...(resolved.kind === "ambiguous" ? {
                         candidates: resolved.candidates,
                         candidates_truncated: resolved.candidates_truncated,
@@ -378,24 +368,60 @@ export function formatToolError(operation, error, input) {
     };
 }
 const AMBIGUITY_LIMIT = 20;
-export function resolveCompanySearchResult(query, items) {
+/**
+ * `totalMatches` is the upstream filteredCount; when it exceeds the rows we
+ * received, matches beyond the first page exist and the candidates are truncated.
+ */
+export function resolveCompanySearchResult(query, items, totalMatches) {
     const candidates = items.filter(hasFileReference);
     if (candidates.length === 0)
         return { kind: "not_found" };
+    const moreUpstream = typeof totalMatches === "number" && totalMatches > items.length;
     const normalizedQuery = normalizeIcoQuery(query);
     if (normalizedQuery && /^\d{8}$/.test(normalizedQuery)) {
         const exact = candidates.filter((item) => normalizeIcoQuery(item?.registrationNumber) === normalizedQuery);
-        return exact.length === 1 ? { kind: "selected", item: exact[0] } : exact.length > 1 ? ambiguity(exact) : { kind: "not_found" };
+        return exact.length === 1
+            ? { kind: "selected", item: exact[0] }
+            : exact.length > 1
+                ? ambiguity(exact, moreUpstream)
+                : { kind: "not_found" };
     }
-    return candidates.length === 1 ? { kind: "selected", item: candidates[0] } : ambiguity(candidates);
+    return candidates.length === 1 ? { kind: "selected", item: candidates[0] } : ambiguity(candidates, moreUpstream);
 }
-function ambiguity(items) {
+function ambiguity(items, moreUpstream = false) {
     return {
         kind: "ambiguous",
         candidates: items.slice(0, AMBIGUITY_LIMIT).map(candidateSummary),
-        candidates_truncated: true,
+        candidates_truncated: moreUpstream || items.length > AMBIGUITY_LIMIT,
         limit: AMBIGUITY_LIMIT,
     };
+}
+/**
+ * The register search omits deleted subjects unless asked, so an IČO of a
+ * company deleted after a merger came back NOT_FOUND although ORSR holds it.
+ * Active subjects are searched first so a name query is not flooded with
+ * long-deleted namesakes; deleted ones are searched only when nothing active matches.
+ */
+async function findCompany(client, query) {
+    const search = async (includeTerminated) => {
+        const result = (await client.searchLegalPersons({
+            take: AMBIGUITY_LIMIT,
+            sortDirection: "Ascending",
+            sortFieldName: "CorporateBodyFullName",
+            filters: {
+                corporateBodyFullNameOrRegistrationNumber: query,
+                ...(includeTerminated ? { includeTerminated: true } : {}),
+            },
+        }));
+        const rows = Array.isArray(result?.data) ? result.data : [];
+        const total = typeof result?.filteredCount === "number" ? result.filteredCount : undefined;
+        return resolveCompanySearchResult(query, rows, total);
+    };
+    const active = await search(false);
+    if (active.kind !== "not_found") {
+        return { ...active, searchedIncludingTerminated: false };
+    }
+    return { ...(await search(true)), searchedIncludingTerminated: true };
 }
 function candidateSummary(item) {
     return { corporateBodyFullName: item?.corporateBodyFullName ?? null, registrationNumber: item?.registrationNumber ?? null, fileReference: item?.fileReference ?? null };
@@ -466,10 +492,16 @@ export function applyOutputOptions(payload, options, level) {
     }
     return out;
 }
+/**
+ * Upstream type codes are words ("Spolocnik", "Akcionar", "Nastupca", ...);
+ * the numeric "2" is kept for older payloads. A joint-stock company's sole
+ * shareholder ("Akcionar") is a stakeholder in the ownership sense too.
+ */
 function isShareholderStakeholder(item) {
-    const code = String(item?.typeCode ?? "").trim();
-    const name = String(item?.type ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    return code === "2" || name === "spolocnik";
+    const norm = (v) => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const code = norm(item?.typeCode);
+    const name = norm(item?.type);
+    return code === "2" || ["spolocnik", "akcionar"].includes(code) || ["spolocnik", "akcionar"].includes(name);
 }
 function normalizeDateAnomalies(payload) {
     const walk = (node) => {
@@ -483,12 +515,14 @@ function normalizeDateAnomalies(payload) {
         for (const [k, v] of Object.entries(node)) {
             next[k] = walk(v);
         }
+        // od > do is not an anomaly: it is how the register records a removal
+        // (od = day after removal, do = day of removal). Nulling `do` made ended
+        // functions look open-ended, so the record is only labelled, never rewritten.
         if (typeof next.od === "string" && typeof next.do === "string") {
             const odTs = Date.parse(next.od);
             const doTs = Date.parse(next.do);
             if (Number.isFinite(odTs) && Number.isFinite(doTs) && odTs > doTs) {
-                next.do = null;
-                next._dateNormalized = true;
+                next.registryDeletionRecord = true;
             }
         }
         return next;

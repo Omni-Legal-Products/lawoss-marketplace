@@ -1,8 +1,8 @@
 {
-  "plugin": "crz",
-  "plugin_version": "1.5.0",
-  "catalog_commit": "0fe5e3fd3aab141474b8884e36858d91ba0ac0d5",
-  "source_repository": "Omni-Legal-Products/mcp-crz",
-  "source_commit": "d733296b3b22abdf3650e6c152accd11657e5e60",
-  "runtime_manifest_sha256": "8de3b96f3dda739ac2c729e559327c397d90db79db671f39fbea9dadef11dcdd"
+  "plugin": "orsr",
+  "plugin_version": "1.2.0",
+  "catalog_commit": "3a7259cf959ce3329d51d59b2620c8ecb71c22b6",
+  "source_repository": "Omni-Legal-Products/mcp-orsr",
+  "source_commit": "d31637dd2ad4a5e8b14ef1ab202663f08acddedb",
+  "runtime_manifest_sha256": "d57d1af53222c09bc0cf5b2c0ade140db6090ecfcebbb655ca73cdc6903a0af3"
 }
