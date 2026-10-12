@@ -1,8 +1,8 @@
 {
-  "plugin": "ruz",
-  "plugin_version": "1.3.0",
-  "catalog_commit": "92621eac49625702636100d3cc54e2eb29443f88",
-  "source_repository": "Omni-Legal-Products/mcp-ruz",
-  "source_commit": "629e917b0db60fdc83f478cc40f42b1d591485bf",
-  "runtime_manifest_sha256": "fe085da7ddd2bd80a401941ad2c7522e236919c91dc1a585853cbd5e23b8f951"
+  "plugin": "ru",
+  "plugin_version": "1.2.0",
+  "catalog_commit": "2a00995cc4808a60d5d02408a1eed698c03e52ea",
+  "source_repository": "Omni-Legal-Products/mcp-register-upadcov",
+  "source_commit": "fa3233cbd9414230b0ac076c09b4e40d322e2668",
+  "runtime_manifest_sha256": "f4935138b80c6c55d8de68ae4bfcb3424bbebb1847fda09c30a96ed7861108ad"
 }

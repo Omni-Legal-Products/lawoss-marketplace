@@ -37,6 +37,24 @@ export class McpToolInvocationGate {
     }
 }
 /**
+ * Ask the register twice — "Len prebiehajúce" and "Len neprebiehajúce" — so
+ * every returned proceeding carries the source's own ongoing/finished
+ * classification. Together the two filters cover the source's "Všetky"; the
+ * release used to inherit the form default (ongoing only) and returned a
+ * "validated" zero for debtors whose proceedings had ended.
+ */
+export async function mergeGetByIcoSearches(client, ico) {
+    const ongoing = await client.search({ query: ico, pageSize: GET_BY_ICO_PAGE_SIZE, zobrazKonania: "prebiehajuce" });
+    const finished = await client.search({ query: ico, pageSize: GET_BY_ICO_PAGE_SIZE, zobrazKonania: "ukoncene" });
+    return {
+        results: [...ongoing.results, ...finished.results],
+        pocetVysledkov: ongoing.pocetVysledkov === null || finished.pocetVysledkov === null
+            ? null
+            : ongoing.pocetVysledkov + finished.pocetVysledkov,
+        hasMore: ongoing.hasMore || finished.hasMore,
+    };
+}
+/**
  * Shape the ru_get_by_ico payload.
  *
  * `count` must describe the proceedings actually returned. It used to read
@@ -44,6 +62,9 @@ export class McpToolInvocationGate {
  * was null and `count` fell back to 0 — a company in konkurz reported
  * `count: 0` alongside a non-empty `konania`, and a caller trusting `count`
  * would clear a debtor that is demonstrably in bankruptcy.
+ *
+ * `sourceValidated: true` holds because RuClient.search throws unless every
+ * fetched page carried a result total or the explicit "Nenašli sa…" answer.
  */
 export function shapeGetByIcoResult(ico, result) {
     if (!/^[0-9]{8}$/.test(ico))
@@ -51,33 +72,39 @@ export function shapeGetByIcoResult(ico, result) {
     const returned = result.results ?? [];
     const exactMatches = returned.filter((row) => (row.ico ?? "").replace(/\s+/g, "") === ico);
     const nonExactMatches = returned.filter((row) => (row.ico ?? "").replace(/\s+/g, "") !== ico);
-    const sourceTotal = "pocetVysledkov" in result ? result.pocetVysledkov ?? null : null;
+    const sourceTotal = result.pocetVysledkov ?? null;
     return {
         ok: true,
         ico,
         count: exactMatches.length,
+        countPrebiehajuce: exactMatches.filter((row) => row.prebiehajuce === true).length,
         returnedCount: returned.length,
         exactMatches,
         nonExactMatches,
         konania: exactMatches,
         sourceValidated: true,
         sourceTotal,
-        truncated: sourceTotal !== null && sourceTotal > returned.length,
+        truncated: result.hasMore === true || (sourceTotal !== null && sourceTotal > returned.length),
     };
 }
 export function createRuMcpServer(client = new RuClient(), options = {}) {
     const invocationGate = options.invocationGate ?? new McpToolInvocationGate();
     const server = new McpServer({
         name: "register-upadcov-mcp",
-        version: "0.1.0",
+        version: "0.2.0",
     });
     server.registerTool("ru_search", {
         title: "RU Search",
-        description: "Vyhľadanie insolvenčných / konkurzných / oddlženie konaní v Registri úpadcov (REPLIK, MS SR) podľa mena dlžníka, obchodného mena, IČO alebo spisovej značky. " +
-            "Vracia objekt s poľami `query`, `pocetVysledkov`, `page`, `pageSize` a `results`. " +
+        description: "Vyhľadanie konkurzných, reštrukturalizačných, oddlžovacích a likvidačných konaní v Registri úpadcov (REPLIK, MS SR) podľa mena dlžníka, obchodného mena, IČO alebo spisovej značky. " +
+            "Predvolene (`zobrazKonania` \"all\") vracia prebiehajúce AJ skončené, zastavené, zrušené či postúpené konania; " +
+            "\"prebiehajuce\" / \"ukoncene\" výsledok obmedzí. " +
+            "Vracia objekt s poľami `query`, `zobrazKonania`, `pocetVysledkov`, `page`, `pageSize`, `hasMore` a `results`. " +
+            "`pocetVysledkov` je celkový počet podľa registra (0 len ak register odpovedal „Nenašli sa…“). " +
             "Každý riadok `results` obsahuje iba `konanieId`, `debtorName`, `birthDate`, `ico`, `subjectType`, " +
-            "`proceedingType`, `spisovaZnacka`, `spravca` a `detailUrl`. " +
-            "Stránkovanie je nulované od nuly (`page` 0 je prvá strana; predvolený `pageSize` je 15). " +
+            "`proceedingType`, `spisovaZnacka`, `stav`, `stavDatum`, `sud`, `poslednyOznamVo`, `spravca`, `likvidator`, " +
+            "`prebiehajuce` a `detailUrl`. `stav` je aktuálny stav podľa registra; `prebiehajuce` je true/false pri filtri " +
+            "\"prebiehajuce\"/\"ukoncene\", pri \"all\" null. `subjectType` v riadku je odhad (FO/FOP/PO), záväzný je ru_get_case. " +
+            "Stránkovanie je nulované od nuly (`page` 0 je prvá strana; predvolený `pageSize` je 15, max. 100). " +
             "Pole `konanieId` použi v ru_get_case na získanie detailu konania.",
         inputSchema: ruSearchInputSchema,
     }, async (args) => {
@@ -86,6 +113,7 @@ export function createRuMcpServer(client = new RuClient(), options = {}) {
                 query: args.query,
                 page: args.page,
                 pageSize: args.pageSize,
+                zobrazKonania: args.zobrazKonania,
             })));
         }
         catch (error) {
@@ -95,9 +123,10 @@ export function createRuMcpServer(client = new RuClient(), options = {}) {
     server.registerTool("ru_get_case", {
         title: "RU Case Detail",
         description: "Detail jedného konania podľa `konanieId` z výsledku ru_search. " +
-            "Vracia iba top-level polia `konanieId`, `spisovaZnacka`, `typKonania`, `subjectType`, `upadca`, `sud`, " +
-            "`odvolaciSud`, `sudca`, `spravca`, `stavKonania`, `historiaStavov`, `poslednyVerejnyOznam`, " +
-            "`navrhovatelia`, `lehoty`, `typPodlaUzemnejPlatnosti`, `tabCounts` a `detailUrl`. " +
+            "Vracia iba top-level polia `konanieId`, `spisovaZnacka`, `typKonania`, `povodnaSpisovaZnacka`, `suvisiaceKonania`, " +
+            "`subjectType`, `upadca`, `sud`, `odvolaciSud`, `sudca`, `spravca`, `historiaSpravcov`, `stavKonania`, `historiaStavov`, " +
+            "`poslednyVerejnyOznam`, `navrhovatelia`, `lehoty`, `typPodlaUzemnejPlatnosti`, `tabCounts` a `detailUrl`. " +
+            "`subjectType` je FO, FOP alebo PO podľa hlavičky registra. Prázdna sekcia registra = prázdne pole alebo null. " +
             "Objekt `upadca` obsahuje meno, dátum narodenia, IČO a adresu; `spravca` môže obsahovať dátum ustanovenia. " +
             "`tabCounts` sú iba počítadlá záložiek, nie obsah pohľadávok, majetku, schôdzí ani zoznamu veriteľov.",
         inputSchema: ruGetCaseInputSchema,
@@ -112,15 +141,16 @@ export function createRuMcpServer(client = new RuClient(), options = {}) {
     // -- ru_get_by_ico --------------------------------------------------------
     server.registerTool("ru_get_by_ico", {
         title: "RU Get by IČO",
-        description: "Presné osemciferné vyhľadanie IČO ako wrapper nad ru_search. " +
-            "Vracia polia `ok`, `ico`, `count`, `returnedCount`, `exactMatches`, `nonExactMatches`, `konania`, " +
+        description: "Presné osemciferné vyhľadanie IČO – prebiehajúce aj skončené konania. Pýta sa registra osobitne na prebiehajúce " +
+            "a neprebiehajúce konania, takže každý riadok nesie `prebiehajuce` true/false podľa registra a `stav`. " +
+            "Vracia polia `ok`, `ico`, `count`, `countPrebiehajuce`, `returnedCount`, `exactMatches`, `nonExactMatches`, `konania`, " +
             "`sourceValidated`, `sourceTotal` a `truncated`. `konania` je kompatibilný alias iba pre `exactMatches`; " +
             "riadky v oboch skupinách majú rovnaký tvar ako výsledok ru_search. " +
             "Pre dostupné detailné polia použi ru_get_case s `konanieId`.",
         inputSchema: ruGetByIcoInputSchema,
     }, async (args) => {
         try {
-            const result = await invocationGate.run(() => client.search({ query: args.ico, pageSize: GET_BY_ICO_PAGE_SIZE }));
+            const result = await invocationGate.run(() => mergeGetByIcoSearches(client, args.ico));
             return toTextResult(shapeGetByIcoResult(args.ico, result));
         }
         catch (error) {

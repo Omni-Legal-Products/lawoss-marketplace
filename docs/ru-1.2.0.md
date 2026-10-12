@@ -1,0 +1,14 @@
+# RU 1.2.0 acceptance
+
+Source: `Omni-Legal-Products/mcp-register-upadcov` commit `fa3233cbd9414230b0ac076c09b4e40d322e2668` (PR #6 into `codex/rollout-fix-ru`), runtime 0.2.0. Port of `originalmagneto/RU-MCP` `a99cbea` (audit of 2026-10-09, findings C1–C7).
+
+- Fix (regression of 1.1.0): search asked the register with its form default "Len prebiehajúce konania", so finished, stopped and dismissed proceedings were missing and `ru_get_by_ico` returned a validated zero for a debtor whose restructuring had ended. Search now uses `zobrazKonania=all` (new optional input `zobrazKonania`). `ru_get_by_ico` queries ongoing and finished separately; each row carries `prebiehajuce` from the source. Added `countPrebiehajuce`.
+- Fix: `page`/`pageSize` work. Search reads the server-rendered result pages (`page=N`, 15 rows) by plain GET instead of the partial-AJAX step that always returned the first 15 rows; `hasMore` is reported; no redirect is followed. A page without a total, with a different page number or with fewer rows than announced is `RU_SOURCE_PARSE`.
+- Fix: the case detail is read section by section. An empty "Navrhovatelia" stays empty (it was filled with the deadlines and the site footer); `typKonania` no longer contains the original case number; trustee history, original case number and related proceedings are separate fields (`historiaSpravcov`, `povodnaSpisovaZnacka`, `suvisiaceKonania`); `lehoty` holds only deadline rows.
+- Fix: search rows carry the trustee or liquidator, status, status date, court and last notice; names are not cut at " - "; sole traders are `FOP` (row level is a heuristic, the detail header is authoritative).
+- Catalog: `scripts/validate.py` pins the reviewed SSRF denylist file `plugins/ru/runtime/dist/ru-client.js` by hash. The pin moves to the new file; the `BlockList` block is byte-identical to the reviewed one (only the parsers changed), every other file is still scanned.
+- Dependencies: `npm audit fix` updated the lockfile within declared ranges (`@modelcontextprotocol/sdk` 1.32.1, `hono` 4.13.13, `fast-uri` 3.1.8, `ip-address` 10.7.4); `npm audit --omit=dev` reports 0 vulnerabilities and the source CI passes.
+- Source tests: 201 passed (including organization contract tests and 23 regression tests on register responses captured on 2026-10-09, natural persons anonymized); TypeScript typecheck and build passed.
+- Packaged runtime smoke (stdio, live REPLIK read, 2026-10-12): 3 tools; IČO 31597912 returned 1 proceeding (10R/2/2025, finished restructuring, `prebiehajuce: false`); IČO 35868856 returned 5 (1 ongoing, trustee shown); `s.r.o.` page 1 / pageSize 5 returned 5 rows with total 4519 and `hasMore`; case 121743 returned empty `navrhovatelia` and `typKonania` "Konkurz".
+
+Tests establish parsing and mapping for the captured responses and selected live reads. They do not establish the legal status of any proceeding.
