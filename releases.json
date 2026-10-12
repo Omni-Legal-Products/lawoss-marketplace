@@ -103,7 +103,7 @@
     {
       "name": "uvo",
       "repository": "Omni-Legal-Products/mcp-uvo",
-      "commit": "1f64371888d3d27f384b3faae61e37af732092bb",
+      "commit": "d0138206b55338fcc82e63b31b658430751ef55f",
       "branch": "codex/rollout-fix-uvo",
       "distribution": "local-mcp-skill-cli"
     }
