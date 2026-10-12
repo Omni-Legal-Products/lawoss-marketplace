@@ -1,8 +1,8 @@
 {
-  "plugin": "fs-opendata-mcp",
-  "plugin_version": "1.2.0",
-  "catalog_commit": "afe82d7c567b36c88436a99956719ebd20bbe0a0",
-  "source_repository": "Omni-Legal-Products/mcp-financna-sprava",
-  "source_commit": "f4a6528eb40c4b0745b626b901f62bfc6e19f832",
-  "runtime_manifest_sha256": "db787e758f049936d56538c0734eed96b844ff1f36330b4525374c1620e9adfa"
+  "plugin": "ov",
+  "plugin_version": "1.2.1",
+  "catalog_commit": "51ed359c3da7a525d2fedfe4c6ae9b1e26540fd3",
+  "source_repository": "Omni-Legal-Products/mcp-obchodny-vestnik",
+  "source_commit": "41177404d26dc0d64ae92da316a4decadadbc89c",
+  "runtime_manifest_sha256": "9ba31741b485830ee00fa17b364677bf1f96b548278d00f6d08fa7593e490b0f"
 }

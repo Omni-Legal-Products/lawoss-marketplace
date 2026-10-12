@@ -53,7 +53,7 @@
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
       "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.1.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -97,7 +97,7 @@
       "name": "ov",
       "source": "./plugins/ov",
       "description": "Obchodný vestník: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
