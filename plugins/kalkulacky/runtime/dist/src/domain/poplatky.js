@@ -115,6 +115,12 @@ export function vypocitajSudnyPoplatok(input, tables) {
     }
     else if (input.epodanie) {
         warnings.push(`Zľava za e-podanie sa na položku "${polozka.id}" neuplatňuje (§ 6 ods. 5, resp. § 11c ods. 1 zák. 71/1992 Zb.).`);
+        if (excluded && !input.upominacieKonanie && polozka.epodanieNejasne !== undefined) {
+            const { zlava, maxZlava } = tables.poplatky.epodanie;
+            const alternativa = roundPoplatok(Math.max(zlava * sadzbaPoNasobku, sadzbaPoNasobku - maxZlava));
+            warnings.push(`${polozka.epodanieNejasne} Ak by sa vylúčenie neuplatnilo, poplatok s e-zľavou ` +
+                `podľa § 6 ods. 3 by bol ${alternativa.toFixed(2).replace(".", ",")} € namiesto ${roundPoplatok(sadzbaPoNasobku).toFixed(2).replace(".", ",")} €.`);
+        }
     }
     const poplatok = roundPoplatok(poplatokRaw);
     if (applyEpodanie) {

@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-06",
+  "version": "2026-10-12",
   "fetchedAt": "2026-08-06",
   "source": "slov-lex MCP (get_paragraph / get_version, casove znenia), pozri docs/PRAVNE_ZDROJE.md",
   "coverageFrom": "2009-01-01",
@@ -33,6 +33,7 @@
           "spread": 7,
           "fixacia": "polrok",
           "podmienka": "len ak sa pocas trvania omeskania zmenila zakladna urokova sadzba ECB A ak je to pre veritela vyhodnejsie",
+          "vyzadujeZmenuSadzbyEcb": true,
           "zaklad": "§ 3 ods. 2 nar. vl. 87/1995 Z. z. v zneni ucinnom 1. 1. 2009 - 31. 1. 2013"
         }
       },
@@ -79,6 +80,7 @@
           "spread": 7,
           "fixacia": "polrok",
           "podmienka": "len ak sa pocas trvania omeskania zmenila zakladna urokova sadzba ECB A ak je to pre veritela vyhodnejsie",
+          "vyzadujeZmenuSadzbyEcb": true,
           "zaklad": "§ 369 ods. 1 ObZ -> § 3 ods. 2 nar. vl. 87/1995 Z. z."
         }
       },

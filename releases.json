@@ -47,7 +47,7 @@
     {
       "name": "kalkulacky",
       "repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
-      "commit": "ab057d70eb788ea2e4e0e6dadbe8e553a0ef579e",
+      "commit": "5ff45d0d03887bd3a166f80f40635a508a2d1a3f",
       "branch": "codex/lawoss-release-2026-09-05",
       "distribution": "local-mcp-skill-cli"
     },

@@ -16,9 +16,12 @@
 //    vydania poverenia na vykonanie exekucie
 //  - § 29 predpisuje dvojite zaokruhlovanie: zaklad na cele eura NAHOR, vypocitana
 //    odmena na najblizsich 50 eurocentov NAHOR
-//  - ak je exekutor platitelom DPH, DPH sa pripocitava k odmene AJ k pausalnym vydavkom
+//  - ak je exekutor platitelom DPH, DPH sa pripocitava k odmene AJ k pausalnym vydavkom;
+//    sadzba DPH sa urcuje podla datumu plnenia (dphHistoria), nie natvrdo 23 %
+//  - pausalne vydavky su 50 % aj vtedy, ked do uplynutia lehoty na podanie navrhu na
+//    zastavenie s odkladnym ucinkom nastane iny dovod na ukoncenie exekucie (§ 22 ods. 2)
 import { CalcError } from "./errors.js";
-import { dateToUtc } from "./dates.js";
+import { dateToUtc, todayIso } from "./dates.js";
 import { round2 } from "./money.js";
 /** Zaokrúhli hodnotu nahor na najbližší násobok `step` (napr. 0,50 EUR podľa § 29). */
 function roundUpToStep(value, step) {
@@ -44,8 +47,16 @@ function pausalSumaProObdobie(podlaObdobia, zacatieKonania) {
     }
     throw new CalcError(`Pre dátum začatia konania "${zacatieKonania}" sa nenašlo žiadne obdobie v tabuľke paušálnych výdavkov.`, "NO_PAUSAL_PERIOD");
 }
-export function vypocitajTrovyExekucie(input, tables) {
-    const { penazne, splnenieVLehote, zastavenie, pausalneVydavky, zaokruhlovanie, dph } = tables.exekucia;
+/** Sadzba DPH platna v den `iso` podla dphHistoria, alebo undefined mimo pokrytia. */
+function dphSadzbaKDnu(historia, iso) {
+    return historia.find((z) => z.from <= iso && (z.to === null || iso <= z.to))?.sadzba;
+}
+/**
+ * @param dnes den, ktorym sa urci sadzba DPH, ak nie je zadany datumPlnenia
+ *   (default todayIso()).
+ */
+export function vypocitajTrovyExekucie(input, tables, dnes) {
+    const { penazne, splnenieVLehote, zastavenie, pausalneVydavky, zaokruhlovanie, dphHistoria } = tables.exekucia;
     // Dátum začatia konania sa porovnáva lexikograficky s hranicami období — musí
     // byť overený ISO dátum, inak by zlý formát skončil až nejasnou NO_PAUSAL_PERIOD.
     dateToUtc(input.zacatieKonania);
@@ -55,12 +66,19 @@ export function vypocitajTrovyExekucie(input, tables) {
     if (input.vymozene < 0) {
         throw new CalcError("Vymáhaný nárok (vymožené plnenie) nemôže byť záporný.", "NEGATIVE_CLAIM");
     }
-    if (input.vymozene === 0 && !input.zastavene) {
-        throw new CalcError("Vymáhaný nárok musí byť kladný — nulové vymožené plnenie je prípustné len pri zastavení exekúcie (zastavene: true).", "ZERO_CLAIM");
+    if (input.vymozene === 0 && !input.zastavene && !input.inyDovodUkonceniaVLehote) {
+        throw new CalcError("Vymáhaný nárok musí byť kladný — nulové vymožené plnenie je prípustné len pri zastavení alebo inom ukončení exekúcie (zastavene: true alebo inyDovodUkonceniaVLehote: true).", "ZERO_CLAIM");
     }
     const platitelDph = input.platitelDph ?? false;
     const zastavene = input.zastavene ?? false;
     const splneneVLehote = input.splneneVLehote;
+    const inyDovodVLehote = input.inyDovodUkonceniaVLehote ?? false;
+    if (input.datumPlnenia !== undefined) {
+        dateToUtc(input.datumPlnenia);
+        if (input.datumPlnenia < input.zacatieKonania) {
+            throw new CalcError(`Dátum plnenia (${input.datumPlnenia}) je pred začatím konania (${input.zacatieKonania}).`, "BAD_INPUT");
+        }
+    }
     const pravnyZaklad = ["§ 6 ods. 1 vyhl. 68/2017 Z. z.", zaokruhlovanie.pravnyZaklad];
     const warnings = [];
     // § 29: zaklad na urcenie odmeny sa zaokruhluje na cele eura nahor.
@@ -95,16 +113,27 @@ export function vypocitajTrovyExekucie(input, tables) {
         pravnyZaklad.push("§ 30b vyhl. 68/2017 Z. z.");
         warnings.push(`Konanie začaté ${input.zacatieKonania} spadá do obdobia pred 1. 1. 2024 — paušálne výdavky (a pri splnení v lehote aj odmena) sa riadia predpismi účinnými do 31. 12. 2023 (§ 30b).`);
     }
-    // Podiel pausalnych vydavkov: 1,0 standardne; 0,5 pri splneni naroku v lehote (§ 22 ods. 2);
-    // 1,0 (plna nahrada) aj pri zastaveni exekucie (§ 21 ods. 2, § 22 ods. 1).
+    // Podiel pausalnych vydavkov (§ 22): 0,5 ak sa narok splnil v lehote ALEBO ak do
+    // uplynutia tejto lehoty nastal iny dovod na ukoncenie exekucie (ods. 2); inak 1,0
+    // (ods. 1), aj pri zastaveni exekucie po uplynuti lehoty (§ 21 ods. 2).
     let pausalneVydavkyPodiel;
     if (splneneVLehote) {
         pausalneVydavkyPodiel = splnenieVLehote.pausalneVydavkyPodiel;
         pravnyZaklad.push("§ 22 ods. 2 vyhl. 68/2017 Z. z.");
     }
+    else if (inyDovodVLehote) {
+        pausalneVydavkyPodiel = pausalneVydavky.polovicnyPodiel;
+        pravnyZaklad.push("§ 21 ods. 2 vyhl. 68/2017 Z. z.", "§ 22 ods. 2 vyhl. 68/2017 Z. z.");
+    }
     else if (zastavene) {
         pausalneVydavkyPodiel = zastavenie.penazne.pausalneVydavkyPodiel;
         pravnyZaklad.push("§ 21 ods. 2 vyhl. 68/2017 Z. z.", "§ 22 ods. 1 vyhl. 68/2017 Z. z.");
+        if (input.inyDovodUkonceniaVLehote === undefined) {
+            warnings.push(`Plná náhrada paušálnych výdavkov pri zastavení patrí len vtedy, ak dôvod na ukončenie exekúcie nenastal ` +
+                `do uplynutia lehoty na podanie návrhu na zastavenie exekúcie s odkladným účinkom. Ak nastal, patrí ` +
+                `podľa § 22 ods. 2 vyhl. 68/2017 Z. z. len 50 % (${(pausalneVydavkyZaklad * pausalneVydavky.polovicnyPodiel).toFixed(2)} EUR) — ` +
+                `zadaj inyDovodUkonceniaVLehote: true alebo false.`);
+        }
     }
     else {
         pausalneVydavkyPodiel = 1.0;
@@ -115,7 +144,28 @@ export function vypocitajTrovyExekucie(input, tables) {
     let dphSuma = 0;
     let trovySpolu = zakladDph;
     if (platitelDph) {
-        dphSuma = round2(zakladDph * dph.sadzba);
+        let sadzbaDph;
+        if (input.datumPlnenia !== undefined) {
+            sadzbaDph = dphSadzbaKDnu(dphHistoria, input.datumPlnenia);
+            if (sadzbaDph === undefined) {
+                throw new CalcError(`Sadzba DPH k dátumu plnenia ${input.datumPlnenia} nie je v tabuľke "exekucia.json" (dphHistoria) — ` +
+                    `urč DPH manuálne podľa vtedajšieho znenia § 27 zák. 222/2004 Z. z. alebo výpočet spusti bez platitelDph.`, "DPH_RATE_UNKNOWN");
+            }
+        }
+        else {
+            const den = dnes ?? todayIso();
+            sadzbaDph = dphSadzbaKDnu(dphHistoria, den);
+            if (sadzbaDph === undefined) {
+                throw new CalcError(`Sadzba DPH k ${den} nie je v tabuľke "exekucia.json" (dphHistoria).`, "DPH_RATE_UNKNOWN");
+            }
+            const priZacati = dphSadzbaKDnu(dphHistoria, input.zacatieKonania);
+            if (priZacati !== sadzbaDph) {
+                warnings.push(`DPH ${Math.round(sadzbaDph * 100)} % je sadzba platná k ${den}; dátum plnenia (datumPlnenia) nebol zadaný. ` +
+                    `Sadzba sa určuje k dňu vzniku daňovej povinnosti — pri plnení pred 1. 1. 2025 bola základná sadzba 20 % ` +
+                    `(§ 27 ods. 1 zák. 222/2004 Z. z.). Konanie začalo ${input.zacatieKonania}; zadaj datumPlnenia.`);
+            }
+        }
+        dphSuma = round2(zakladDph * sadzbaDph);
         trovySpolu = round2(zakladDph + dphSuma);
         pravnyZaklad.push("§ 197 ods. 2 zák. 233/1995 Z. z.", "§ 27 ods. 1 zák. 222/2004 Z. z.");
     }

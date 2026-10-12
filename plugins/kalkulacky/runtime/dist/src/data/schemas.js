@@ -49,6 +49,9 @@ const sposobSchema = z
     fixacia: z.string(),
     zaklad: z.string(),
     podmienka: z.string().optional(),
+    /** Spôsob je prípustný len ak sa sadzba ECB počas omeškania zmenila
+     *  (§ 3 ods. 2 nar. vl. 87/1995 Z. z. v znení do 31. 1. 2013). */
+    vyzadujeZmenuSadzbyEcb: z.boolean().optional(),
 })
     .passthrough();
 const sposobySchema = z
@@ -209,6 +212,9 @@ const polozkaSchema = z
      *  (§ 6 ods. 3) NEUPLATNÍ (exekučné konanie, obchodný register).
      *  Neprítomné pole = false (zľava sa uplatňuje bežne). */
     epodanieVylucene: z.boolean().optional(),
+    /** Text výhrady, keď je vylúčenie e-zľavy pri položke sporné; pri e-podaní
+     *  sa vydá ako warning spolu so sumou pri opačnom výklade. */
+    epodanieNejasne: z.string().optional(),
 })
     .passthrough();
 export const sudnePoplatkyFileSchema = z
@@ -307,6 +313,10 @@ export const exekuciaFileSchema = z
     dph: z
         .object({ uplatniSa: z.string(), sadzba: z.number(), zaklad: z.string() })
         .passthrough(),
+    /** Základná sadzba DPH podľa obdobia (dňa plnenia); dph.sadzba = aktuálna. */
+    dphHistoria: z
+        .array(z.object({ from: z.string(), to: z.string().nullable(), sadzba: z.number() }).passthrough())
+        .min(1),
     ineOdmeny: z.array(z
         .object({
         id: z.string(),
