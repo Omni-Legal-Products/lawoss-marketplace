@@ -242,8 +242,20 @@ const OPERATIVE_VERBS = new Set([
     "potvrdzuje",
     "odmieta",
     "zamieta",
-    "vracia"
+    "vracia",
+    "zastavuje",
+    "nevyhovuje"
 ]);
+/**
+ * Violation findings. Unlike the other verbs the perfect "porušil" is operative here:
+ * it is how the Constitutional Court words its own finding in the výrok, and only the
+ * výrok is searched. The participle needs the auxiliary that follows it.
+ */
+const VIOLATION_PARTICIPLES = new Set(["porusene", "poruseny", "porusena", "poruseni"]);
+const VIOLATION_PERFECTS = new Set(["porusil", "porusili", "porusila", "porusilo"]);
+const NEGATED_VIOLATION_PERFECTS = new Set(["neporusil", "neporusili", "neporusila", "neporusilo"]);
+const AUXILIARY = new Set(["bolo", "boli", "bol", "bola"]);
+const NEGATED_AUXILIARY = new Set(["nebolo", "neboli", "nebol", "nebola"]);
 const MAX_VERB_LENGTH = 10;
 /** Every one-letter word in Slovak (see text-normalization.ts). */
 const ONE_LETTER_WORDS = new Set(["a", "i", "o", "s", "k", "v", "u", "z"]);
@@ -291,6 +303,20 @@ function operativeVerbs(segment) {
                 break;
             if (OPERATIVE_VERBS.has(joined))
                 found.add(joined);
+            // Older NS judgments write "zmeňuje" for "mení".
+            if (joined === "zmenuje")
+                found.add("meni");
+            if (VIOLATION_PERFECTS.has(joined))
+                found.add("porusene");
+            if (NEGATED_VIOLATION_PERFECTS.has(joined))
+                found.add("neporusene");
+            if (VIOLATION_PARTICIPLES.has(joined)) {
+                const next = tokens[j + 1]?.text;
+                if (next && AUXILIARY.has(next))
+                    found.add("porusene");
+                if (next && NEGATED_AUXILIARY.has(next))
+                    found.add("neporusene");
+            }
         }
     }
     return found;
@@ -310,14 +336,60 @@ function dispositionFromVerbs(verbs) {
         return "potvrdene";
     // Only now are "odmieta"/"zamieta" about the remedy; next to the verbs above they
     // dispose of motions (a návrh, a request for costs), not of the decision.
+    // A violation without a quashing order: the decision itself stands.
+    if (verbs.has("porusene"))
+        return "porusenie_prava";
     if (verbs.has("odmieta"))
         return "odmietnute";
-    if (verbs.has("zamieta"))
+    // "sťažnosti nevyhovuje", "porušené neboli": the remedy failed on the merits.
+    if (verbs.has("zamieta") || verbs.has("nevyhovuje") || verbs.has("neporusene"))
         return "zamietnute";
+    if (verbs.has("zastavuje"))
+        return "zastavene";
     return "ine";
 }
+/** Outcomes under which the challenged decision stands whatever else the výrok says. */
+const STANDING_OUTCOMES = new Set([
+    "potvrdene",
+    "odmietnute",
+    "zamietnute",
+    "zastavene",
+    "porusenie_prava"
+]);
+/**
+ * Where the statement that starts before `from` ends: the next sentence end
+ * (a full stop or semicolon followed by a capital or a numbered item), or `limit`.
+ * Full stops of abbreviations and initials ("sp. zn.", "č. k.", "JUDr.", "J. K.")
+ * do not end a statement.
+ */
+const NOT_A_SENTENCE_END_RE = /(?:^|[\s(])(?:\p{Lu}|judr|mgr|ing|phdr|dr|doc|prof|bc|phd|c|sp|zn|ods|pism|zb|z|s|r|o|tzv|napr|resp|atd|sb|v)$/u;
+function statementEnd(text, from, limit) {
+    const re = /[.;]\s+(?=\p{Lu}|[IVX]+\.\s)/gu;
+    re.lastIndex = from;
+    for (let m = re.exec(text); m !== null && m.index < limit; m = re.exec(text)) {
+        const before = foldSameLength(text.slice(Math.max(from, m.index - 8), m.index));
+        if (text[m.index] === "." && NOT_A_SENTENCE_END_RE.test(before))
+            continue;
+        return m.index;
+    }
+    return limit;
+}
 /** "na odvolanie … proti rozsudku Okresného súdu … č. k. 5C/1/2019" — the challenged decision. */
-const CHALLENGED_DECISION_RE = /\bproti (?:\p{L}+ ){0,2}(?:rozsudku|uzneseniu|rozhodnutiu|rozkazu|vyroku|vyrokom|nalezu)\b/u;
+const CHALLENGED_DECISION_RE = /\bproti (?:\p{L}+ ){0,2}(?:rozsudku|uzneseniu|rozhodnutiu|rozkazu|vyroku|vyrokom|nalezu|rozsudkom|uzneseniam|rozhodnutiam)\b/u;
+/**
+ * Constitutional Court preambles name the challenged acts differently: "vo veci
+ * namietaného porušenia … postupom a uznesením Krajského súdu … sp. zn. X". Only used
+ * once the preamble carries "namietaného porušenia".
+ */
+const US_COMPLAINT_RE = /\bnamietan\p{L}* porusen/u;
+const US_CHALLENGED_ACT_RE = /\b(?:postupom|rozsudkom|uznesenim|rozhodnutim|nalezom|rozkazom|vyrokom|konanim|konani)\b/u;
+/**
+ * Text between two listed challenged decisions ("č. k. 13Co/858/2015-90 a č. k.
+ * 13Co/860/2015-99"): a relative clause, a past-tense description or a file location
+ * means the next reference is something else.
+ */
+const LIST_BREAK_RE = /ktor|veden|potvrdil|zrusil|zmenil|rozhodol|zamietol|odmietol|takto/u;
+const LIST_GAP_MAX = 200;
 const CHALLENGED_DECISION_WINDOW = 200;
 const FOREIGN_CONTEXT_WINDOW = 200;
 /**
@@ -339,11 +411,13 @@ const CONFIDENCE = {
  * Every reference becomes a relation, but an outcome is claimed only with evidence
  * from this decision's own operative part (výrok):
  * (a) the reference sits inside the operative part and present-tense operative verbs
- *     follow it within its clause (up to the next other reference); or
- * (b) the preamble names it as the challenged decision ("proti rozsudku … sp. zn. X"),
- *     it is the only such reference, and the operative part names no reference at all
- *     ("Rozsudok súdu prvej inštancie potvrdzuje") — then the operative part's verbs
- *     apply, with lower confidence.
+ *     follow it in its statement (see `verbsForOperativeSpan`); or
+ * (b) the preamble names it as a challenged decision ("proti rozsudku … sp. zn. X",
+ *     a list of them, or the Constitutional Court's "vo veci namietaného porušenia …
+ *     uznesením … sp. zn. X"), and the operative part names no reference at all
+ *     ("Dovolanie odmieta") — then the operative part's verbs apply, with lower
+ *     confidence. With several challenged decisions only an outcome under which all of
+ *     them stand is applied.
  * Everything else is a mention ("ine"). Without an operative part there are no
  * outcomes at all. References to foreign or international courts are dropped.
  *
@@ -399,30 +473,108 @@ export function extractDecisionRelations(input) {
         }
         return Math.min(end, index);
     };
-    /** Start of the nearest occurrence of a different reference after `index`, or `limit`. */
-    const nextOtherStart = (norm, index, limit) => {
-        for (const occ of occurrences) {
-            if (occ.index > index && occ.norm !== norm)
-                return Math.min(occ.index, limit);
-        }
-        return limit;
-    };
     const contextBefore = (norm, index, window) => text.slice(Math.max(previousOtherEnd(norm, index), index - window), index);
+    /**
+     * Verbs that belong to one occurrence inside the operative part: those of the first
+     * stretch after it that has any, up to the end of its statement. Stretches are cut at
+     * other references, so "X potvrdzuje a Y zrušuje" gives X only "potvrdzuje", while a
+     * list "X a Y zrušuje a vec vracia" gives both "zrušuje". A relative clause between
+     * two references ("X v časti, ktorou …") ends the list.
+     */
+    const verbsForOperativeSpan = (norm, span) => {
+        const limit = statementEnd(text, span.end, operative.end);
+        const before = verbFirstVerbs(norm, span, limit);
+        if (before)
+            return before;
+        let from = span.end;
+        for (const occ of occurrences) {
+            if (occ.index < span.end || occ.index >= limit || occ.norm === norm)
+                continue;
+            if (occ.index > from) {
+                const stretch = text.slice(from, occ.index);
+                const verbs = operativeVerbs(stretch);
+                if (verbs.size > 0)
+                    return verbs;
+                if (/ktor/u.test(foldSameLength(stretch)))
+                    return verbs;
+            }
+            from = Math.max(from, occ.end);
+        }
+        return from < limit ? operativeVerbs(text.slice(from, limit)) : new Set();
+    };
+    /** Start of the statement holding `index`: just after the previous statement end. */
+    const statementStart = (index) => {
+        let start = operative.start;
+        for (;;) {
+            const end = statementEnd(text, start, operative.end);
+            if (end >= index || end >= operative.end)
+                return start;
+            start = end + 1;
+        }
+    };
+    /**
+     * Verb-first statements ("Najvyšší súd z r u š u j e uznesenie Krajského súdu … sp. zn.
+     * X, uznesenie Okresného súdu … ; vec vracia …"): when the statement's first verb comes
+     * before its first reference, a reference takes the nearest verbs before it, plus
+     * "vracia" from anywhere in the statement. Null for reference-first statements.
+     */
+    const verbFirstVerbs = (norm, span, limit) => {
+        const start = statementStart(span.index);
+        const refsBefore = occurrences.filter((occ) => occ.index >= start && occ.index < span.index && occ.norm !== norm);
+        const firstRef = refsBefore[0]?.index ?? span.index;
+        if (operativeVerbs(text.slice(start, firstRef)).size === 0)
+            return null;
+        // Walk back from the reference to the nearest stretch with verbs.
+        let to = span.index;
+        for (let i = refsBefore.length - 1; i >= -1; i -= 1) {
+            const from = i >= 0 ? refsBefore[i].end : start;
+            const stretch = text.slice(Math.min(from, to), to);
+            const verbs = operativeVerbs(stretch);
+            if (verbs.size > 0) {
+                if (operativeVerbs(text.slice(start, limit)).has("vracia"))
+                    verbs.add("vracia");
+                return verbs;
+            }
+            if (/ktor/u.test(foldSameLength(stretch)))
+                return new Set();
+            if (i >= 0)
+                to = refsBefore[i].index;
+        }
+        return null;
+    };
     // (b) applies only when the operative part names no reference besides the source's own.
     const operativeNamesRef = occurrences.some((occ) => occ.norm && !own.has(occ.norm) && inOperative(occ.index));
     const challenged = new Set();
     if (operative && !operativeNamesRef) {
-        for (const [norm, { spans }] of byNorm) {
-            const named = spans.some((span) => span.index < operative.start &&
-                CHALLENGED_DECISION_RE.test(foldSameLength(contextBefore(norm, span.index, CHALLENGED_DECISION_WINDOW)).replace(/\s+/g, " ")));
-            if (named)
-                challenged.add(norm);
+        const preamble = foldSameLength(text.slice(0, operative.start)).replace(/\s/g, " ");
+        const usComplaint = US_COMPLAINT_RE.exec(preamble);
+        let previous = null;
+        for (const occ of occurrences) {
+            if (occ.index >= operative.start)
+                break;
+            if (!occ.norm || own.has(occ.norm))
+                continue;
+            const before = foldSameLength(contextBefore(occ.norm, occ.index, CHALLENGED_DECISION_WINDOW)).replace(/\s+/g, " ");
+            let isChallenged = CHALLENGED_DECISION_RE.test(before);
+            if (!isChallenged && usComplaint && occ.index > usComplaint.index) {
+                isChallenged = US_CHALLENGED_ACT_RE.test(before) && !/ktor/u.test(before);
+            }
+            if (!isChallenged && previous?.challenged && previous.norm !== occ.norm) {
+                const gap = foldSameLength(text.slice(previous.end, occ.index)).replace(/\s+/g, " ");
+                isChallenged = gap.length <= LIST_GAP_MAX && !LIST_BREAK_RE.test(gap);
+            }
+            if (isChallenged)
+                challenged.add(occ.norm);
+            previous = { norm: occ.norm, end: occ.end, challenged: isChallenged };
         }
     }
-    // Two challenged decisions and one operative part: which verb belongs to which is unknown.
-    const preambleDisposition = operative && challenged.size === 1
+    // One operative part and several challenged decisions: an outcome under which every
+    // one of them stands applies to all; a quashing or changing order is not attributed,
+    // because which of them it hits is not stated.
+    const operativeOutcome = operative
         ? dispositionFromVerbs(operativeVerbs(text.slice(operative.start, operative.end)))
         : "ine";
+    const preambleDisposition = challenged.size === 1 || STANDING_OUTCOMES.has(operativeOutcome) ? operativeOutcome : "ine";
     const relations = [];
     for (const [norm, { raw, spans }] of byNorm) {
         if (spans.some((span) => isForeignContext(contextBefore(norm, span.index, FOREIGN_CONTEXT_WINDOW))))
@@ -433,15 +585,13 @@ export function extractDecisionRelations(input) {
         if (operative && operativeSpans.length > 0) {
             const verbs = new Set();
             for (const span of operativeSpans) {
-                const clauseEnd = nextOtherStart(norm, span.index, operative.end);
-                if (clauseEnd > span.end)
-                    for (const verb of operativeVerbs(text.slice(span.end, clauseEnd)))
-                        verbs.add(verb);
+                for (const verb of verbsForOperativeSpan(norm, span))
+                    verbs.add(verb);
             }
             disposition = dispositionFromVerbs(verbs);
             basis = "operative";
         }
-        else if (challenged.has(norm) && challenged.size === 1) {
+        else if (challenged.has(norm)) {
             disposition = preambleDisposition;
             basis = "preamble";
         }

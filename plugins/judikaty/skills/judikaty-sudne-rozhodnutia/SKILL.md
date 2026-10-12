@@ -61,11 +61,13 @@ z neho v podaní vychádzaš.
   nie „platí".
 - **Väčšina citačných vzťahov nemá zistený výrok** a hlási sa ako `mention` — index sa
   nedopĺňa odhadom.
-- **Výrok z textu je odhad, nie fakt.** Zistí sa len zo slovesa v prítomnom čase vo výroku
-  citujúceho rozhodnutia („zrušuje“, „mení“, „potvrdzuje“, „odmieta“, „zamieta“); minulý čas
-  v odôvodnení („zrušil“) je opis skoršieho konania, nie zásah. Takéto výsledky nesú
-  `textEstimate: true`. Vzťahy uložené v indexe pred opravou z 10/2026 ešte môžu niesť
-  starý odhad — preto ich výstup tiež označuje ako odhad.
+- **Výrok z textu je odhad, nie fakt.** Zistí sa len z výroku citujúceho rozhodnutia: zo
+  slovesa v prítomnom čase („zrušuje“, „mení“, „potvrdzuje“, „odmieta“, „zamieta“,
+  „zastavuje“, „nevyhovuje“) a pri ÚS z výroku o porušení práva („porušené bolo/neboli“).
+  Minulý čas v odôvodnení („zrušil“) je opis skoršieho konania, nie zásah. Takéto výsledky
+  nesú `textEstimate: true`. Pri porovnaní so štítkami modelu (10/2026) sa zhodli v 95 % (NS),
+  77 % (ÚS) a 82 % (ostatné súdy). Vzťahy uložené v indexe pred opravou z 10/2026 ešte môžu
+  niesť starý odhad — preto ich výstup tiež označuje ako odhad.
 - **Procesný osud sa páruje len podľa spisovej značky, bez súdu.** Rovnaká značka býva na
   viacerých krajských či okresných súdoch (napr. `5Co/1/2020` je na KS Žilina, Trenčín aj
   Nitra). Ak výstup obsahuje `ambiguityNote`, nájdené väzby sa môžu týkať iného súdu.
