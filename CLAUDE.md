@@ -31,8 +31,9 @@ file as publishable even when the repository currently has no remote.
 - Keep `AGENTS.md` and `CLAUDE.md` byte-for-byte identical.
 - Run `python3 -m unittest discover -s tests -v`,
   `python3 scripts/validate.py`, `claude plugin validate --strict`, the
-  plugin-creator validator, and the instruction mirror comparison before
-  committing.
+  plugin-creator validator (or, where the installed Codex no longer ships it,
+  the isolated Codex install acceptance in `docs/RELEASES.md`), and the
+  instruction mirror comparison before committing.
 - Review the staged file list and sanitization output. Do not publish, push,
   deploy, register an MCP endpoint, or change repository visibility without
   explicit authorization.
