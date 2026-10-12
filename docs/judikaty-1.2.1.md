@@ -20,5 +20,10 @@ Verification:
   - ÚS search "PL. ÚS 3/09" returned the reference.
   - NS 9So/6/2013 has form Rozsudok.
   - `get_nsud_index_stats` reported the index under the plugin state directory.
+- **Codex gate:** Codex CLI 0.162.1 ships no plugin-creator validator, so the isolated install acceptance from `docs/RELEASES.md` ran (2026-10-12, fresh `CODEX_HOME` and `LAWOSS_CACHE_DIR`):
+  - `codex plugin add judikaty@lawoss` from `main` installed 1.2.0.
+  - With the ref set to `release/judikaty-1.2.1`, the updater reported `updated 1.2.0 -> 1.2.1`.
+  - The installed runtime reported commit 5889b72 and returned "PL. ÚS 3/09" from an ÚS search.
+  - With the ref set back to `main`, the updater reported `updated 1.2.1 -> 1.2.0` and `doctor` reported commit 211a958.
 
 Tests establish behaviour for captured source responses and selected live reads. They do not establish legal correctness.
