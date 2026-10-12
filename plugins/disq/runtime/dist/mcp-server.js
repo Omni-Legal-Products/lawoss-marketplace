@@ -3,7 +3,7 @@ import { z } from "zod";
 import { DisqClient, DisqSourceError, foldName, toDetailView } from "./disq-client.js";
 import { safeError } from "./redaction.js";
 import { looseNumber } from "./scalars.js";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.2.0";
 const unknownField = (description) => z.unknown().optional().describe(description);
 function inputFailure() {
     return formatToolError("input", new DisqSourceError("DISQ_INPUT"));
@@ -44,8 +44,13 @@ export function createDisqMcpServer(options = {}) {
     server.registerTool("disq_check", {
         title: "DISQ public-register name check",
         description: "Read-only name query against the Slovak public DISQ source. Returns status matches, no_match, or incomplete only after source validation. " +
-            "no_match means only that the folded query returned no record at the reported source update/retrieval time; it does not establish identity, eligibility, or good standing. " +
-            "Date of birth and IČO are non-searchable hints: when provided they are ignored by the source and represented only by warning markers. Use disq_get_detail for a selected opaque registreGuid.",
+            "A result is a NAME match, not a finding about a person: the source publishes no date of birth or IČO, identityVerified is always false, and namesakes exist in the register. " +
+            "The source matches every query word as a word prefix in any order, so 'Tibor X' also returns 'Tiborné X'; each match carries matchType exact or prefix. " +
+            "Academic titles and single-letter initials are removed before querying (the source returns nothing for them) and reported in warnings; a removed initial broadens the query. " +
+            "disqualified is a deprecated alias of nameMatchFound. " +
+            "no_match means only that the normalized query returned no record at the reported source update/retrieval time; it does not establish identity, eligibility, or good standing. " +
+            "Date of birth and IČO are non-searchable hints: when provided they are ignored by the source and represented only by warning markers. " +
+            "The disqualification period, case number and currentlyDisqualified come from disq_get_detail for a selected opaque registreGuid.",
         inputSchema: {
             name: unknownField("Full person name. Required; folded for a name-only public-register query."),
             dob: unknownField("Optional date-of-birth hint. Not searchable and never sent to DISQ."),
@@ -79,7 +84,9 @@ export function createDisqMcpServer(options = {}) {
     server.registerTool("disq_get_detail", {
         title: "DISQ public-register record detail",
         description: "Read-only detail lookup in the public DISQ source using the opaque registreGuid returned by disq_check. " +
-            "Returns only validated public-register fields, source freshness, warnings, and an inclusive UTC date-only interval assessment. It does not verify identity and is not legal advice.",
+            "Returns only validated public-register fields, warnings, and currentlyDisqualified: whether today's calendar date in Europe/Bratislava (evaluatedOn) lies within vylucenieOd..vylucenieDo, both ends inclusive as stated in intervalBasis (the legal effect of the end date is not assessed). " +
+            "updateDate is the last change of this record, not the freshness of the register (disq_check reports the register updateDate). " +
+            "DISQ_NOT_FOUND means the source answered HTTP 404 for this registreGuid; other errors mean the register was not queried. It does not verify identity and is not legal advice.",
         inputSchema: { registreGuid: unknownField("Opaque record identifier returned by disq_check.") },
     }, async (args) => {
         const limited = rateLimited();
