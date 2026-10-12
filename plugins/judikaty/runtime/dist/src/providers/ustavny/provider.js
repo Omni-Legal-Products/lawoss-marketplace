@@ -26,8 +26,15 @@ export class UstavnyProvider extends PlaceholderProvider {
         const items = response.documents.map((item) => mapUstavnyDecisionSummary(item));
         const coverageNotes = [
             "ustavny search uses the official Constitutional Court DMS API behind the public site.",
-            "Supported filters in the current provider are query, spisovaZnacka, identifikacneCisloSpisu, ecli, date range, decisionForm, decisionNature, legalArea, legalSubArea, and citedLaw."
+            "Supported filters in the current provider are query, spisovaZnacka, identifikacneCisloSpisu, ecli, date range, decisionForm, decisionNature, legalArea, legalSubArea, and citedLaw (as a complained-of provision, see below)."
         ];
+        if (input.citedLaw) {
+            coverageNotes.push("ustavny citedLaw is matched against the ÚS metadata field mkComplainedLegalRegulation: the provisions " +
+                "the petitioner complains of (in complaint proceedings the rights alleged to be violated, e.g. " +
+                "\"Ústava Slovenskej republiky čl. 48 ods. 2\", or a challenged regulation). " +
+                "The results are decisions in which that provision was complained of, not decisions citing it; " +
+                "a decision that merely cites the provision in its reasoning is not found by this filter.");
+        }
         if (input.courtId || input.courtType) {
             coverageNotes.push("Court id/type filters are ignored because ustavny covers one court only; courtName is honoured " +
                 "by exact match against that single court instead.");

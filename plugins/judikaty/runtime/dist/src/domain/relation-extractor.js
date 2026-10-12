@@ -34,7 +34,9 @@ export function scanCaseRefs(text) {
 }
 // Anchored counterparts: the value must BE a reference, not merely contain one.
 const WHOLE_CASE_REF_RE = /^\d{1,3}\s?[A-Za-zÁ-Žá-ž]{1,6}\s?\/?\s?\d{1,5}\/\d{4}$/u;
-const WHOLE_US_REF_RE = /^[IVX]{1,4}\.?\s?[ÚU]S\s?\d{1,4}\/\d{4}$/u;
+// The ÚS also files plenary cases ("PL. ÚS 3/09") and used two-digit years before 2010
+// ("I. ÚS 199/05"); both are real values of the DMS field mkRSAPNumberOfFile.
+const WHOLE_US_REF_RE = /^(?:[IVX]{1,4}|P[Ll])\.?\s?[ÚU]S\s?\d{1,4}\/(?:\d{4}|\d{2})$/u;
 /**
  * Does this value look like a spisová značka?
  *

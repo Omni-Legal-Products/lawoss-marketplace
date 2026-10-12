@@ -25,10 +25,10 @@ async function resolveIdentitiesAndTreatment(baseItems) {
 }
 export function annotateSearchOutput(result, input) {
     const presented = presentSearchResult(result, input.view);
-    // Compact view normally drops coverageNotes to save tokens, but three
-    // situations need their notes to reach the caller even in compact view,
-    // or the cardinal "never silently drop a requested filter" rule would be
-    // broken by the token-saving trim itself:
+    // Since audit 2026-10-09 (J8) presentSearchResult keeps non-empty
+    // coverageNotes in compact view too; this guard predates that and stays as
+    // a second line of defence for the three situations whose notes must reach
+    // the caller, or the "never silently drop a requested filter" rule breaks:
     //  1. a date-filtered query, where the date-range-guard's verification
     //     notes (domain/merge.ts#applyDateRangeGuard) explain a
     //     dropped/adjusted result;

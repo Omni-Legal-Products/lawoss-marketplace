@@ -351,6 +351,11 @@ function buildSearchPayload(input) {
             fieldValue: input.legalSubArea
         });
     }
+    // The ÚS DMS has no "cited regulation" field. mkComplainedLegalRegulation
+    // holds the complained-of provisions (rights alleged to be violated, or a
+    // challenged regulation), so this narrows to decisions where that provision
+    // was complained of, not decisions citing it. UstavnyProvider#searchDecisions
+    // says so in a coverage note whenever citedLaw is used.
     if (input.citedLaw) {
         filterNameValue.push({
             type: "STRING",

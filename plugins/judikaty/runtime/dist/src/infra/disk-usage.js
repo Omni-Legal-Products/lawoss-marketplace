@@ -1,5 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { getJudiciaryDataDir } from "./data-dir.js";
 async function walk(dir, onFile) {
     let entries;
     try {
@@ -24,9 +25,9 @@ async function walk(dir, onFile) {
         }
     }
 }
-/** Sizes under .cache/judiciary: total, the SQLite DB (+ wal/shm), and downloaded PDFs. */
+/** Sizes under the judiciary data directory (.cache/judiciary by default): total, the SQLite DB (+ wal/shm), and downloaded PDFs. */
 export async function collectCacheDiskUsage() {
-    const root = path.resolve(process.cwd(), ".cache", "judiciary");
+    const root = getJudiciaryDataDir();
     let dbBytes = 0;
     let documentsBytes = 0;
     let totalBytes = 0;
