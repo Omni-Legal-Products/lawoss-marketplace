@@ -1,0 +1,10 @@
+{
+  "name": "katastr-cz",
+  "version": "0.1.0",
+  "description": "Katastr nemovitostí ČR: skill pro bezplatné REST API ČÚZK s vlastním klíčem uživatele, bez MCP.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

@@ -46,7 +46,7 @@ class MarketplaceValidationTest(unittest.TestCase):
         self.assertEqual(codex["name"], "lawoss")
         self.assertEqual(codex["interface"], {"displayName": "LAWOSS Marketplace"})
         ledger = json.loads((ROOT / "releases.json").read_text())
-        self.assertEqual(len(codex["plugins"]), 17)
+        self.assertEqual(len(codex["plugins"]), 21)
         self.assertEqual(
             set(plugin["name"] for plugin in codex["plugins"]),
             set(record["name"] for record in ledger["releases"]) | set(record["name"] for record in ledger["inRepoSkills"]),
@@ -245,7 +245,7 @@ class MarketplaceValidationTest(unittest.TestCase):
         meta = json.loads((ROOT / "lawoss-catalog.json").read_text(encoding="utf-8"))
         bundles = {bundle["id"]: bundle for bundle in meta["bundles"]}
         self.assertEqual(bundles["sk-zaklad"]["plugins"], ["slovlex", "orsr", "judikaty", "kalkulacky", "ruz", "rpo"])
-        self.assertEqual(bundles["cz-zaklad"]["plugins"], ["cz-agents", "eurlex-celex"])
+        self.assertEqual(bundles["cz-zaklad"]["plugins"], ["esbirka", "judikatura-cz", "lhuty-kalkulacky-cz", "katastr-cz", "cz-agents", "eurlex-celex"])
         self.assertTrue(bundles["cz-zaklad"]["provisional"])
         self.assertEqual(meta["plugins"]["google-workspace-gog"]["category"], "general")
         claude = json.loads(CLAUDE_CATALOG.read_text(encoding="utf-8"))

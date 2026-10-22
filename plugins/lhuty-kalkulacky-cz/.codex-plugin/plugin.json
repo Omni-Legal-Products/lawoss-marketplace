@@ -1,0 +1,24 @@
+{
+  "name": "lhuty-kalkulacky-cz",
+  "version": "0.1.0",
+  "description": "Lhůty a kalkulačky ČR: skilly pro deterministický výpočet lhůt, soudních poplatků, advokátního tarifu a úroku z prodlení, bez MCP.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lhůty a kalkulačky ČR",
+    "shortDescription": "Lhůty · kalkulačky · skill",
+    "longDescription": "Skilly pro výpočet lhůt podle českého práva včetně fikce doručení a pro soudní poplatky, advokátní tarif a úrok z prodlení. Sazby se načítají z aktuálního znění předpisů. Výsledek je návrh k ověření advokátem.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "defaultPrompt": [
+      "Datová zpráva s rozsudkem byla dodána 23. 4. 2026 a nikdo se nepřihlásil. Spočítej poslední den lhůty k odvolání."
+    ]
+  }
+}

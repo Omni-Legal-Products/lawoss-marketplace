@@ -1,0 +1,24 @@
+{
+  "name": "esbirka",
+  "version": "0.1.0",
+  "description": "Předpisy ČR z e-Sbírky: skill pro znění k datu a citace, bez MCP a bez klíčů.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Předpisy ČR (e-Sbírka)",
+    "shortDescription": "e-Sbírka · skill · bez MCP",
+    "longDescription": "Skill pro vyhledání českých předpisů a jejich znění účinného k zadanému dni z veřejné e-Sbírky. Balík neobsahuje server, runtime, endpoint ani přihlašovací údaje.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "defaultPrompt": [
+      "Načti z e-Sbírky § 57 občanského soudního řádu ve znění účinném k dnešku a uveď přesnou citaci s odkazem."
+    ]
+  }
+}

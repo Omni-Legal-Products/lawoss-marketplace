@@ -122,6 +122,34 @@
       "path": "plugins/zrsr",
       "distribution": "skill-only",
       "reviewDate": "2026-10-12"
+    },
+    {
+      "name": "esbirka",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/esbirka",
+      "distribution": "skill-only",
+      "reviewDate": "2026-10-22"
+    },
+    {
+      "name": "judikatura-cz",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/judikatura-cz",
+      "distribution": "skill-only",
+      "reviewDate": "2026-10-22"
+    },
+    {
+      "name": "lhuty-kalkulacky-cz",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/lhuty-kalkulacky-cz",
+      "distribution": "skill-only",
+      "reviewDate": "2026-10-22"
+    },
+    {
+      "name": "katastr-cz",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/katastr-cz",
+      "distribution": "skill-only",
+      "reviewDate": "2026-10-22"
     }
   ]
 }
