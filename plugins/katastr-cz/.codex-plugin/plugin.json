@@ -1,0 +1,24 @@
+{
+  "name": "katastr-cz",
+  "version": "0.1.0",
+  "description": "Katastr nemovitostí ČR: skill pro bezplatné REST API ČÚZK s vlastním klíčem uživatele, bez MCP.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Katastr nemovitostí ČR",
+    "shortDescription": "ČÚZK · skill · vlastní klíč",
+    "longDescription": "Skill pro čtení parcel, staveb, jednotek, práv stavby a řízení z bezplatného REST API katastru nemovitostí ČÚZK. Vyžaduje vlastní bezplatný ApiKey uživatele. Balík neobsahuje server, runtime ani klíč.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "defaultPrompt": [
+      "Najdi parcelu podle katastrálního území a parcelního čísla a uveď druh pozemku, výměru a aktuálnost dat."
+    ]
+  }
+}

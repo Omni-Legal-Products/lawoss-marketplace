@@ -57,6 +57,19 @@
     "google-workspace-gog": { "category": "general", "jurisdictions": [],
       "title": { "sk": "Google Workspace cez gog", "cs": "Google Workspace přes gog", "en": "Google Workspace via gog", "de": "Google Workspace über gog" },
       "summary": { "sk": "Skill pre Gmail, Kalendár, Disk a Dokumenty cez lokálny nástroj gog. Predvolene len čítanie, e-maily len ako koncepty.", "cs": "Skill pro Gmail, Kalendář, Disk a Dokumenty přes lokální nástroj gog. Ve výchozím stavu jen čtení, e-maily jen jako koncepty.", "en": "Skill for Gmail, Calendar, Drive and Docs through the local gog command line tool. Read-only by default; emails only as drafts.", "de": "Skill für Gmail, Kalender, Drive und Docs über das lokale Werkzeug gog. Standardmäßig nur lesend, E-Mails nur als Entwürfe." } }
+,
+    "esbirka": { "category": "cz", "jurisdictions": ["CZ"],
+      "title": { "sk": "Predpisy ČR (e-Sbírka)", "cs": "Předpisy ČR (e-Sbírka)", "en": "Czech legislation (e-Sbírka)", "de": "Tschechische Rechtsvorschriften (e-Sbírka)" },
+      "summary": { "sk": "Skill na znenie českých predpisov k dátumu z verejnej e-Sbírky. Bez MCP a bez kľúčov.", "cs": "Skill pro znění českých předpisů k datu z veřejné e-Sbírky. Bez MCP a bez klíčů.", "en": "Skill for point-in-time Czech legislation from the public e-Sbírka. No MCP, no keys.", "de": "Skill für tschechische Rechtsvorschriften zum Stichtag aus der öffentlichen e-Sbírka. Kein MCP, keine Schlüssel." } },
+    "judikatura-cz": { "category": "cz", "jurisdictions": ["CZ"],
+      "title": { "sk": "Judikatúra ČR", "cs": "Judikatura ČR", "en": "Czech case law", "de": "Tschechische Rechtsprechung" },
+      "summary": { "sk": "Skill na judikatúru všeobecných súdov, NS, NSS a ÚS ČR z bezplatných verejných zdrojov. Bez MCP.", "cs": "Skill pro judikaturu obecných soudů, NS, NSS a ÚS z bezplatných veřejných zdrojů. Bez MCP.", "en": "Skill for Czech general courts, Supreme Court, Supreme Administrative Court and Constitutional Court from free public sources. No MCP.", "de": "Skill für tschechische ordentliche Gerichte, OGH, OVG und Verfassungsgericht aus freien öffentlichen Quellen. Kein MCP." } },
+    "lhuty-kalkulacky-cz": { "category": "cz", "jurisdictions": ["CZ"],
+      "title": { "sk": "Lehoty a kalkulačky ČR", "cs": "Lhůty a kalkulačky ČR", "en": "Czech deadlines and calculators", "de": "Tschechische Fristen und Rechner" },
+      "summary": { "sk": "Skilly na výpočet lehôt, súdnych poplatkov, advokátskej tarify a úroku z omeškania podľa českého práva.", "cs": "Skilly pro výpočet lhůt, soudních poplatků, advokátního tarifu a úroku z prodlení podle českého práva.", "en": "Skills for Czech deadlines, court fees, attorney tariff and late payment interest.", "de": "Skills für tschechische Fristen, Gerichtsgebühren, Anwaltstarif und Verzugszinsen." } },
+    "katastr-cz": { "category": "cz", "jurisdictions": ["CZ"],
+      "title": { "sk": "Kataster nehnuteľností ČR", "cs": "Katastr nemovitostí ČR", "en": "Czech land registry", "de": "Tschechisches Grundbuch" },
+      "summary": { "sk": "Skill pre bezplatné REST API ČÚZK. Vyžaduje vlastný bezplatný kľúč používateľa.", "cs": "Skill pro bezplatné REST API ČÚZK. Vyžaduje vlastní bezplatný klíč uživatele.", "en": "Skill for the free ČÚZK cadastre REST API. Requires the user's own free API key.", "de": "Skill für die kostenlose ČÚZK-Kataster-REST-API. Erfordert einen eigenen kostenlosen API-Schlüssel." } }
   },
   "bundles": [
     { "id": "sk-zaklad", "category": "bundles", "jurisdiction": "SK", "recommended": true,
@@ -64,8 +77,8 @@
       "title": { "sk": "SK základ", "cs": "SK základ", "en": "SK essentials", "de": "SK-Grundpaket" },
       "summary": { "sk": "Odporúčané pre slovenskú kanceláriu: predpisy, obchodný register, judikatúra, kalkulačky, účtovné závierky a register právnických osôb.", "cs": "Doporučeno pro slovenskou kancelář: předpisy, obchodní rejstřík, judikatura, kalkulačky, účetní závěrky a registr právnických osob.", "en": "Recommended for a Slovak office: legislation, business register, case law, calculators, financial statements and the register of legal entities.", "de": "Empfohlen für eine slowakische Kanzlei: Rechtsvorschriften, Handelsregister, Rechtsprechung, Rechner, Jahresabschlüsse und Register juristischer Personen." } },
     { "id": "cz-zaklad", "category": "bundles", "jurisdiction": "CZ", "recommended": true, "provisional": true,
-      "plugins": ["cz-agents", "eurlex-celex"],
+      "plugins": ["esbirka", "judikatura-cz", "lhuty-kalkulacky-cz", "katastr-cz", "cz-agents", "eurlex-celex"],
       "title": { "sk": "CZ základ", "cs": "CZ základ", "en": "CZ essentials", "de": "CZ-Grundpaket" },
-      "summary": { "sk": "Predbežne pre českú kanceláriu: české registre a právo EÚ.", "cs": "Předběžně pro českou kancelář: české registry a právo EU.", "en": "Provisional for a Czech office: Czech registers and EU law.", "de": "Vorläufig für eine tschechische Kanzlei: tschechische Register und EU-Recht." } }
+      "summary": { "sk": "Predbežne pre českú kanceláriu: predpisy, judikatúra, lehoty a kalkulačky, kataster, české registre a právo EÚ.", "cs": "Předběžně pro českou kancelář: předpisy, judikatura, lhůty a kalkulačky, katastr, české registry a právo EU.", "en": "Provisional for a Czech office: legislation, case law, deadlines and calculators, land registry, Czech registers and EU law.", "de": "Vorläufig für eine tschechische Kanzlei: Rechtsvorschriften, Rechtsprechung, Fristen und Rechner, Grundbuch, tschechische Register und EU-Recht." } }
   ]
 }

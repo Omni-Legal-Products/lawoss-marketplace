@@ -190,6 +190,50 @@
         "lawoss-category:sk",
         "jurisdiction:sk"
       ]
+    },
+    {
+      "name": "esbirka",
+      "source": "./plugins/esbirka",
+      "description": "Předpisy ČR z e-Sbírky: skill pro znění k datu a citace, bez MCP a bez klíčů.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:cz",
+        "jurisdiction:cz"
+      ]
+    },
+    {
+      "name": "judikatura-cz",
+      "source": "./plugins/judikatura-cz",
+      "description": "Judikatura ČR z veřejných zdrojů: skill pro obecné soudy, NS, NSS a ÚS, bez MCP a bez placených databází.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:cz",
+        "jurisdiction:cz"
+      ]
+    },
+    {
+      "name": "lhuty-kalkulacky-cz",
+      "source": "./plugins/lhuty-kalkulacky-cz",
+      "description": "Lhůty a kalkulačky ČR: skilly pro deterministický výpočet lhůt, soudních poplatků, advokátního tarifu a úroku z prodlení, bez MCP.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:cz",
+        "jurisdiction:cz"
+      ]
+    },
+    {
+      "name": "katastr-cz",
+      "source": "./plugins/katastr-cz",
+      "description": "Katastr nemovitostí ČR: skill pro bezplatné REST API ČÚZK s vlastním klíčem uživatele, bez MCP.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:cz",
+        "jurisdiction:cz"
+      ]
     }
   ]
 }

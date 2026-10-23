@@ -35,6 +35,8 @@ DEPLOYMENT_ID = re.compile(
 MACOS_USER_PATH = re.compile("/" + r"Users/[^/\s]+/")
 WINDOWS_USER_PATH = re.compile(r"[A-Za-z]:\\" + r"Users\\[^\\\s]+\\")
 ALLOWED_PUBLIC_HOSTS = {"mcp.example.com", "www.crz.gov.sk", "fonts.googleapis.com", "github.com", "mcp.example.org"}
+# Official Czech public-sector sources read directly by the skill-only CZ plugins (reviewed 2026-10-22).
+ALLOWED_PUBLIC_HOSTS |= {"e-sbirka.gov.cz", "rozhodnuti.justice.cz", "rozhodnuti.nsoud.cz", "vyhledavac.nssoud.cz", "nalus.usoud.cz", "api-kn.cuzk.gov.cz", "registrace.cuzk.gov.cz"}
 ALLOWED_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 PRIVATE_NETWORKS = tuple(
     ipaddress.ip_network(value)

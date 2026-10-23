@@ -1,0 +1,10 @@
+{
+  "name": "judikatura-cz",
+  "version": "0.1.0",
+  "description": "Judikatura ČR z veřejných zdrojů: skill pro obecné soudy, NS, NSS a ÚS, bez MCP a bez placených databází.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

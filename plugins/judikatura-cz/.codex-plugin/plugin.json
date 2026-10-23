@@ -1,0 +1,24 @@
+{
+  "name": "judikatura-cz",
+  "version": "0.1.0",
+  "description": "Judikatura ČR z veřejných zdrojů: skill pro obecné soudy, NS, NSS a ÚS, bez MCP a bez placených databází.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Judikatura ČR",
+    "shortDescription": "Judikatura · skill · bez MCP",
+    "longDescription": "Skill pro dohledání a ověření české judikatury: obecné soudy přes otevřená data Ministerstva spravedlnosti, NS, NSS a ÚS přes jejich veřejné vyhledávače. Balík neobsahuje server, runtime ani přihlašovací údaje.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "defaultPrompt": [
+      "Najdi rozhodnutí obecných soudů zveřejněná 1. 10. 2026, která zmiňují § 142 občanského soudního řádu, a uveď jednací čísla a odkazy."
+    ]
+  }
+}

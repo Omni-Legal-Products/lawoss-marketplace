@@ -207,6 +207,54 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "esbirka",
+      "source": {
+        "source": "local",
+        "path": "./plugins/esbirka"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "judikatura-cz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/judikatura-cz"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lhuty-kalkulacky-cz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lhuty-kalkulacky-cz"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "katastr-cz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/katastr-cz"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }
