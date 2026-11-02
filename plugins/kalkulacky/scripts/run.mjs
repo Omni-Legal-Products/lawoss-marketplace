@@ -2,6 +2,7 @@
 // Portable LAWOSS local-runtime launcher. Plugin packagers copy this file verbatim.
 import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -183,6 +184,28 @@ async function verifyCache(cache, manifest) {
   }
 }
 
+// Node 18.20.2, 20.12.2 and 21.7.3+ refuse to spawn .cmd/.bat without a shell (EINVAL), so on
+// Windows npm runs as process.execPath + the npm-cli.js shipped beside node.exe. POSIX keeps npm
+// from PATH and only falls back to the npm of this Node when PATH has none.
+function npmRunner() {
+  const nodeDirectory = dirname(process.execPath);
+  const bundled = (process.platform === 'win32'
+    ? [join(nodeDirectory, 'node_modules', 'npm', 'bin', 'npm-cli.js')]
+    : [join(nodeDirectory, 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+       join(nodeDirectory, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')])
+    .find(path => existsSync(path));
+  const viaNode = bundled && ((args, options) => spawnSync(process.execPath, [bundled, ...args], options));
+  const fromPath = process.platform === 'win32'
+    ? (args, options) => {
+        const unsafe = args.find(arg => !/^[A-Za-z0-9@._=-]+$/.test(arg));
+        if (unsafe) throw new Error(`Refusing to pass an unquotable npm argument through cmd.exe: ${unsafe}`);
+        return spawnSync('npm.cmd', args, { ...options, shell: true });
+      }
+    : (args, options) => spawnSync('npm', args, options);
+  const runners = process.platform === 'win32' ? [viaNode, fromPath] : [fromPath, viaNode];
+  return runners.filter(Boolean).find(run => run(['--version'], { stdio: 'ignore' }).status === 0) ?? null;
+}
+
 async function main() {
   const parsed = parseArguments(process.argv.slice(2));
   if (parsed.help) { process.stdout.write(help); return; }
@@ -239,15 +262,14 @@ async function main() {
   }
 
   if (!ready) {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    const probe = spawnSync(npm, ['--version'], { stdio: 'ignore' });
-    if (probe.status !== 0) throw new Error('npm is required for the first run; install Node.js with npm.');
+    const npm = npmRunner();
+    if (!npm) throw new Error('npm is required for the first run; install Node.js with npm.');
     await mkdir(cacheBase, { recursive: true, mode: 0o700 });
     const staging = await mkdtemp(join(cacheBase, '.install-'));
     try {
       await cp(runtime, staging, { recursive: true });
       process.stderr.write(`[LAWOSS ${config.name.toUpperCase()}] Installing locked local dependencies for this runtime version…\n`);
-      const installed = spawnSync(npm, ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
+      const installed = npm(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
         cwd: staging,
         stdio: ['ignore', 2, 2],
         timeout: 240000,
@@ -255,7 +277,7 @@ async function main() {
       if (installed.status !== 0)
         throw new Error('Dependency installation failed; check npm/network access and retry.');
       for (const nativePackage of config.nativeBuilds ?? []) {
-        const rebuilt = spawnSync(npm, ['rebuild', '--foreground-scripts', nativePackage], {
+        const rebuilt = npm(['rebuild', '--foreground-scripts', nativePackage], {
           cwd: staging,
           stdio: ['ignore', 2, 2],
           timeout: 240000,

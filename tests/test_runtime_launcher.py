@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -14,7 +15,7 @@ CRZ_RUNTIME = ROOT / 'plugins/crz/runtime'
 NODE = shutil.which('node')
 
 
-class RuntimeLauncherTest(unittest.TestCase):
+class LauncherFixture:
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix='lawoss launcher ')
         self.base = Path(self.directory.name)
@@ -53,20 +54,22 @@ class RuntimeLauncherTest(unittest.TestCase):
         }
         (runtime / 'provenance.json').write_text(json.dumps(manifest, separators=(',', ':')) + '\n')
 
-    def run_cli(self, *args, path=None, cache=None, state=None):
-        env = {**os.environ, 'LAWOSS_CACHE_DIR': str(cache or self.base / 'cache')}
+    def run_cli(self, *args, path=None, cache=None, state=None, node=NODE, extra_env=None, timeout=20):
+        env = {**os.environ, 'LAWOSS_CACHE_DIR': str(cache or self.base / 'cache'), **(extra_env or {})}
         if state is not None:
             env['LAWOSS_STATE_DIR'] = str(state)
         if path is not None:
             env['PATH'] = path
         return subprocess.run(
-            [NODE, str(self.plugin / 'scripts/run.mjs'), *args],
+            [str(node), str(self.plugin / 'scripts/run.mjs'), *args],
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=timeout,
             env=env,
         )
 
+
+class RuntimeLauncherTest(LauncherFixture, unittest.TestCase):
     def assert_rejected_before_install(self, args, message=None):
         result = self.run_cli(*args, path='')
         self.assertNotEqual(result.returncode, 0)
@@ -237,6 +240,7 @@ class RuntimeLauncherTest(unittest.TestCase):
         self.assertEqual(Path(first).parent.name, 'fixture-plugin')
         self.assertEqual(Path(second).parent.name, 'another-plugin')
 
+    @unittest.skipIf(sys.platform == 'win32', 'POSIX resolves npm from PATH first; the fake npm is a shell script')
     def test_native_build_is_explicit_and_limited_to_better_sqlite3(self):
         (self.plugin / 'runtime/dist/index.js').write_text('process.exit(0)\n')
         self.write_config(nativeBuilds=['better-sqlite3'])
@@ -301,6 +305,98 @@ class RuntimeLauncherTest(unittest.TestCase):
         self.assertEqual(json.loads(call.stdout), {
             'request': {'name': 'fixture_tool', 'arguments': {'value': 7}},
         })
+
+
+class NpmResolutionTest(LauncherFixture, unittest.TestCase):
+    """Cold start runs the real npm, offline, with the layouts LAWOSS ships and the ones users install."""
+
+    WINDOWS = sys.platform == 'win32'
+
+    def setUp(self):
+        super().setUp()
+        runtime = self.plugin / 'runtime'
+        shutil.rmtree(runtime)
+        (runtime / 'dist').mkdir(parents=True)
+        (runtime / 'dist/index.js').write_text(
+            'import {writeFileSync} from "node:fs";'
+            'writeFileSync("launched.txt", "ok");'
+            'process.exit(0)\n'
+        )
+        manifest = {'name': 'fixture-plugin', 'version': '1.0.0', 'private': True, 'type': 'module'}
+        (runtime / 'package.json').write_text(json.dumps(manifest) + '\n')
+        (runtime / 'package-lock.json').write_text(json.dumps({
+            'name': 'fixture-plugin', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True,
+            'packages': {'': {'name': 'fixture-plugin', 'version': '1.0.0'}},
+        }) + '\n')
+        self.refresh_provenance()
+        self.npm_env = {
+            'npm_config_cache': str(self.base / 'npm-cache'),
+            'npm_config_userconfig': str(self.base / 'npmrc'),
+            'npm_config_offline': 'true',
+            'npm_config_update_notifier': 'false',
+        }
+        self.real_node = Path(subprocess.run([NODE, '-p', 'process.execPath'], capture_output=True,
+                                             text=True, check=True).stdout.strip())
+
+    def real_npm_package(self):
+        directory = self.real_node.parent
+        for candidate in [directory / 'node_modules/npm', directory / 'lib/node_modules/npm',
+                          directory.parent / 'lib/node_modules/npm']:
+            if (candidate / 'bin/npm-cli.js').is_file():
+                return candidate
+        self.skipTest('the Node.js running the tests ships without npm')
+
+    def copy_node(self, directory, with_npm):
+        directory.mkdir(parents=True)
+        node = directory / self.real_node.name
+        shutil.copy2(self.real_node, node)
+        if with_npm:
+            layout = 'node_modules/npm' if self.WINDOWS else 'lib/node_modules/npm'
+            shutil.copytree(self.real_npm_package(), directory / layout)
+        return node
+
+    def system_path(self, *extra):
+        system = [str(Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32')] if self.WINDOWS else []
+        return os.pathsep.join([*map(str, extra), *system])
+
+    def assert_cold_start_installs(self, result):
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('npm is required', result.stderr)
+        self.assertIn('Installing locked local dependencies', result.stderr)
+        report = json.loads(self.run_cli('doctor', path='', extra_env=self.npm_env).stdout)
+        self.assertTrue(report['cached'])
+        self.assertTrue((Path(report['cache']) / '.ready').is_file())
+        self.assertEqual((Path(report['statePath']) / 'launched.txt').read_text(), 'ok')
+
+    @unittest.skipUnless(sys.platform == 'win32', 'reproduces the Windows-only Node.js .cmd restriction')
+    def test_windows_refuses_npm_cmd_without_shell(self):
+        # The launcher before this fix probed npm exactly like this and reported "npm is required".
+        probe = subprocess.run(
+            [NODE, '-e', 'const r=require("node:child_process").spawnSync("npm.cmd",["--version"]);'
+                         'console.log(r.error ? r.error.code : r.status)'],
+            capture_output=True, text=True, timeout=60, check=True,
+        )
+        self.assertEqual(probe.stdout.strip(), 'EINVAL')
+
+    def test_cold_start_uses_npm_beside_node_when_path_has_none(self):
+        # LAWOSS bundles node(.exe) with npm beside it; PATH holds no npm at all here.
+        node = self.copy_node(self.base / 'bundled node', with_npm=True)
+        result = self.run_cli('mcp', node=node, path=self.system_path(), extra_env=self.npm_env, timeout=240)
+        self.assert_cold_start_installs(result)
+
+    def test_cold_start_uses_npm_from_path_when_none_is_beside_node(self):
+        # Windows reaches npm.cmd only through the shell fallback; POSIX keeps its PATH lookup.
+        node = self.copy_node(self.base / 'lonely node' / 'bin', with_npm=False)
+        self.real_npm_package()
+        result = self.run_cli('mcp', node=node, path=self.system_path(self.real_node.parent),
+                              extra_env=self.npm_env, timeout=240)
+        self.assert_cold_start_installs(result)
+
+    def test_cold_start_reports_missing_npm(self):
+        node = self.copy_node(self.base / 'no npm' / 'bin', with_npm=False)
+        result = self.run_cli('mcp', node=node, path=self.system_path(), extra_env=self.npm_env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('npm is required for the first run', result.stderr)
 
 
 if __name__ == '__main__':
