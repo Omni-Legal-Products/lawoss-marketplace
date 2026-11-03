@@ -186,13 +186,14 @@ async function verifyCache(cache, manifest) {
 
 // Node 18.20.2, 20.12.2 and 21.7.3+ refuse to spawn .cmd/.bat without a shell (EINVAL), so on
 // Windows npm runs as process.execPath + the npm-cli.js shipped beside node.exe. POSIX keeps npm
-// from PATH and only falls back to the npm of this Node when PATH has none.
+// from PATH and only falls back to the npm of this Node when PATH has none. The LAWOSS app bundles
+// npm in lib/npm on every platform (electron-builder drops node_modules from extraResources).
 function npmRunner() {
   const nodeDirectory = dirname(process.execPath);
-  const bundled = (process.platform === 'win32'
+  const bundled = [join(nodeDirectory, 'lib', 'npm', 'bin', 'npm-cli.js'), ...(process.platform === 'win32'
     ? [join(nodeDirectory, 'node_modules', 'npm', 'bin', 'npm-cli.js')]
     : [join(nodeDirectory, 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
-       join(nodeDirectory, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')])
+       join(nodeDirectory, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')])]
     .find(path => existsSync(path));
   const viaNode = bundled && ((args, options) => spawnSync(process.execPath, [bundled, ...args], options));
   const fromPath = process.platform === 'win32'

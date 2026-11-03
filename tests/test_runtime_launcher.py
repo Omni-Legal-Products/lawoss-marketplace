@@ -346,13 +346,12 @@ class NpmResolutionTest(LauncherFixture, unittest.TestCase):
                 return candidate
         self.skipTest('the Node.js running the tests ships without npm')
 
-    def copy_node(self, directory, with_npm):
+    def copy_node(self, directory, npm_layout=None):
         directory.mkdir(parents=True)
         node = directory / self.real_node.name
         shutil.copy2(self.real_node, node)
-        if with_npm:
-            layout = 'node_modules/npm' if self.WINDOWS else 'lib/node_modules/npm'
-            shutil.copytree(self.real_npm_package(), directory / layout)
+        if npm_layout:
+            shutil.copytree(self.real_npm_package(), directory / npm_layout)
         return node
 
     def system_path(self, *extra):
@@ -378,22 +377,29 @@ class NpmResolutionTest(LauncherFixture, unittest.TestCase):
         )
         self.assertEqual(probe.stdout.strip(), 'EINVAL')
 
+    def test_cold_start_uses_npm_bundled_by_lawoss_when_path_has_none(self):
+        # The LAWOSS app ships node(.exe) with npm in lib/npm on every platform; PATH holds no npm.
+        node = self.copy_node(self.base / 'lawoss node', npm_layout='lib/npm')
+        result = self.run_cli('mcp', node=node, path=self.system_path(), extra_env=self.npm_env, timeout=240)
+        self.assert_cold_start_installs(result)
+
     def test_cold_start_uses_npm_beside_node_when_path_has_none(self):
-        # LAWOSS bundles node(.exe) with npm beside it; PATH holds no npm at all here.
-        node = self.copy_node(self.base / 'bundled node', with_npm=True)
+        # Official Node.js archives: node_modules/npm beside node.exe, lib/node_modules/npm on POSIX.
+        layout = 'node_modules/npm' if self.WINDOWS else 'lib/node_modules/npm'
+        node = self.copy_node(self.base / 'bundled node', npm_layout=layout)
         result = self.run_cli('mcp', node=node, path=self.system_path(), extra_env=self.npm_env, timeout=240)
         self.assert_cold_start_installs(result)
 
     def test_cold_start_uses_npm_from_path_when_none_is_beside_node(self):
         # Windows reaches npm.cmd only through the shell fallback; POSIX keeps its PATH lookup.
-        node = self.copy_node(self.base / 'lonely node' / 'bin', with_npm=False)
+        node = self.copy_node(self.base / 'lonely node' / 'bin')
         self.real_npm_package()
         result = self.run_cli('mcp', node=node, path=self.system_path(self.real_node.parent),
                               extra_env=self.npm_env, timeout=240)
         self.assert_cold_start_installs(result)
 
     def test_cold_start_reports_missing_npm(self):
-        node = self.copy_node(self.base / 'no npm' / 'bin', with_npm=False)
+        node = self.copy_node(self.base / 'no npm' / 'bin')
         result = self.run_cli('mcp', node=node, path=self.system_path(), extra_env=self.npm_env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('npm is required for the first run', result.stderr)
