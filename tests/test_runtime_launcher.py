@@ -228,6 +228,91 @@ class RuntimeLauncherTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Cached runtime integrity check failed', result.stderr)
 
+    def test_mcp_server_runs_in_the_launcher_process(self):
+        # LAWOSS RAM budget (lawoss#367): no second Node.js process per MCP server.
+        (self.plugin / 'runtime/dist/index.js').write_text(
+            'import {writeFileSync} from "node:fs";'
+            'import {fileURLToPath} from "node:url";'
+            'writeFileSync("launched.json", JSON.stringify({pid: process.pid, argv1: process.argv[1],'
+            ' self: fileURLToPath(import.meta.url), argc: process.argv.length}));'
+            'process.exit(0)\n'
+        )
+        self.refresh_provenance()
+        report = json.loads(self.run_cli('doctor', path='').stdout)
+        cache = Path(report['cache'])
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(self.plugin / 'runtime', cache)
+        (cache / '.ready').write_text(report['cacheKey'])
+        env = {**os.environ, 'LAWOSS_CACHE_DIR': str(self.base / 'cache'), 'PATH': ''}
+        process = subprocess.Popen([NODE, str(self.plugin / 'scripts/run.mjs'), 'mcp'],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        stdout, stderr = process.communicate(timeout=20)
+        self.assertEqual(process.returncode, 0, stderr)
+        self.assertEqual(stdout, '')
+        launched = json.loads((Path(report['statePath']) / 'launched.json').read_text())
+        self.assertEqual(launched['pid'], process.pid)
+        # Entrypoints that check whether they are the main module still start.
+        self.assertEqual(launched['argv1'], launched['self'])
+        self.assertEqual(launched['argc'], 2)
+
+    def test_concurrent_first_runs_install_once_and_never_in_parallel(self):
+        # LAWOSS RAM budget (lawoss#367): one npm installation at a time.
+        (self.plugin / 'runtime/dist/index.js').write_text('process.exit(0)\n')
+        self.refresh_provenance()
+        fake_bin = self.base / 'bin'
+        fake_bin.mkdir()
+        npm_log = self.base / 'npm.log'
+        npm = fake_bin / 'npm'
+        npm.write_text(
+            '#!/bin/sh\n'
+            'if [ "$1" = "ci" ]; then echo "start $(date +%s%N)" >> "$NPM_LOG"; sleep 1; echo "end $(date +%s%N)" >> "$NPM_LOG"; fi\n'
+            'exit 0\n'
+        )
+        npm.chmod(0o755)
+        env = {**os.environ, 'PATH': f'{fake_bin}:/bin:/usr/bin', 'NPM_LOG': str(npm_log),
+               'LAWOSS_CACHE_DIR': str(self.base / 'shared-cache')}
+        launches = [subprocess.Popen([NODE, str(self.plugin / 'scripts/run.mjs'), 'mcp'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+                    for _ in range(4)]
+        for launch in launches:
+            _, stderr = launch.communicate(timeout=60)
+            self.assertEqual(launch.returncode, 0, stderr)
+        events = npm_log.read_text().split()
+        # Same runtime version: installed exactly once, the others reuse it.
+        self.assertEqual(events[0::2], ['start', 'end'])
+        self.assertFalse((self.base / 'shared-cache/.install.lock').exists())
+
+    def test_installations_of_different_plugins_do_not_overlap(self):
+        (self.plugin / 'runtime/dist/index.js').write_text('process.exit(0)\n')
+        self.refresh_provenance()
+        second = self.base / 'second plugin'
+        shutil.copytree(self.plugin, second)
+        config = json.loads((second / 'runtime-config.json').read_text())
+        config['name'] = 'second-fixture'
+        (second / 'runtime-config.json').write_text(json.dumps(config, separators=(',', ':')) + '\n')
+        manifest = json.loads((second / 'runtime/provenance.json').read_text())
+        manifest['configSha256'] = hashlib.sha256((second / 'runtime-config.json').read_bytes()).hexdigest()
+        (second / 'runtime/provenance.json').write_text(json.dumps(manifest, separators=(',', ':')) + '\n')
+        fake_bin = self.base / 'bin'
+        fake_bin.mkdir()
+        npm_log = self.base / 'npm.log'
+        npm = fake_bin / 'npm'
+        npm.write_text(
+            '#!/bin/sh\n'
+            'if [ "$1" = "ci" ]; then echo "start" >> "$NPM_LOG"; sleep 1; echo "end" >> "$NPM_LOG"; fi\n'
+            'exit 0\n'
+        )
+        npm.chmod(0o755)
+        env = {**os.environ, 'PATH': f'{fake_bin}:/bin:/usr/bin', 'NPM_LOG': str(npm_log),
+               'LAWOSS_CACHE_DIR': str(self.base / 'shared-cache')}
+        launches = [subprocess.Popen([NODE, str(plugin / 'scripts/run.mjs'), 'mcp'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+                    for plugin in (self.plugin, second)]
+        for launch in launches:
+            _, stderr = launch.communicate(timeout=60)
+            self.assertEqual(launch.returncode, 0, stderr)
+        self.assertEqual(npm_log.read_text().split(), ['start', 'end', 'start', 'end'])
+
     def test_cache_is_separated_by_plugin_slug(self):
         first = json.loads(self.run_cli('doctor', path='').stdout)['cache']
         self.write_config(name='another-plugin')
