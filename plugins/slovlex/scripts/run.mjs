@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Portable LAWOSS local-runtime launcher. Plugin packagers copy this file verbatim.
 import { createHash } from 'node:crypto';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -207,6 +207,49 @@ function npmRunner() {
   return runners.filter(Boolean).find(run => run(['--version'], { stdio: 'ignore' }).status === 0) ?? null;
 }
 
+// LAWOSS RAM budget (lawoss#367): one dependency installation at a time across
+// every plugin. A host may start all MCP servers at once; parallel `npm ci`
+// runs cost hundreds of MB each and slow machines then time out.
+const INSTALL_LOCK_STALE_MS = 15 * 60_000;
+const INSTALL_LOCK_WAIT_MS = 20 * 60_000;
+
+function processAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error.code === 'EPERM'; }
+}
+
+async function acquireInstallLock(cacheRoot, stillNeeded) {
+  await mkdir(cacheRoot, { recursive: true, mode: 0o700 });
+  const lock = join(cacheRoot, '.install.lock');
+  const deadline = Date.now() + INSTALL_LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      await mkdir(lock, { mode: 0o700 });
+      await writeFile(join(lock, 'owner'), String(process.pid), { mode: 0o600 });
+      return async () => { await rm(lock, { recursive: true, force: true }); };
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+    }
+    const owner = Number(await readFile(join(lock, 'owner'), 'utf8').catch(() => ''));
+    const age = Date.now() - ((await stat(lock).catch(() => null))?.mtimeMs ?? Date.now());
+    if ((owner && !processAlive(owner)) || age > INSTALL_LOCK_STALE_MS) {
+      await rm(lock, { recursive: true, force: true });
+      continue;
+    }
+    if (!(await stillNeeded())) return async () => {};
+    if (Date.now() > deadline) throw new Error(`Another LAWOSS runtime installation is still running; retry later: ${lock}`);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+}
+
+async function readyMarker(cache, cacheKey) {
+  const readyPath = join(cache, '.ready');
+  const readyInfo = await lstat(readyPath).catch(() => null);
+  if (readyInfo?.isSymbolicLink()) throw new Error(`Cached runtime marker must not be a symbolic link: ${readyPath}`);
+  return readyInfo?.isFile() ? (await readFile(readyPath, 'utf8')) === cacheKey : false;
+}
+
 async function main() {
   const parsed = parseArguments(process.argv.slice(2));
   if (parsed.help) { process.stdout.write(help); return; }
@@ -237,14 +280,11 @@ async function main() {
 
   const provenanceDigest = sha256(provenanceBytes).slice(0, 24);
   const cacheKey = `${provenanceDigest}-${process.platform}-${process.arch}-${process.versions.modules}`;
-  const cacheBase = resolve(process.env.LAWOSS_CACHE_DIR || join(homedir(), '.cache', 'lawoss'), config.name);
+  const cacheRoot = resolve(process.env.LAWOSS_CACHE_DIR || join(homedir(), '.cache', 'lawoss'));
+  const cacheBase = join(cacheRoot, config.name);
   const cache = join(cacheBase, cacheKey);
   const statePath = process.env.LAWOSS_STATE_DIR ? resolve(process.env.LAWOSS_STATE_DIR, config.name) : join(cacheBase, 'state');
-  let ready = false;
-  const readyPath = join(cache, '.ready');
-  const readyInfo = await lstat(readyPath).catch(() => null);
-  if (readyInfo?.isSymbolicLink()) throw new Error(`Cached runtime marker must not be a symbolic link: ${readyPath}`);
-  if (readyInfo?.isFile()) ready = (await readFile(readyPath, 'utf8')) === cacheKey;
+  let ready = await readyMarker(cache, cacheKey);
   if (ready) await verifyCache(cache, manifest);
 
   if (parsed.mode === 'doctor') {
@@ -262,52 +302,66 @@ async function main() {
     return;
   }
 
+  const releaseInstallLock = ready ? null : await acquireInstallLock(cacheRoot, async () => !(await readyMarker(cache, cacheKey)));
+  // Another launcher of the same runtime may have finished it while this one waited.
+  if (releaseInstallLock && await readyMarker(cache, cacheKey)) {
+    await verifyCache(cache, manifest);
+    ready = true;
+  }
   if (!ready) {
-    const npm = npmRunner();
-    if (!npm) throw new Error('npm is required for the first run; install Node.js with npm.');
-    await mkdir(cacheBase, { recursive: true, mode: 0o700 });
-    const staging = await mkdtemp(join(cacheBase, '.install-'));
     try {
-      await cp(runtime, staging, { recursive: true });
-      process.stderr.write(`[LAWOSS ${config.name.toUpperCase()}] Installing locked local dependencies for this runtime version…\n`);
-      const installed = npm(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
-        cwd: staging,
-        stdio: ['ignore', 2, 2],
-        timeout: 240000,
-      });
-      if (installed.status !== 0)
-        throw new Error('Dependency installation failed; check npm/network access and retry.');
-      for (const nativePackage of config.nativeBuilds ?? []) {
-        const rebuilt = npm(['rebuild', '--foreground-scripts', nativePackage], {
+      const npm = npmRunner();
+      if (!npm) throw new Error('npm is required for the first run; install Node.js with npm.');
+      await mkdir(cacheBase, { recursive: true, mode: 0o700 });
+      const staging = await mkdtemp(join(cacheBase, '.install-'));
+      try {
+        await cp(runtime, staging, { recursive: true });
+        process.stderr.write(`[LAWOSS ${config.name.toUpperCase()}] Installing locked local dependencies for this runtime version…\n`);
+        const installed = npm(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
           cwd: staging,
           stdio: ['ignore', 2, 2],
           timeout: 240000,
         });
-        if (rebuilt.status !== 0)
-          throw new Error(`Native dependency build failed for ${nativePackage}; check prebuilt-binary availability or install a C/C++ compiler toolchain, then retry.`);
-      }
-      await verifyCache(staging, manifest);
-      await writeFile(join(staging, '.ready'), cacheKey, { mode: 0o600 });
-      try { await rename(staging, cache); }
-      catch (error) {
-        const marker = await readFile(join(cache, '.ready'), 'utf8').catch(() => '');
-        if (marker !== cacheKey) throw error;
-        await verifyCache(cache, manifest);
+        if (installed.status !== 0)
+          throw new Error('Dependency installation failed; check npm/network access and retry.');
+        for (const nativePackage of config.nativeBuilds ?? []) {
+          const rebuilt = npm(['rebuild', '--foreground-scripts', nativePackage], {
+            cwd: staging,
+            stdio: ['ignore', 2, 2],
+            timeout: 240000,
+          });
+          if (rebuilt.status !== 0)
+            throw new Error(`Native dependency build failed for ${nativePackage}; check prebuilt-binary availability or install a C/C++ compiler toolchain, then retry.`);
+        }
+        await verifyCache(staging, manifest);
+        await writeFile(join(staging, '.ready'), cacheKey, { mode: 0o600 });
+        try { await rename(staging, cache); }
+        catch (error) {
+          const marker = await readFile(join(cache, '.ready'), 'utf8').catch(() => '');
+          if (marker !== cacheKey) throw error;
+          await verifyCache(cache, manifest);
+        }
+      } finally {
+        await rm(staging, { recursive: true, force: true });
       }
     } finally {
-      await rm(staging, { recursive: true, force: true });
+      await releaseInstallLock?.();
     }
-  }
+  } else await releaseInstallLock?.();
 
   const entrypoint = join(cache, ...selected.entrypoint.split('/'));
   await mkdir(statePath, { recursive: true, mode: 0o700 });
   const policy = config.name === 'cz-agents' ? await import('./runtime-policy.mjs') : null;
   const childEnv = policy ? policy.serverEnvironment(selected.server, process.env) : process.env;
   if (parsed.mode === 'mcp' && !policy) {
-    const child = spawn(process.execPath, [entrypoint], { stdio: 'inherit', cwd: statePath, env: process.env });
-    for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => child.kill(signal));
-    child.on('error', error => { process.stderr.write(error.message + '\n'); process.exitCode = 1; });
-    child.on('exit', code => { process.exitCode = code ?? 1; });
+    // LAWOSS RAM budget (lawoss#367): run the server in this process instead of
+    // a second Node.js process per MCP server. It sees the same argv[1], cwd
+    // and environment that a spawned child received.
+    // argv[1] is the resolved path, like import.meta.url, so main-module checks match.
+    const mainModule = await realpath(entrypoint);
+    process.chdir(statePath);
+    process.argv.splice(1, process.argv.length - 1, mainModule);
+    await import(pathToFileURL(mainModule).href);
     return;
   }
 
