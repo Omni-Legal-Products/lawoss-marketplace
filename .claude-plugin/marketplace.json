@@ -9,7 +9,7 @@
       "name": "crz",
       "source": "./plugins/crz",
       "description": "Local CRZ MCP server, usage skill and CLI with a locked runtime.",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -20,7 +20,7 @@
       "name": "cz-agents",
       "source": "./plugins/cz-agents",
       "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "category": "Productivity",
       "tags": [
         "lawoss-category:cz",
@@ -31,7 +31,7 @@
       "name": "disq",
       "source": "./plugins/disq",
       "description": "Diskvalifikácie osôb: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -42,7 +42,7 @@
       "name": "eurlex-celex",
       "source": "./plugins/eurlex-celex",
       "description": "EUR-Lex – právo EÚ: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "category": "Productivity",
       "tags": [
         "lawoss-category:general",
@@ -53,7 +53,7 @@
       "name": "fs-opendata-mcp",
       "source": "./plugins/fs-opendata-mcp",
       "description": "Finančná správa – otvorené dáta: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -64,7 +64,7 @@
       "name": "judikaty",
       "source": "./plugins/judikaty",
       "description": "Judikáty SR – Justice, NS SR, ÚS SR: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.5",
+      "version": "1.2.6",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -75,7 +75,7 @@
       "name": "kalkulacky",
       "source": "./plugins/kalkulacky",
       "description": "Právne kalkulačky SR: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -86,7 +86,7 @@
       "name": "orsr",
       "source": "./plugins/orsr",
       "description": "Obchodný register SR: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -97,7 +97,7 @@
       "name": "ov",
       "source": "./plugins/ov",
       "description": "Obchodný vestník: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -108,7 +108,7 @@
       "name": "rpo",
       "source": "./plugins/rpo",
       "description": "Register právnických osôb: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -119,7 +119,7 @@
       "name": "rpvs",
       "source": "./plugins/rpvs",
       "description": "Register partnerov verejného sektora: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -130,7 +130,7 @@
       "name": "ru",
       "source": "./plugins/ru",
       "description": "Register úpadcov: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -141,7 +141,7 @@
       "name": "ruz",
       "source": "./plugins/ruz",
       "description": "Register účtovných závierok: bundled local MCP, usage guidance and CLI.",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -152,7 +152,7 @@
       "name": "slovlex",
       "source": "./plugins/slovlex",
       "description": "Slov-Lex – právne predpisy SR: bundled local MCP, usage guidance and CLI.",
-      "version": "1.1.3",
+      "version": "1.1.4",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",
@@ -163,7 +163,7 @@
       "name": "uvo",
       "source": "./plugins/uvo",
       "description": "Verejné obstarávanie – ÚVO: bundled local MCP, usage guidance and CLI.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:sk",

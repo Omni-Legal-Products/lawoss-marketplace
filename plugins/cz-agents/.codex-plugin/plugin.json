@@ -1,6 +1,6 @@
 {
   "name": "cz-agents",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "České registre – ARES, ČNB a ďalšie: bundled local MCP, usage guidance and CLI.",
   "author": {
     "name": "LAWOSS"
