@@ -349,7 +349,9 @@ async function main() {
     }
   } else await releaseInstallLock?.();
 
-  const entrypoint = join(cache, ...selected.entrypoint.split('/'));
+  // Resolved path, like import.meta.url, so main-module checks match even when
+  // the cache path goes through a symlink (e.g. /var -> /private/var on macOS).
+  const entrypoint = await realpath(join(cache, ...selected.entrypoint.split('/')));
   await mkdir(statePath, { recursive: true, mode: 0o700 });
   const policy = config.name === 'cz-agents' ? await import('./runtime-policy.mjs') : null;
   const childEnv = policy ? policy.serverEnvironment(selected.server, process.env) : process.env;
@@ -357,11 +359,9 @@ async function main() {
     // LAWOSS RAM budget (lawoss#367): run the server in this process instead of
     // a second Node.js process per MCP server. It sees the same argv[1], cwd
     // and environment that a spawned child received.
-    // argv[1] is the resolved path, like import.meta.url, so main-module checks match.
-    const mainModule = await realpath(entrypoint);
     process.chdir(statePath);
-    process.argv.splice(1, process.argv.length - 1, mainModule);
-    await import(pathToFileURL(mainModule).href);
+    process.argv.splice(1, process.argv.length - 1, entrypoint);
+    await import(pathToFileURL(entrypoint).href);
     return;
   }
 
