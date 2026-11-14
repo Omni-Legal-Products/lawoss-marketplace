@@ -330,7 +330,13 @@ def validate_public_tree(root: Path) -> None:
                 f"private network address found in {relative}",
             )
 
-        for match in URL.finditer(text):
+        # Bundled runtimes (2026-11-14) carry third-party libraries whose comments and test strings name
+        # documentation hosts and use property names that end like a private TLD. The exemption applies
+        # only to these exact reviewed bytes; any edit or rebuild is scanned again. Private-network
+        # addresses and secret signatures are still scanned in every file.
+        bundled_third_party = {'plugins/orsr/runtime/THIRD_PARTY_NOTICES.txt': '6946ca23ba473a09a4a9f10c4b5e3f915ab823897c2568abbd9d14297eceea2a', 'plugins/judikaty/runtime/THIRD_PARTY_NOTICES.txt': 'fb6d107ded99485dd095351ade6528a8c0c267e66dc632d8c0e7bf5a5e62e97b', 'plugins/kalkulacky/runtime/THIRD_PARTY_NOTICES.txt': '52d03ef2ab4dee35697f2aed7a97c26d34824ce17b46fcc064563808c14164c9', 'plugins/ruz/runtime/THIRD_PARTY_NOTICES.txt': '7e03dcfcb99a2eafc49e4194b1164ae4ae1cd79aa589066b01e672608843e459', 'plugins/rpo/runtime/THIRD_PARTY_NOTICES.txt': 'fc91f1bb14589e4a0834f211e7c67c2e5cbc5907b3327e2d6bafd80b863bfa5d', 'plugins/slovlex/runtime/THIRD_PARTY_NOTICES.txt': '74aca54b4711342d160df42d891863e21331bee6fa8e50bed942cb7a13f8953f', 'plugins/orsr/runtime/dist/server.js': '9b0443d0d07ddf293b0a7d2be027ed935b9212f9a91b0791b679365850846865', 'plugins/judikaty/runtime/dist/src/server/index.js': 'e434eec28dd26d0ab2763d1ba4ce9334974af37b0ac10e0784ea2683a58c9426', 'plugins/kalkulacky/runtime/dist/src/server.js': '00e5a0594aa6394032b394d2f9aecc8f48f4b73fe723f54b982d20822a21cfab', 'plugins/ruz/runtime/dist/server.js': '47b9b010c746366fa78ea8065ec1ce3a852cdcf57a1808ff4c556bb981a84e21', 'plugins/rpo/runtime/dist/server.js': 'a17269631443b25d4aeb2569ffc25e1c8f9754dc40b0a5003db1d764454d7ce5', 'plugins/slovlex/runtime/dist/index.js': '5247e54b4c9106c4eabb9e82c654b53e68b002ffbb1481438f5ca75f6dd6da1c', 'plugins/slovlex/runtime/dist/pdf.worker.mjs': '044d2faff688e8502bdfa8e91222dc2420443f9a35f5d9a8ed06d9de6c39bb28'}
+        bundled_exact = bundled_third_party.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
+        for match in URL.finditer('' if bundled_exact else text):
             # XML namespace identifiers are not remote image/service URLs.
             if match.group(0) == "http://www.w3.org/2000/svg":
                 continue
@@ -343,11 +349,9 @@ def validate_public_tree(root: Path) -> None:
 
         # Exact reviewed JS uses local/internal as variable names. Continue to scan
         # URLs above and all hostname-shaped strings after any source modification.
-        # Bundled runtimes (2026-11-14): bundled libraries use property names that end like a private TLD.
-        bundled_js_identifiers = {'plugins/orsr/runtime/dist/server.js': '9b0443d0d07ddf293b0a7d2be027ed935b9212f9a91b0791b679365850846865', 'plugins/judikaty/runtime/dist/src/server/index.js': 'e434eec28dd26d0ab2763d1ba4ce9334974af37b0ac10e0784ea2683a58c9426', 'plugins/kalkulacky/runtime/dist/src/server.js': '00e5a0594aa6394032b394d2f9aecc8f48f4b73fe723f54b982d20822a21cfab', 'plugins/ruz/runtime/dist/server.js': '47b9b010c746366fa78ea8065ec1ce3a852cdcf57a1808ff4c556bb981a84e21', 'plugins/rpo/runtime/dist/server.js': 'a17269631443b25d4aeb2569ffc25e1c8f9754dc40b0a5003db1d764454d7ce5'}
         reviewed_js_identifiers = {'plugins/rpvs/runtime/dist/redaction.js': '9bf14fda16633fdd4aecb90027d7b293c0449d15e9ace4c9b3170107e80774ca', 'plugins/judikaty/runtime/dist/src/tools/search-decisions/enrichment.js': '9f78f127508cf00756274866fc3165bde023685a8e1baa2cb0350b115d88e6c4', 'plugins/ov/runtime/dist/mcp-server.js': '4c36a699c6dd32cb1df40bed80c262ec9ccb1be552395fd85688f7740372d7d0'}
-        identifier_only = {**reviewed_js_identifiers, **bundled_js_identifiers}.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
-        for hostname in HOSTNAME_CANDIDATE.findall('' if identifier_only else text):
+        identifier_only = reviewed_js_identifiers.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
+        for hostname in HOSTNAME_CANDIDATE.findall('' if identifier_only or bundled_exact else text):
             require(
                 hostname == "home.treasury.gov" or not is_private_hostname(hostname),
                 f"private infrastructure hostname found in {relative}",

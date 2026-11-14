@@ -21,6 +21,11 @@ def record_for(root, name):
 # CommonJS dependencies inside an ESM bundle still call `require` for Node built-ins.
 BUNDLE_BANNER = ("import { createRequire as __lawossCreateRequire } from 'node:module';"
                  "const require = __lawossCreateRequire(import.meta.url);")
+# pdf.js evaluates `new DOMMatrix()` at import time and otherwise polyfills it from a native canvas
+# package. Text extraction never draws, so inert stand-ins are enough when the canvas is not shipped.
+DOM_SHIMS = ("globalThis.DOMMatrix ??= class DOMMatrix { constructor(init) { const v = Array.isArray(init) && init.length === 6 ? init : [1, 0, 0, 1, 0, 0]; [this.a, this.b, this.c, this.d, this.e, this.f] = v; } };"
+             "globalThis.ImageData ??= class ImageData { constructor(width, height) { this.width = width; this.height = height; this.data = new Uint8ClampedArray(width * height * 4); } };"
+             "globalThis.Path2D ??= class Path2D {};")
 
 
 def find_esbuild(built):
@@ -32,7 +37,7 @@ def find_esbuild(built):
     raise ValueError('esbuild is required for a bundled runtime; set ESBUILD_BINARY or install esbuild.')
 
 
-def bundle_entrypoints(built, staged, entrypoints):
+def bundle_entrypoints(built, staged, entrypoints, dom_shims=False):
     """Bundle each stdio entrypoint with its dependencies into one file, so the first run needs no npm.
 
     Returns the third-party packages that ended up inside the bundles.
@@ -45,7 +50,7 @@ def bundle_entrypoints(built, staged, entrypoints):
         with tempfile.TemporaryDirectory(prefix='lawoss-bundle-') as directory:
             meta = Path(directory) / 'meta.json'
             subprocess.run([esbuild, str(built / entry), '--bundle', '--platform=node', '--format=esm', '--target=node22',
-                            '--legal-comments=none', '--log-level=warning', f'--banner:js={BUNDLE_BANNER}',
+                            '--legal-comments=none', '--log-level=warning', f'--banner:js={BUNDLE_BANNER}{DOM_SHIMS if dom_shims else ""}',
                             f'--metafile={meta}', f'--outfile={target}'], cwd=built, check=True, timeout=300)
             inputs = json.loads(meta.read_text())['inputs']
         for path in inputs:
@@ -136,7 +141,17 @@ def package_built(name, built, root=ROOT):
                 shutil.copyfile(source, target)
         entries = list(spec.get('servers', {}).values()) or [spec['entrypoint']]
         if bundled:
-            (staged / 'THIRD_PARTY_NOTICES.txt').write_text(third_party_notices(bundle_entrypoints(built, staged, entries)))
+            (staged / 'THIRD_PARTY_NOTICES.txt').write_text(
+                third_party_notices(bundle_entrypoints(built, staged, entries, bool(spec.get('bundleDomShims')))))
+            # Files a bundled library loads by path at run time (pdf.js loads its worker beside the bundle).
+            for origin, destination_name in spec.get('bundleCopy', {}).items():
+                source = (built / origin).resolve()
+                target = (staged / destination_name).resolve()
+                if source.is_symlink() or not source.is_file() or not source.is_relative_to(built.resolve()) \
+                        or not target.is_relative_to(staged.resolve()):
+                    raise ValueError(f'Invalid bundled copy: {origin}')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
         if any(not (staged / entry).is_file() for entry in entries):
             raise ValueError('Built stdio entrypoint is missing')
         files = {p.relative_to(staged).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(staged.rglob('*')) if p.is_file()}

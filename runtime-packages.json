@@ -57,31 +57,15 @@
     "entrypoint": "dist/src/server/index.js",
     "assets": [],
     "publicHosts": [
-      "example.com",
-      "fetch.spec.whatwg.org",
-      "gist.github.com",
       "github.com",
       "html.duckduckgo.com",
-      "html.spec.whatwg.org",
-      "json-schema.org",
-      "mathiasbynens.be",
-      "mimesniff.spec.whatwg.org",
       "obcan.justice.sk",
       "opencollective.com",
-      "raw.githubusercontent.com",
       "registry.npmjs.org",
-      "spec.openapis.org",
-      "stackoverflow.com",
-      "tools.ietf.org",
-      "w3c.github.io",
-      "webidl.spec.whatwg.org",
-      "websockets.spec.whatwg.org",
       "www.justice.gov.sk",
       "www.nsud.sk",
-      "www.safaribooksonline.com",
       "www.slov-lex.sk",
-      "www.ustavnysud.sk",
-      "www.w3.org"
+      "www.ustavnysud.sk"
     ]
   },
   "kalkulacky": {
@@ -91,26 +75,16 @@
       "data"
     ],
     "publicHosts": [
-      "example.com",
-      "gist.github.com",
       "github.com",
-      "json-schema.org",
-      "mathiasbynens.be",
       "nbs.sk",
       "opencollective.com",
-      "raw.githubusercontent.com",
       "registry.npmjs.org",
       "slovak.statistics.sk",
-      "spec.openapis.org",
-      "stackoverflow.com",
       "static.slov-lex.sk",
       "tidelift.com",
-      "tools.ietf.org",
       "www.aksamec.sk",
       "www.ecb.europa.eu",
       "www.najpravo.sk",
-      "www.safaribooksonline.com",
-      "www.w3.org",
       "www.zakonypreludi.sk"
     ]
   },
@@ -119,21 +93,11 @@
     "entrypoint": "dist/server.js",
     "assets": [],
     "publicHosts": [
-      "example.com",
-      "gist.github.com",
       "github.com",
-      "json-schema.org",
-      "mathiasbynens.be",
       "opencollective.com",
-      "raw.githubusercontent.com",
       "registry.npmjs.org",
       "sluzby.orsr.sk",
-      "spec.openapis.org",
-      "stackoverflow.com",
-      "tidelift.com",
-      "tools.ietf.org",
-      "www.safaribooksonline.com",
-      "www.w3.org"
+      "tidelift.com"
     ]
   },
   "ov": {
@@ -153,20 +117,10 @@
     "assets": [],
     "publicHosts": [
       "api.statistics.sk",
-      "example.com",
-      "gist.github.com",
       "github.com",
-      "json-schema.org",
-      "mathiasbynens.be",
       "opencollective.com",
-      "raw.githubusercontent.com",
       "registry.npmjs.org",
-      "spec.openapis.org",
-      "stackoverflow.com",
-      "tidelift.com",
-      "tools.ietf.org",
-      "www.safaribooksonline.com",
-      "www.w3.org"
+      "tidelift.com"
     ]
   },
   "rpvs": {
@@ -196,24 +150,19 @@
     "entrypoint": "dist/server.js",
     "assets": [],
     "publicHosts": [
-      "example.com",
-      "gist.github.com",
       "github.com",
-      "json-schema.org",
-      "mathiasbynens.be",
       "opencollective.com",
-      "raw.githubusercontent.com",
       "registry.npmjs.org",
-      "spec.openapis.org",
-      "stackoverflow.com",
       "tidelift.com",
-      "tools.ietf.org",
-      "www.registeruz.sk",
-      "www.safaribooksonline.com",
-      "www.w3.org"
+      "www.registeruz.sk"
     ]
   },
   "slovlex": {
+    "bundled": true,
+    "bundleDomShims": true,
+    "bundleCopy": {
+      "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs": "dist/pdf.worker.mjs"
+    },
     "entrypoint": "dist/index.js",
     "assets": [],
     "publicHosts": [
