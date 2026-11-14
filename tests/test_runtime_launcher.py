@@ -490,5 +490,53 @@ class NpmResolutionTest(LauncherFixture, unittest.TestCase):
         self.assertIn('npm is required for the first run', result.stderr)
 
 
+class BundledRuntimeTest(LauncherFixture, unittest.TestCase):
+    """A bundled runtime carries its dependencies in the entrypoint: no npm, no network on first run."""
+
+    def setUp(self):
+        super().setUp()
+        shutil.rmtree(self.plugin / 'runtime')
+        shutil.copytree(ROOT / 'plugins/orsr/runtime', self.plugin / 'runtime')
+        self.write_config(entrypoint='dist/server.js', bundled=True)
+        self.refresh_provenance()
+
+    def test_cold_start_lists_tools_without_npm_or_path(self):
+        result = self.run_cli('tools', path='', timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('Installing', result.stderr)
+        self.assertTrue(json.loads(result.stdout)['tools'])
+        self.assertFalse(list((self.base / 'cache').rglob('node_modules')))
+
+    def test_mcp_mode_answers_initialize_without_npm(self):
+        env = {**os.environ, 'PATH': '', 'LAWOSS_CACHE_DIR': str(self.base / 'cache')}
+        request = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
+            'protocolVersion': '2025-06-18', 'capabilities': {}, 'clientInfo': {'name': 'test', 'version': '1'}}}) + '\n'
+        process = subprocess.Popen([NODE, str(self.plugin / 'scripts/run.mjs'), 'mcp'], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        try:
+            process.stdin.write(request)
+            process.stdin.flush()
+            answer = json.loads(process.stdout.readline())
+        finally:
+            process.kill()
+            process.communicate()
+        self.assertEqual(answer['id'], 1)
+        self.assertIn('serverInfo', answer['result'])
+
+    def test_bundled_runtime_cannot_declare_native_builds(self):
+        self.write_config(entrypoint='dist/server.js', bundled=True, nativeBuilds=['better-sqlite3'])
+        self.refresh_provenance()
+        result = self.run_cli('doctor', path='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('cannot declare nativeBuilds', result.stderr)
+
+    def test_bundled_flag_must_be_true(self):
+        self.write_config(entrypoint='dist/server.js', bundled='yes')
+        self.refresh_provenance()
+        result = self.run_cli('doctor', path='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('bundled must be true', result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

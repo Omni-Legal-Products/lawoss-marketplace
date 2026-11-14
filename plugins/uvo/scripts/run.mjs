@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const help = 'Usage: node scripts/run.mjs [--server NAME] [mcp|doctor|tools|call TOOL JSON|--help]\nRequires the Node.js version declared by this plugin and npm for the first run. No global CLI installation.\n';
+const help = 'Usage: node scripts/run.mjs [--server NAME] [mcp|doctor|tools|call TOOL JSON|--help]\nRequires the Node.js version declared by this plugin. Bundled runtimes need no npm and no network; others need npm for the first run. No global CLI installation.\n';
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 function parseArguments(argv) {
@@ -72,7 +72,7 @@ function versionBefore(actual, minimum) {
 
 function validateConfig(config) {
   if (!isObject(config)) throw new Error('runtime-config.json must contain an object.');
-  const allowed = new Set(['name', 'entrypoint', 'minimumNode', 'servers', 'defaultServer', 'nativeBuilds']);
+  const allowed = new Set(['name', 'entrypoint', 'minimumNode', 'servers', 'defaultServer', 'nativeBuilds', 'bundled']);
   const unknown = Object.keys(config).find(key => !allowed.has(key));
   if (unknown) throw new Error(`runtime-config.json has unknown field: ${unknown}`);
   requireSlug(config.name, 'Runtime name');
@@ -98,6 +98,12 @@ function validateConfig(config) {
         config.nativeBuilds.some(name => name !== 'better-sqlite3'))
       throw new Error('nativeBuilds may contain only the supported native package better-sqlite3.');
   }
+  // A bundled runtime ships every dependency inside its entrypoints, so the first run needs
+  // neither npm nor network (LAWOSS alpha.12: `npm ci` failed behind TLS-inspecting firewalls).
+  if (config.bundled !== undefined && config.bundled !== true)
+    throw new Error('bundled must be true when present.');
+  if (config.bundled && config.nativeBuilds)
+    throw new Error('A bundled runtime cannot declare nativeBuilds.');
   return minimumNode;
 }
 
@@ -243,6 +249,62 @@ async function acquireInstallLock(cacheRoot, stillNeeded) {
   }
 }
 
+// One sentence a lawyer can act on instead of a raw npm dump (shown by LAWOSS in Integrations).
+function installFailure(result) {
+  const output = String(result.stderr ?? '');
+  if (/UNABLE_TO_VERIFY_LEAF_SIGNATURE|SELF_SIGNED_CERT|UNABLE_TO_GET_ISSUER_CERT|certificate/i.test(output))
+    return 'Dependency installation failed: this network inspects encrypted connections (certificate check failed for registry.npmjs.org). Try another network or ask the administrator for an exception, then retry.';
+  if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ENETUNREACH|ETIMEDOUT/i.test(output) || result.error?.code === 'ETIMEDOUT')
+    return 'Dependency installation failed: registry.npmjs.org is unreachable. Check the internet connection and retry.';
+  return 'Dependency installation failed; check npm/network access and retry.';
+}
+
+// Minimal MCP stdio client for `tools` and `call` on bundled runtimes, which ship no SDK files.
+async function bundledRequest(entrypoint, cwd, env, method, params) {
+  const { spawn } = await import('node:child_process');
+  const child = spawn(process.execPath, [entrypoint], { cwd, env, stdio: ['pipe', 'pipe', 'inherit'] });
+  const pending = new Map();
+  let buffer = '';
+  let failure = null;
+  const settle = error => { failure = error; for (const { reject } of pending.values()) reject(error); pending.clear(); };
+  child.on('error', settle);
+  child.on('exit', code => settle(new Error(`MCP server exited before answering (code ${code}).`)));
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', chunk => {
+    buffer += chunk;
+    for (let end = buffer.indexOf('\n'); end !== -1; end = buffer.indexOf('\n')) {
+      const line = buffer.slice(0, end).trim();
+      buffer = buffer.slice(end + 1);
+      if (!line) continue;
+      let message;
+      try { message = JSON.parse(line); } catch { continue; }
+      const waiter = pending.get(message.id);
+      if (!waiter) continue;
+      pending.delete(message.id);
+      if (message.error) waiter.reject(new Error(message.error.message ?? 'MCP request failed.'));
+      else waiter.resolve(message.result);
+    }
+  });
+  let nextId = 1;
+  const send = message => child.stdin.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\n');
+  const request = (name, value) => new Promise((resolve, reject) => {
+    if (failure) return reject(failure);
+    const id = nextId++;
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error(`MCP request timed out: ${name}`)); }, 60000);
+    pending.set(id, { resolve: result => { clearTimeout(timer); resolve(result); }, reject: error => { clearTimeout(timer); reject(error); } });
+    send({ id, method: name, params: value });
+  });
+  try {
+    await request('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'lawoss-runtime-cli', version: '1.0.0' } });
+    send({ method: 'notifications/initialized' });
+    return await request(method, params);
+  } finally {
+    child.removeAllListeners('exit');
+    child.stdin.end();
+    child.kill();
+  }
+}
+
 async function readyMarker(cache, cacheKey) {
   const readyPath = join(cache, '.ready');
   const readyInfo = await lstat(readyPath).catch(() => null);
@@ -310,28 +372,32 @@ async function main() {
   }
   if (!ready) {
     try {
-      const npm = npmRunner();
-      if (!npm) throw new Error('npm is required for the first run; install Node.js with npm.');
+      const npm = config.bundled ? null : npmRunner();
+      if (!config.bundled && !npm) throw new Error('npm is required for the first run; install Node.js with npm.');
       await mkdir(cacheBase, { recursive: true, mode: 0o700 });
       const staging = await mkdtemp(join(cacheBase, '.install-'));
       try {
         await cp(runtime, staging, { recursive: true });
-        process.stderr.write(`[LAWOSS ${config.name.toUpperCase()}] Installing locked local dependencies for this runtime version…\n`);
-        const installed = npm(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
-          cwd: staging,
-          stdio: ['ignore', 2, 2],
-          timeout: 240000,
-        });
-        if (installed.status !== 0)
-          throw new Error('Dependency installation failed; check npm/network access and retry.');
-        for (const nativePackage of config.nativeBuilds ?? []) {
-          const rebuilt = npm(['rebuild', '--foreground-scripts', nativePackage], {
+        if (!config.bundled) {
+          process.stderr.write(`[LAWOSS ${config.name.toUpperCase()}] Installing locked local dependencies for this runtime version…\n`);
+          const installed = npm(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
             cwd: staging,
-            stdio: ['ignore', 2, 2],
+            stdio: ['ignore', 2, 'pipe'],
+            encoding: 'utf8',
             timeout: 240000,
           });
-          if (rebuilt.status !== 0)
-            throw new Error(`Native dependency build failed for ${nativePackage}; check prebuilt-binary availability or install a C/C++ compiler toolchain, then retry.`);
+          if (installed.stderr) process.stderr.write(installed.stderr);
+          if (installed.status !== 0)
+            throw new Error(installFailure(installed));
+          for (const nativePackage of config.nativeBuilds ?? []) {
+            const rebuilt = npm(['rebuild', '--foreground-scripts', nativePackage], {
+              cwd: staging,
+              stdio: ['ignore', 2, 2],
+              timeout: 240000,
+            });
+            if (rebuilt.status !== 0)
+              throw new Error(`Native dependency build failed for ${nativePackage}; check prebuilt-binary availability or install a C/C++ compiler toolchain, then retry.`);
+          }
         }
         await verifyCache(staging, manifest);
         await writeFile(join(staging, '.ready'), cacheKey, { mode: 0o600 });
@@ -362,6 +428,15 @@ async function main() {
     process.chdir(statePath);
     process.argv.splice(1, process.argv.length - 1, entrypoint);
     await import(pathToFileURL(entrypoint).href);
+    return;
+  }
+
+  if (config.bundled) {
+    const result = parsed.mode === 'tools'
+      ? await bundledRequest(entrypoint, statePath, childEnv, 'tools/list', {})
+      : await bundledRequest(entrypoint, statePath, childEnv, 'tools/call', { name: parsed.tool, arguments: parsed.args });
+    process.stdout.write(JSON.stringify(result) + '\n');
+    if (result?.isError) process.exitCode = 1;
     return;
   }
 
