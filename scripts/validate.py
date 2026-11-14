@@ -136,6 +136,9 @@ def validate_plugin(entry: dict, plugin_root: Path, root: Path) -> dict:
             expected_config.update(servers=spec['servers'], defaultServer=spec['defaultServer'])
         if spec.get('nativeBuilds'):
             expected_config['nativeBuilds'] = spec['nativeBuilds']
+        if spec.get('bundled'):
+            require(not spec.get('nativeBuilds'), 'a bundled runtime cannot have native builds')
+            expected_config['bundled'] = True
         require(load_json(plugin_root / 'runtime-config.json', root) == expected_config, 'unreviewed runtime configuration')
         servers = spec.get('servers', {})
         expected_servers = {('cz_' + key): {'command':'node', 'args':['scripts/run.mjs','--server',key,'mcp'], 'cwd':'.', 'startup_timeout_sec':300} for key in servers} if servers else {name.replace('-', '_'): {'command':'node', 'args':['scripts/run.mjs','mcp'], 'cwd':'.', 'startup_timeout_sec':300}}
@@ -150,7 +153,7 @@ def validate_plugin(entry: dict, plugin_root: Path, root: Path) -> dict:
             if path.is_file():
                 actual.add(path.relative_to(runtime).as_posix())
         files = provenance.get('files', {})
-        require(set(files) | {'provenance.json'} == actual and {'package.json','package-lock.json','LICENSE',spec['entrypoint']} <= set(files), 'runtime file inventory mismatch')
+        require(set(files) | {'provenance.json'} == actual and ({'package.json','THIRD_PARTY_NOTICES.txt','LICENSE',spec['entrypoint']} if spec.get('bundled') else {'package.json','package-lock.json','LICENSE',spec['entrypoint']}) <= set(files), 'runtime file inventory mismatch')
         for name, digest in files.items():
             path = (runtime / name).resolve()
             require(path.is_relative_to(runtime.resolve()), 'runtime path escapes plugin')
@@ -340,8 +343,10 @@ def validate_public_tree(root: Path) -> None:
 
         # Exact reviewed JS uses local/internal as variable names. Continue to scan
         # URLs above and all hostname-shaped strings after any source modification.
+        # Bundled runtimes (2026-11-14): bundled libraries use property names that end like a private TLD.
+        bundled_js_identifiers = {'plugins/orsr/runtime/dist/server.js': '9b0443d0d07ddf293b0a7d2be027ed935b9212f9a91b0791b679365850846865', 'plugins/judikaty/runtime/dist/src/server/index.js': 'e434eec28dd26d0ab2763d1ba4ce9334974af37b0ac10e0784ea2683a58c9426', 'plugins/kalkulacky/runtime/dist/src/server.js': '00e5a0594aa6394032b394d2f9aecc8f48f4b73fe723f54b982d20822a21cfab', 'plugins/ruz/runtime/dist/server.js': '47b9b010c746366fa78ea8065ec1ce3a852cdcf57a1808ff4c556bb981a84e21', 'plugins/rpo/runtime/dist/server.js': 'a17269631443b25d4aeb2569ffc25e1c8f9754dc40b0a5003db1d764454d7ce5'}
         reviewed_js_identifiers = {'plugins/rpvs/runtime/dist/redaction.js': '9bf14fda16633fdd4aecb90027d7b293c0449d15e9ace4c9b3170107e80774ca', 'plugins/judikaty/runtime/dist/src/tools/search-decisions/enrichment.js': '9f78f127508cf00756274866fc3165bde023685a8e1baa2cb0350b115d88e6c4', 'plugins/ov/runtime/dist/mcp-server.js': '4c36a699c6dd32cb1df40bed80c262ec9ccb1be552395fd85688f7740372d7d0'}
-        identifier_only = reviewed_js_identifiers.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
+        identifier_only = {**reviewed_js_identifiers, **bundled_js_identifiers}.get(relative.as_posix()) == hashlib.sha256(path.read_bytes()).hexdigest()
         for hostname in HOSTNAME_CANDIDATE.findall('' if identifier_only else text):
             require(
                 hostname == "home.treasury.gov" or not is_private_hostname(hostname),

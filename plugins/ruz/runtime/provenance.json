@@ -1,16 +1,11 @@
 {
   "repository": "Omni-Legal-Products/mcp-ruz",
   "commit": "629e917b0db60fdc83f478cc40f42b1d591485bf",
-  "configSha256": "1491a71bae352571abba4644bc5a11c026248df5a6c405a089ac0fce629276f8",
+  "configSha256": "d45059fd1fa21379c7993f89dc275eaeb079933837c8bb17a1a71a19424eddec",
   "files": {
     "LICENSE": "23b4190bffe915190350e98723ab3fb71d88fdfbafc9863c818b710ab72840e8",
-    "dist/financials.js": "629074d0a1b695b40a054ba878f7141cf0aa35a0264a163db2f81b9859db9032",
-    "dist/mcp-server.js": "25c850af06e9e13ce9ad5fef24584a0e1bfed2f302b67e693cf45ef487e6e0d6",
-    "dist/profile.js": "06807d979dc7c8a98a2f59e4fc9008588550cf49d17faa6d02da1cfc59546626",
-    "dist/ruz-client.js": "6cebd7d8764b14ea2d130d1554ab66e050c75910e6037e3a8cb39b48868808a8",
-    "dist/scalars.js": "5479ba45b3530c93ab150d1df2f80c2876a131c4970d82514a401300f1de4079",
-    "dist/server.js": "bceadfb8c7a8ab36bdad7197444d7935fa45eabbe65def753320a9b70829c9ae",
-    "package-lock.json": "f7028adce432b4614b0d7711849888bad9cbce82c231a33870ddca8ce0153364",
+    "THIRD_PARTY_NOTICES.txt": "7e03dcfcb99a2eafc49e4194b1164ae4ae1cd79aa589066b01e672608843e459",
+    "dist/server.js": "47b9b010c746366fa78ea8065ec1ce3a852cdcf57a1808ff4c556bb981a84e21",
     "package.json": "9ee1710bc739b20b782dc92e765df060b54aebfcadad18fbeb65ea12391380c9"
   }
 }

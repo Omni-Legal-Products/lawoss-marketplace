@@ -18,6 +18,64 @@ def record_for(root, name):
     return next(r for r in json.loads((root / 'releases.json').read_text())['releases'] if r['name'] == name)
 
 
+# CommonJS dependencies inside an ESM bundle still call `require` for Node built-ins.
+BUNDLE_BANNER = ("import { createRequire as __lawossCreateRequire } from 'node:module';"
+                 "const require = __lawossCreateRequire(import.meta.url);")
+
+
+def find_esbuild(built):
+    """esbuild comes from ESBUILD_BINARY, the reviewed build's own node_modules, or PATH; never downloaded here."""
+    candidates = [os.environ.get('ESBUILD_BINARY'), str(built / 'node_modules/.bin/esbuild'), shutil.which('esbuild')]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return candidate
+    raise ValueError('esbuild is required for a bundled runtime; set ESBUILD_BINARY or install esbuild.')
+
+
+def bundle_entrypoints(built, staged, entrypoints):
+    """Bundle each stdio entrypoint with its dependencies into one file, so the first run needs no npm.
+
+    Returns the third-party packages that ended up inside the bundles.
+    """
+    esbuild = find_esbuild(built)
+    packages = {}
+    for entry in entrypoints:
+        target = staged / entry
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='lawoss-bundle-') as directory:
+            meta = Path(directory) / 'meta.json'
+            subprocess.run([esbuild, str(built / entry), '--bundle', '--platform=node', '--format=esm', '--target=node22',
+                            '--legal-comments=none', '--log-level=warning', f'--banner:js={BUNDLE_BANNER}',
+                            f'--metafile={meta}', f'--outfile={target}'], cwd=built, check=True, timeout=300)
+            inputs = json.loads(meta.read_text())['inputs']
+        for path in inputs:
+            parts = Path(path).parts
+            if 'node_modules' not in parts:
+                continue
+            index = len(parts) - 1 - parts[::-1].index('node_modules')
+            scoped = parts[index + 1].startswith('@')
+            directory = built.joinpath(*parts[:index + (3 if scoped else 2)])
+            manifest = directory / 'package.json'
+            if not manifest.is_file():
+                continue
+            package = json.loads(manifest.read_text())
+            packages[f"{package.get('name')}@{package.get('version')}"] = (package, directory)
+    return packages
+
+
+def third_party_notices(packages):
+    """Licence texts of everything bundled; the bundle redistributes this code."""
+    blocks = ['Third-party software bundled into this runtime.\n']
+    for key in sorted(packages):
+        package, directory = packages[key]
+        licence = package.get('license')
+        licence = licence if isinstance(licence, str) else json.dumps(licence) if licence else 'UNKNOWN'
+        text = next((p.read_text(errors='replace').strip() for p in sorted(directory.iterdir())
+                     if p.is_file() and re.match(r'(?i)^(licen[sc]e|copying|notice)', p.name)), '')
+        blocks.append(f"{'=' * 78}\n{key}\nLicense: {licence}\n\n{text}\n")
+    return '\n'.join(blocks)
+
+
 def package_built(name, built, root=ROOT):
     spec = json.loads((root / 'runtime-packages.json').read_text())[name]
     record = record_for(root, name)
@@ -27,6 +85,11 @@ def package_built(name, built, root=ROOT):
         config.update(servers=spec['servers'], defaultServer=spec['defaultServer'])
     if spec.get('nativeBuilds'):
         config['nativeBuilds'] = spec['nativeBuilds']
+    bundled = bool(spec.get('bundled'))
+    if bundled and spec.get('nativeBuilds'):
+        raise ValueError('A runtime with native builds cannot be bundled')
+    if bundled:
+        config['bundled'] = True
     config_bytes = (json.dumps(config, indent=2) + '\n').encode()
     entrypoints = list(spec.get('servers', {}).values()) or [spec['entrypoint']]
     workspaces = {}
@@ -51,6 +114,9 @@ def package_built(name, built, root=ROOT):
         staged = Path(directory) / 'runtime'
         staged.mkdir()
         includes = spec.get('include', ['dist', 'package.json', 'package-lock.json', 'LICENSE']) + spec.get('assets', [])
+        if bundled:
+            # The lock file only served `npm ci`; a bundle carries its dependencies itself.
+            includes = [item for item in includes if item != 'package-lock.json']
         for relative in includes:
             origin = built / relative
             if origin.is_symlink() or not origin.resolve().is_relative_to(built.resolve()):
@@ -63,12 +129,14 @@ def package_built(name, built, root=ROOT):
                     raise ValueError('Runtime symlinks are not distributable')
                 if not source.is_file() or source.name.endswith(('.map', '.d.ts', '.test.js')):
                     continue
-                if source.suffix == '.js' and source.resolve() not in reachable:
+                if source.suffix == '.js' and (bundled or source.resolve() not in reachable):
                     continue
                 target = staged / source.relative_to(built)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
         entries = list(spec.get('servers', {}).values()) or [spec['entrypoint']]
+        if bundled:
+            (staged / 'THIRD_PARTY_NOTICES.txt').write_text(third_party_notices(bundle_entrypoints(built, staged, entries)))
         if any(not (staged / entry).is_file() for entry in entries):
             raise ValueError('Built stdio entrypoint is missing')
         files = {p.relative_to(staged).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(staged.rglob('*')) if p.is_file()}
