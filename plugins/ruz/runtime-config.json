@@ -1,5 +1,6 @@
 {
   "name": "ruz",
   "entrypoint": "dist/server.js",
-  "minimumNode": "22.14.0"
+  "minimumNode": "22.14.0",
+  "bundled": true
 }

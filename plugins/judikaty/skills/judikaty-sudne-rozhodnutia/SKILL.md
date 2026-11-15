@@ -8,7 +8,8 @@ description: Použi pri otázkach na slovenskú judikatúru — ako súdy vyklad
 ## Načo to je
 
 Server prehľadáva rozhodnutia Ministerstva spravodlivosti, Najvyššieho súdu a Ústavného
-súdu nad vlastným indexom, vrátane fulltextu a citačných vzťahov medzi rozhodnutiami.
+súdu naživo v ich databázach. Ak má inštalácia lokálny index (hostované nasadenie), pridáva
+fulltext a citačné vzťahy medzi rozhodnutiami; desktopová inštalácia ho bežne nemá.
 Je iba na čítanie a nie je právne stanovisko — nájdené rozhodnutie si vždy over, kým
 z neho v podaní vychádzaš.
 
@@ -35,8 +36,10 @@ z neho v podaní vychádzaš.
    Ak výsledok hlási `matched: false` s poznámkou „Ambiguous reference“, rovnaká značka je
    na viacerých súdoch — vyber kandidáta podľa súdu a zopakuj dotaz s jeho `providerId`
    alebo ECLI. Značky ÚS („PL. ÚS 3/09“, „III. ÚS …“) nájde aj predvolený režim `auto`.
-2. **Na výklad ustanovenia:** `find_decisions_by_law`, prípadne `search_decision_text`
-   na fulltext.
+2. **Na hľadanie rozhodnutí a výklad ustanovenia:** `search_decisions` (živé databázy súdov)
+   a `find_decisions_by_law`. `search_decision_text` je fulltext nad lokálnym indexom; ak
+   index chýba, sám prejde na živé vyhľadávanie a vráti `mode: "live_fallback"` a
+   `fullTextSearch: false` — vtedy ide o metadáta a kľúčové slová, nie fulltext odôvodnenia.
 3. **Na procesný osud:** `get_decision_treatment`, prípadne celá reťaz cez `get_case_chain`.
    Výsledok s príznakom `textEstimate` alebo s textom „odhad z textu výroku“ si over
    v samotnom rozhodnutí (`get_decision_markdown_by_reference`), kým naň v podaní spoliehaš.
@@ -50,11 +53,13 @@ z neho v podaní vychádzaš.
   Položky „Namietané ustanovenie“ v `citedRegulations` sú ustanovenia, ktorých porušenie
   namieta sťažovateľ, nie predpisy citované v rozhodnutí; filter `citedLaw` pre ÚS hľadá
   práve ich.
-- **Prázdny lokálny index nemusí znamenať „žiadne rozhodnutia“.** Server číta index z
-  `JUDIKATY_DATA_DIR`, inak z `.cache/judiciary` v pracovnom adresári procesu; klient
-  spustený z iného adresára dostane prázdny index. `get_nsud_index_stats` uvádza
-  `indexPath` a `indexNote` — pri prázdnom výsledku ich skontroluj skôr, než
-  vyhlásiš, že judikatúra neexistuje.
+- **Chýbajúci lokálny index nie je „žiadne rozhodnutia“ ani „bez zásahu“.** Na desktope index
+  bežne nie je. `get_decision_treatment`, `get_case_chain` a oba štatistické nástroje vtedy
+  vrátia `availability.status: "not_available_on_this_installation"`, `manage_watchlist list`
+  `treatmentAvailability.status` a pri položke `treatmentStatus` s tou istou hodnotou —
+  povedz používateľovi, že sa to tu overiť nedá, nie že sa nič nenašlo. Ak má server index mať, `get_nsud_index_stats` uvádza `indexPath` a
+  `indexNote` (index sa číta z `JUDIKATY_DATA_DIR`, inak z `.cache/judiciary` v pracovnom
+  adresári procesu).
 - **Príznak procesného osudu rozlišuje „review" od „mention".** Vo vzorke citačných
   vzťahov bola cieľová značka vo výroku citujúceho rozhodnutia len v 2,4 % prípadov —
   server preto citáciu nehlási ako preskúmanie. Chýbajúci príznak znamená „nevieme",
@@ -75,8 +80,8 @@ z neho v podaní vychádzaš.
   kandidátov; čítaj `coverageNotes` (kompaktný výstup ich od 10/2026 vracia tiež).
 - **Pokrytie nižších súdov je oportunistické.** Staršie rozhodnutia nie sú rovnomerne
   dostupné ako plný text.
-- **Priamy dotaz na súdny portál ide len pri hľadaní rozhodnutia, ktoré ešte nie je
-  v indexe.** Bežné vyhľadávanie a čítanie beží nad lokálnym indexom, nie naživo.
+- **Bežné vyhľadávanie beží naživo.** `search_decisions` a dohľadanie rozhodnutia idú do
+  databáz súdov; lokálny index (ak existuje) slúži na fulltext, vzťahy a rýchlejšie čítanie.
 
 ## Autorizácia
 
