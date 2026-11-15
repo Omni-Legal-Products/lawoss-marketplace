@@ -4,7 +4,7 @@
   "configSha256": "d62427978770d6f13ae6422e83e927c5541fe865855c7ba24ef0d69df2f980d7",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
-    "THIRD_PARTY_NOTICES.txt": "fb6d107ded99485dd095351ade6528a8c0c267e66dc632d8c0e7bf5a5e62e97b",
+    "THIRD_PARTY_NOTICES.md": "fb6d107ded99485dd095351ade6528a8c0c267e66dc632d8c0e7bf5a5e62e97b",
     "dist/src/domain/relation-labels/tasks/task-appeal-outcome-v4b.json": "ec41aa7b2e6401de9f71cd2b7134c27b14fb529eba10fde18f23085b5d1093c4",
     "dist/src/domain/relation-labels/tasks/task-citation-outcome-v1.json": "5bc3207598fcbbe5d96bc46d3e6dbd83f2e571494b69362ed0933c7de8855c7a",
     "dist/src/domain/relation-labels/tasks/task-citation-role-v2.json": "061fe3800512d4abb53f3f40519019a9bf4d5d6bd1393930fd27ae8152a46cac",

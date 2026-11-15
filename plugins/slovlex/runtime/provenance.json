@@ -4,7 +4,7 @@
   "configSha256": "bfc41d06a98b7b80dba80d5ad364cfe48b0e08eec3749c2b0dfa73a787b49724",
   "files": {
     "LICENSE": "ca4e64136d3f6124512c3148ceabd2de6618a855d26776e8bebcec10bc9922ad",
-    "THIRD_PARTY_NOTICES.txt": "74aca54b4711342d160df42d891863e21331bee6fa8e50bed942cb7a13f8953f",
+    "THIRD_PARTY_NOTICES.md": "74aca54b4711342d160df42d891863e21331bee6fa8e50bed942cb7a13f8953f",
     "dist/index.js": "5247e54b4c9106c4eabb9e82c654b53e68b002ffbb1481438f5ca75f6dd6da1c",
     "dist/pdf.worker.mjs": "044d2faff688e8502bdfa8e91222dc2420443f9a35f5d9a8ed06d9de6c39bb28",
     "package.json": "18ae42aaba7f05b8167e6992d5bb9baf3d018243cc591b04dd04680f2ea393eb"
