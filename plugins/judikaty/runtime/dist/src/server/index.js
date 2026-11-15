@@ -11,11 +11,20 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __commonJS = (cb, mod) => function __require2() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -34735,6 +34744,7 @@ function ensureKeepAliveAgentInstalled() {
 var import_undici, installed;
 var init_fetch_agent = __esm({
   "dist/src/infra/fetch-agent.js"() {
+    "use strict";
     import_undici = __toESM(require_undici(), 1);
     installed = false;
   }
@@ -34759,6 +34769,7 @@ function isValidOAuthScope(value) {
 }
 var init_oauth_validation = __esm({
   "dist/src/server/oauth-validation.js"() {
+    "use strict";
   }
 });
 
@@ -34839,6 +34850,7 @@ function parseTrustedProxyCidrs(value) {
 }
 var init_trusted_proxy = __esm({
   "dist/src/server/trusted-proxy.js"() {
+    "use strict";
   }
 });
 
@@ -34866,6 +34878,7 @@ function readPackageVersion(startDir = path.dirname(fileURLToPath(import.meta.ur
 var PACKAGE_NAME, MAX_LEVELS;
 var init_package_version = __esm({
   "dist/src/server/package-version.js"() {
+    "use strict";
     PACKAGE_NAME = "slovak-judiciary-mcp";
     MAX_LEVELS = 6;
   }
@@ -34917,6 +34930,7 @@ function loadServerConfig(options = {}) {
 var DEFAULT_MAX_BODY_BYTES, DEFAULT_RATE_LIMIT_RPM, DEFAULT_RATE_LIMIT_BURST, DEFAULT_QUERY_TIMEOUT_MS, DEFAULT_WATCHDOG_STALL_MS, DEFAULT_QUERY_POOL_SIZE, DEFAULT_MAX_DYNAMIC_CLIENTS, DEFAULT_DYNAMIC_CLIENT_TTL_SECONDS, DEFAULT_UNUSED_CLIENT_TTL_SECONDS, DEFAULT_MAX_CLIENTS_PER_IDENTITY, DEFAULT_READINESS_CHECK_INTERVAL_SECONDS, DEFAULT_MAX_LIVE_GRANTS, DEFAULT_MAX_LIVE_GRANTS_PER_CLIENT, positiveInt, strictlyPositiveInt, grantLimit, ApplicationServerConfigSchema, ServerConfigSchema;
 var init_config = __esm({
   "dist/src/server/config.js"() {
+    "use strict";
     init_v4();
     init_oauth_validation();
     init_trusted_proxy();
@@ -50640,6 +50654,7 @@ function courtTypesAreCompatible(a, b) {
 var COURT_TYPE_PREFIXES;
 var init_court_name_match = __esm({
   "dist/src/domain/court-name-match.js"() {
+    "use strict";
     COURT_TYPE_PREFIXES = [
       "Najvy\u0161\u0161\xED spr\xE1vny s\xFAd",
       "Najvy\u0161\u0161\xED s\xFAd",
@@ -50687,6 +50702,7 @@ function buildSuggestionClause(courtName, suggestions) {
 var ProviderUnavailableError, DecisionNotFoundError, UnsupportedProviderError, DocumentUnavailableError, AmbiguousCourtNameError, USTAVNY_SUD_CANONICAL_NAME, CourtNameNotFoundError, CourtFilterMismatchError;
 var init_errors4 = __esm({
   "dist/src/domain/errors.js"() {
+    "use strict";
     init_court_name_match();
     ProviderUnavailableError = class extends Error {
       constructor(provider, message = "Provider is not available.") {
@@ -50831,6 +50847,7 @@ function getProviderCoverageProfile(provider) {
 }
 var init_provider_health = __esm({
   "dist/src/domain/provider-health.js"() {
+    "use strict";
   }
 });
 
@@ -50838,6 +50855,7 @@ var init_provider_health = __esm({
 var PlaceholderProvider;
 var init_placeholder = __esm({
   "dist/src/providers/placeholder.js"() {
+    "use strict";
     init_errors4();
     init_provider_health();
     PlaceholderProvider = class {
@@ -50970,6 +50988,7 @@ function createTtlCache(options) {
 }
 var init_ttl_cache = __esm({
   "dist/src/infra/ttl-cache.js"() {
+    "use strict";
   }
 });
 
@@ -51044,6 +51063,7 @@ async function resolveJusticeCourtGuid(client, courtName) {
 var COURT_AUTOCOMPLETE_CACHE_TTL_MS, COURT_AUTOCOMPLETE_CACHE_MAX_ENTRIES, COURT_AUTOCOMPLETE_LIMIT, cache, MIN_STEM_QUERY_LENGTH;
 var init_court_resolver = __esm({
   "dist/src/providers/justice/court-resolver.js"() {
+    "use strict";
     init_ttl_cache();
     init_court_name_match();
     COURT_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1e3;
@@ -51126,6 +51146,7 @@ async function delay(ms) {
 var HttpError, EmptyResponseError;
 var init_http = __esm({
   "dist/src/infra/http.js"() {
+    "use strict";
     HttpError = class extends Error {
       status;
       url;
@@ -51170,6 +51191,7 @@ function getDecisionCache(provider, kind) {
 var DEFAULT_TTL_MS, DEFAULT_MAX_ENTRIES, caches;
 var init_decision_detail_cache = __esm({
   "dist/src/infra/decision-detail-cache.js"() {
+    "use strict";
     init_ttl_cache();
     DEFAULT_TTL_MS = 5 * 6e4;
     DEFAULT_MAX_ENTRIES = 500;
@@ -51272,6 +51294,7 @@ function normalizeParagraphAnchor(value) {
 }
 var init_slovlex = __esm({
   "dist/src/domain/slovlex.js"() {
+    "use strict";
   }
 });
 
@@ -51291,12 +51314,13 @@ function describeIndexLocation(input) {
   const dataDirSource = describeDataDirSource();
   const unusable = !input.existedBeforeOpen || input.empty;
   const resolvedFrom = dataDirSource === "JUDIKATY_DATA_DIR" ? "the JUDIKATY_DATA_DIR environment variable" : "the working directory of this server process (<cwd>/.cache/judiciary)";
-  const note = unusable ? `The index is empty or missing. It is read from ${input.indexPath}, resolved from ${resolvedFrom}. A client started from another directory therefore sees a different, empty index. Set JUDIKATY_DATA_DIR to the absolute path of the directory that holds nsud/law-index/index.sqlite (for example in the env block of the MCP client configuration), or start the server from the directory that contains .cache/judiciary.` : null;
+  const note = unusable ? `The index is empty or missing. On a desktop installation this is normal: the index is a large snapshot imported only by the hosted deployment, so index-only tools report not_available_on_this_installation and search_decisions (live court databases) is the search to use. If this server is meant to have the index: it is read from ${input.indexPath}, resolved from ${resolvedFrom}. A client started from another directory therefore sees a different, empty index. Set JUDIKATY_DATA_DIR to the absolute path of the directory that holds nsud/law-index/index.sqlite (for example in the env block of the MCP client configuration), or start the server from the directory that contains .cache/judiciary.` : null;
   return { path: input.indexPath, exists: input.existedBeforeOpen, dataDirSource, note };
 }
 var DATA_DIR_ENV;
 var init_data_dir = __esm({
   "dist/src/infra/data-dir.js"() {
+    "use strict";
     DATA_DIR_ENV = "JUDIKATY_DATA_DIR";
   }
 });
@@ -51390,6 +51414,7 @@ function isMissingBinaryError(error48) {
 var execFile, DEFAULT_PDFTOTEXT_CANDIDATES, REGISTER, COURT_YEAR;
 var init_pdf = __esm({
   "dist/src/infra/pdf.js"() {
+    "use strict";
     init_data_dir();
     execFile = promisify(execFileCallback);
     DEFAULT_PDFTOTEXT_CANDIDATES = [
@@ -51418,6 +51443,7 @@ function normalizeForFts(text) {
 var REAL_ONE_LETTER_WORDS;
 var init_text_normalization = __esm({
   "dist/src/domain/text-normalization.js"() {
+    "use strict";
     REAL_ONE_LETTER_WORDS = /* @__PURE__ */ new Set(["a", "i", "o", "s", "k", "v", "u", "z", "\xE1", "\xF3"]);
   }
 });
@@ -51425,6 +51451,7 @@ var init_text_normalization = __esm({
 // dist/src/domain/decision-abstract.js
 var init_decision_abstract = __esm({
   "dist/src/domain/decision-abstract.js"() {
+    "use strict";
     init_text_normalization();
   }
 });
@@ -51498,6 +51525,7 @@ function isSelfRelation(sourceRef, targetRefNorm) {
 var CASE_REF_RE, US_REF_RE, WHOLE_CASE_REF_RE, WHOLE_US_REF_RE, HEADER_REF_MAX_OFFSET, COURT_PREFIX_RE, NOT_A_SENTENCE_END_RE, CHALLENGED_DECISION_RE, US_COMPLAINT_RE;
 var init_relation_extractor = __esm({
   "dist/src/domain/relation-extractor.js"() {
+    "use strict";
     init_decision_abstract();
     CASE_REF_RE = /\b(\d{1,3}\s?[A-Za-zÁ-Žá-ž]{1,6}\s?\/?\s?\d{1,5}\/\d{4})\b/gu;
     US_REF_RE = /\b([IVX]{1,4}\.?\s?[ÚU]S\s?\d{1,4}\/\d{4})\b/gu;
@@ -51574,6 +51602,7 @@ function pickModelOverlay(row) {
 var ROLE_CONFIDENCE_THRESHOLD, FATE, PROVIDER_WITH_OUTCOME_LABELS_FOR_MENTIONS;
 var init_relation_model_labels = __esm({
   "dist/src/domain/relation-model-labels.js"() {
+    "use strict";
     ROLE_CONFIDENCE_THRESHOLD = 0.65;
     FATE = {
       potvrdene: "stands",
@@ -51907,6 +51936,7 @@ function initSchema(db) {
 var SCHEMA_VERSION, MIGRATIONS, IndexSchemaTooNewError;
 var init_schema = __esm({
   "dist/src/providers/nsud/schema.js"() {
+    "use strict";
     SCHEMA_VERSION = 1;
     MIGRATIONS = [];
     IndexSchemaTooNewError = class extends Error {
@@ -52030,6 +52060,7 @@ function sanitizeFtsQuery(raw) {
 var PROVIDER_TEXT_PROVIDERS, POST_FILTER_OVERFETCH, POST_FILTER_MAX_ROWS;
 var init_fts_queries = __esm({
   "dist/src/providers/nsud/fts-queries.js"() {
+    "use strict";
     PROVIDER_TEXT_PROVIDERS = ["ustavny", "justice"];
     POST_FILTER_OVERFETCH = 40;
     POST_FILTER_MAX_ROWS = 1e3;
@@ -52051,6 +52082,7 @@ function resolveWorkerEntry(input) {
 }
 var init_worker_support = __esm({
   "dist/src/infra/worker-support.js"() {
+    "use strict";
   }
 });
 
@@ -52187,6 +52219,7 @@ async function runReadQueryOnWorker(input) {
 var QueryTimeoutError, QueryWorkerUnavailableError, DEFAULT_TIMEOUT_MS, DEFAULT_POOL_SIZE, enabled, timeoutMs, poolSize, dbPathProvider, pool, nextRequestId, pending, waiting, stats;
 var init_query_worker_client = __esm({
   "dist/src/providers/nsud/query-worker-client.js"() {
+    "use strict";
     init_worker_support();
     QueryTimeoutError = class extends Error {
       constructor(label, timeoutMs2) {
@@ -52220,6 +52253,7 @@ function existingRelationCovers(existing, inverted) {
 }
 var init_justice_relation_orientation = __esm({
   "dist/src/domain/justice-relation-orientation.js"() {
+    "use strict";
     init_relation_extractor();
   }
 });
@@ -52262,6 +52296,7 @@ __export(law_index_store_exports, {
   getRelationsBySourceRef: () => getRelationsBySourceRef,
   getRelationsReviewing: () => getRelationsReviewing,
   getRelationsReviewingMany: () => getRelationsReviewingMany,
+  hasAnyDecisionRelation: () => hasAnyDecisionRelation,
   listAbstractsWithGluedReasoning: () => listAbstractsWithGluedReasoning,
   listDecisionsMissingAbstract: () => listDecisionsMissingAbstract,
   listIneJusticeSources: () => listIneJusticeSources,
@@ -53409,6 +53444,10 @@ async function countDecisionRelations() {
   const row = handle.countRelations.get();
   return row?.count ?? 0;
 }
+async function hasAnyDecisionRelation() {
+  const handle = await getHandle();
+  return handle.db.prepare("SELECT 1 AS one FROM decision_relations LIMIT 1").get() !== void 0;
+}
 async function listNsudIdsMissingRelations(limit) {
   if (limit <= 0)
     return [];
@@ -54044,6 +54083,7 @@ async function listRelationModelLabelRuns() {
 var STATE_ROW_ID, cachedHandle, cachedRoot, VALID_DATE_ISSUED_SQL, RELATION_COLUMNS, rollbackJusticeAppellateRepairBatch, reextractStatements, JUSTICE_REFETCH_SCAN_PROVIDER, LABELLING_CANDIDATE_SELECT;
 var init_law_index_store = __esm({
   "dist/src/providers/nsud/law-index-store.js"() {
+    "use strict";
     init_data_dir();
     init_relation_extractor();
     init_relation_model_labels();
@@ -54078,6 +54118,7 @@ var init_law_index_store = __esm({
 var ALLOWED_FORMS, GENERIC_HEADINGS, FORM_HEADINGS;
 var init_form_decision = __esm({
   "dist/src/domain/form-decision.js"() {
+    "use strict";
     ALLOWED_FORMS = /* @__PURE__ */ new Set([
       "trestny rozkaz",
       "platobny rozkaz",
@@ -54159,6 +54200,7 @@ function recordFormSource(db, input) {
 var SCHEMA_STATE_ID, SCHEMA_PAYLOAD, SOURCE_KEYS, sha256, normalizeValue;
 var init_form_decision_store = __esm({
   "dist/src/providers/nsud/form-decision-store.js"() {
+    "use strict";
     init_form_decision();
     SCHEMA_STATE_ID = -20260920;
     SCHEMA_PAYLOAD = JSON.stringify({ kind: "form-decision", version: 1 });
@@ -54303,6 +54345,7 @@ function recordUstavnyDetailFormSource(response, fallbackId, fetchedAt) {
 }
 var init_form_decision_ingest = __esm({
   "dist/src/providers/nsud/form-decision-ingest.js"() {
+    "use strict";
     init_law_index_store();
     init_form_decision_store();
   }
@@ -54312,6 +54355,7 @@ var init_form_decision_ingest = __esm({
 var JusticeBaseCourtSchema, JusticeJudgeSchema, JusticeDecisionListItemSchema, JusticeDecisionListResponseSchema, JusticeCitedRegulationSchema, JusticeDocumentSchema, JusticeDecisionDetailSchema, JusticeCourtAutocompleteItemSchema, JusticeDecisionAutocompleteItemSchema, JusticeCourtDetailSchema;
 var init_schemas4 = __esm({
   "dist/src/providers/justice/schemas.js"() {
+    "use strict";
     init_v4();
     JusticeBaseCourtSchema = object({
       registreGuid: string2(),
@@ -54408,6 +54452,7 @@ var init_schemas4 = __esm({
 var JUSTICE_BASE_URL, JusticeClient;
 var init_client = __esm({
   "dist/src/providers/justice/client.js"() {
+    "use strict";
     init_http();
     init_decision_detail_cache();
     init_slovlex();
@@ -54682,6 +54727,7 @@ function isHistoricalRange(dateFrom, dateTo) {
 var AMBIGUOUS_REFERENCE_NOTE_PREFIX, PROVIDER_NOT_ANSWERED_RE;
 var init_fallback_boundary = __esm({
   "dist/src/domain/fallback-boundary.js"() {
+    "use strict";
     AMBIGUOUS_REFERENCE_NOTE_PREFIX = "Ambiguous reference:";
     PROVIDER_NOT_ANSWERED_RE = /^Provider (\S+) did not answer this lookup\b/;
   }
@@ -54720,6 +54766,7 @@ function buildAvailabilityNotes(input) {
 }
 var init_source_availability = __esm({
   "dist/src/domain/source-availability.js"() {
+    "use strict";
   }
 });
 
@@ -54764,6 +54811,7 @@ function isDigitizedLegacyDecision(dateIssued) {
 }
 var init_source_provenance = __esm({
   "dist/src/domain/source-provenance.js"() {
+    "use strict";
   }
 });
 
@@ -55018,6 +55066,7 @@ function extractSlovLexAnchor(url2) {
 }
 var init_mapper = __esm({
   "dist/src/providers/justice/mapper.js"() {
+    "use strict";
     init_relation_extractor();
     init_source_availability();
     init_source_provenance();
@@ -55079,6 +55128,7 @@ function sanitizeJusticeQuery(query) {
 var SPISOVA_ZNACKA_CANDIDATE_LIMIT, DECIDING_COURT_LOOKUP_LIMIT, JusticeProvider;
 var init_provider = __esm({
   "dist/src/providers/justice/provider.js"() {
+    "use strict";
     init_placeholder();
     init_errors4();
     init_court_resolver();
@@ -55538,6 +55588,7 @@ function parseIsoDateOnly(value) {
 }
 var init_merge = __esm({
   "dist/src/domain/merge.js"() {
+    "use strict";
     init_fallback_boundary();
   }
 });
@@ -55546,6 +55597,7 @@ var init_merge = __esm({
 var NsudDecisionDetailSchema;
 var init_schemas5 = __esm({
   "dist/src/providers/nsud/schemas.js"() {
+    "use strict";
     init_v4();
     NsudDecisionDetailSchema = object({
       ID: string2().optional(),
@@ -55777,6 +55829,7 @@ function emptyToNull(value) {
 var NSUD_COURT_NAME, NSUD_COURT_TYPE, NSUD_HEADING_MAX_LINES, NSUD_HEADING_FORMS, NSUD_HEADING_STOP;
 var init_mapper2 = __esm({
   "dist/src/providers/nsud/mapper.js"() {
+    "use strict";
     init_relation_extractor();
     init_text_normalization();
     init_source_availability();
@@ -55819,6 +55872,7 @@ function toNumericIds(ids) {
 var NSUD_API_URL, NSUD_HEAD_PROBE_DEFAULT_MAX_CONSECUTIVE_MISSES, NSUD_HEAD_PROBE_DEFAULT_MAX_STEPS, NSUD_HEAD_PROBE_DEFAULT_THROTTLE_MS, NSUD_HEAD_PROBE_MIN_THROTTLE_MS, NSUD_HEAD_SEED_LOOKBACK_DAYS, NsudClient;
 var init_client2 = __esm({
   "dist/src/providers/nsud/client.js"() {
+    "use strict";
     init_v4();
     init_http();
     init_decision_detail_cache();
@@ -56401,6 +56455,7 @@ async function writeCitationCache(id, entry) {
 var CITATION_EXTRACTOR_VERSION, DIRECT_ATTRIBUTION_CHARS, LAW_ALIASES;
 var init_citations = __esm({
   "dist/src/providers/nsud/citations.js"() {
+    "use strict";
     init_data_dir();
     CITATION_EXTRACTOR_VERSION = 3;
     DIRECT_ATTRIBUTION_CHARS = 60;
@@ -56500,6 +56555,7 @@ function normalizeTargetSearchToken(input) {
 var VERIFIED_IDS_SHOWN, NSUD_LAW_CANDIDATE_BUDGET, NsudProvider;
 var init_provider2 = __esm({
   "dist/src/providers/nsud/provider.js"() {
+    "use strict";
     init_v4();
     init_placeholder();
     init_errors4();
@@ -56855,6 +56911,7 @@ var init_provider2 = __esm({
 var UstavnyStringOrArraySchema, flexString, UstavnyDecisionItemSchema, UstavnySearchResponseSchema, UstavnyContentResponseSchema, UstavnyAccessTokenSchema, UstavnyCodelistResponseSchema;
 var init_schemas6 = __esm({
   "dist/src/providers/ustavny/schemas.js"() {
+    "use strict";
     init_v4();
     UstavnyStringOrArraySchema = union([string2(), array(string2())]).optional();
     flexString = preprocess((v) => Array.isArray(v) ? v[0] ?? null : v, string2().nullable().optional());
@@ -57077,6 +57134,7 @@ function htmlToPlainText(value) {
 var USTAVNY_BASE_URL, USTAVNY_DOC_TYPE, NEGATIVE_TOKEN_TTL_MS, UstavnyDetailUnavailableError, UstavnyClient;
 var init_client3 = __esm({
   "dist/src/providers/ustavny/client.js"() {
+    "use strict";
     init_pdf();
     init_http();
     init_decision_detail_cache();
@@ -57566,6 +57624,7 @@ function buildUstavnyFileName2(spisovaZnacka) {
 var USTAVNY_COURT_NAME, USTAVNY_COURT_TYPE, FILE_CLOSING_DECISION_TYPES, COMPLAINED_PROVISION_PREFIX;
 var init_mapper3 = __esm({
   "dist/src/providers/ustavny/mapper.js"() {
+    "use strict";
     init_source_availability();
     init_source_provenance();
     init_client3();
@@ -57580,6 +57639,7 @@ var init_mapper3 = __esm({
 var UstavnyProvider;
 var init_provider3 = __esm({
   "dist/src/providers/ustavny/provider.js"() {
+    "use strict";
     init_placeholder();
     init_court_name_match();
     init_provider_health();
@@ -57716,6 +57776,7 @@ function createDefaultProviderRegistry() {
 var InMemoryProviderRegistry;
 var init_registry = __esm({
   "dist/src/providers/registry.js"() {
+    "use strict";
     init_provider();
     init_provider2();
     init_provider3();
@@ -57740,6 +57801,7 @@ function looseNumber(inner = external_exports.number()) {
 }
 var init_scalars = __esm({
   "dist/src/tools/scalars.js"() {
+    "use strict";
     init_zod();
   }
 });
@@ -57748,6 +57810,7 @@ var init_scalars = __esm({
 var ProviderIdSchema, SearchProviderSchema, SourceCompletenessSchema, NormalizationConfidenceSchema, SourceAvailabilitySchema, SourceProvenanceSchema, CourtSchema, DecisionSummarySchema, CitedRegulationSchema, DecisionDetailSchema, TextWindowSchema, SearchMetaSchema;
 var init_models = __esm({
   "dist/src/domain/models.js"() {
+    "use strict";
     init_v4();
     ProviderIdSchema = _enum2(["justice", "nsud", "ustavny"]);
     SearchProviderSchema = _enum2(["auto", "justice", "nsud", "ustavny"]);
@@ -57912,6 +57975,7 @@ function resolveSearchProvider(provider) {
 var SearchDecisionsInputSchema, SearchDecisionsResultSchema, GetDecisionDetailInputSchema, GetDecisionByReferenceInputSchema, GetDecisionMarkdownByReferenceInputSchema, ExportDecisionMarkdownByReferenceInputSchema, ExportDecisionMarkdownInputSchema, SearchCourtsInputSchema, SearchCourtsResultSchema, ResolveDecisionIdentityInputSchema, ResolveDecisionIdentityResultSchema, BatchGetDecisionSummariesInputSchema, FindDecisionsByLawInputSchema, RelatedSlovlexContextInputSchema, RelatedSlovlexContextResultSchema, DownloadDecisionDocumentInputSchema, DownloadDecisionDocumentResultSchema, GetDecisionTextInputSchema, ProviderCapabilitySchema, ProviderCoverageProfileSchema, ProviderHealthSchema, GetProviderHealthResultSchema, PollRecentDecisionsInputSchema;
 var init_provider_contracts = __esm({
   "dist/src/domain/provider-contracts.js"() {
+    "use strict";
     init_v4();
     init_models();
     SearchDecisionsInputSchema = object({
@@ -58103,6 +58167,7 @@ function asToolResult(payload) {
 }
 var init_response = __esm({
   "dist/src/server/response.js"() {
+    "use strict";
   }
 });
 
@@ -58201,6 +58266,7 @@ function normalizeAutocompleteValue(value) {
 var AutocompleteDecisionsInputSchema;
 var init_autocomplete_decisions = __esm({
   "dist/src/tools/autocomplete-decisions.js"() {
+    "use strict";
     init_scalars();
     init_v4();
     init_provider_contracts();
@@ -58344,6 +58410,7 @@ function addOptionalDetailSections(target, detail, include) {
 }
 var init_presenters = __esm({
   "dist/src/server/presenters.js"() {
+    "use strict";
   }
 });
 
@@ -58368,6 +58435,7 @@ function registerBatchGetDecisionSummariesTool(server, registry2) {
 }
 var init_batch_get_decision_summaries = __esm({
   "dist/src/tools/batch-get-decision-summaries.js"() {
+    "use strict";
     init_provider_contracts();
     init_errors4();
     init_presenters();
@@ -58392,6 +58460,7 @@ function registerDownloadDecisionDocumentTool(server, registry2) {
 }
 var init_download_decision_document = __esm({
   "dist/src/tools/download-decision-document.js"() {
+    "use strict";
     init_provider_contracts();
     init_errors4();
     init_response();
@@ -58520,6 +58589,7 @@ function buildFullTextGuidance(input) {
 var DEFAULT_MARKDOWN_WINDOW_CHARS, SAVE_PATH_NOTE;
 var init_decision_followups = __esm({
   "dist/src/domain/decision-followups.js"() {
+    "use strict";
     DEFAULT_MARKDOWN_WINDOW_CHARS = 12e3;
     SAVE_PATH_NOTE = "savePath is resolved on the MCP server host filesystem. In remote HTTP deployments, that path may not exist on the client machine running the agent.";
   }
@@ -58567,6 +58637,7 @@ function normalizeExtractedText(text) {
 }
 var init_markdown = __esm({
   "dist/src/infra/markdown.js"() {
+    "use strict";
   }
 });
 
@@ -58647,6 +58718,7 @@ function sanitizePathSegment(value) {
 }
 var init_markdown_export = __esm({
   "dist/src/infra/markdown-export.js"() {
+    "use strict";
     init_markdown();
   }
 });
@@ -58677,6 +58749,7 @@ function buildWholeDecisionToolPayload(input) {
 var SAVE_PATH_NOTE2;
 var init_whole_decision_tool_payload = __esm({
   "dist/src/tools/whole-decision-tool-payload.js"() {
+    "use strict";
     SAVE_PATH_NOTE2 = "savePath is resolved on the MCP server host filesystem. In remote HTTP deployments, that path may not exist on the client machine running the agent.";
   }
 });
@@ -58731,6 +58804,7 @@ async function runExportDecisionMarkdown(input, registry2) {
 }
 var init_export_decision_markdown = __esm({
   "dist/src/tools/export-decision-markdown.js"() {
+    "use strict";
     init_decision_followups();
     init_provider_contracts();
     init_errors4();
@@ -58804,6 +58878,7 @@ async function readDecisionTextWindow(input) {
 var CACHEABLE_PROVIDERS, MANGLED_REGISTER_SIGNATURE, FULL_FETCH_CHARS;
 var init_decision_text_cache = __esm({
   "dist/src/domain/decision-text-cache.js"() {
+    "use strict";
     init_pdf();
     init_law_index_store();
     CACHEABLE_PROVIDERS = /* @__PURE__ */ new Set(["justice", "ustavny"]);
@@ -58854,6 +58929,7 @@ function shouldIncludeFullText(input) {
 }
 var init_detail_full_text = __esm({
   "dist/src/tools/detail-full-text.js"() {
+    "use strict";
     init_errors4();
     init_markdown_export();
     init_decision_text_cache();
@@ -58999,6 +59075,7 @@ function isUuid(value) {
 }
 var init_get_decision_by_reference = __esm({
   "dist/src/tools/get-decision-by-reference.js"() {
+    "use strict";
     init_provider_contracts();
     init_decision_followups();
     init_fallback_boundary();
@@ -59082,6 +59159,7 @@ async function runExportDecisionMarkdownByReference(input, registry2) {
 }
 var init_export_decision_markdown_by_reference = __esm({
   "dist/src/tools/export-decision-markdown-by-reference.js"() {
+    "use strict";
     init_decision_followups();
     init_provider_contracts();
     init_fallback_boundary();
@@ -59170,6 +59248,7 @@ function formatProviderError(error48) {
 }
 var init_find_decisions_by_law = __esm({
   "dist/src/tools/find-decisions-by-law.js"() {
+    "use strict";
     init_provider_contracts();
     init_fallback_boundary();
     init_merge();
@@ -59251,6 +59330,7 @@ async function annotateItemsWithTreatment(items) {
 var DISPOSITION_PRIORITY, DISPOSITION_LABEL, MODEL_ESTIMATE_SUFFIX, TEXT_ESTIMATE_SUFFIX;
 var init_treatment_flags = __esm({
   "dist/src/tools/search-decisions/treatment-flags.js"() {
+    "use strict";
     init_relation_extractor();
     init_relation_model_labels();
     init_law_index_store();
@@ -59283,6 +59363,34 @@ var init_treatment_flags = __esm({
     };
     MODEL_ESTIMATE_SUFFIX = " (odhad modelu)";
     TEXT_ESTIMATE_SUFFIX = " (odhad z textu v\xFDroku, over v rozhodnut\xED)";
+  }
+});
+
+// dist/src/tools/local-index-availability.js
+function describeLocalIndexUnavailable(part) {
+  return {
+    status: LOCAL_INDEX_NOT_AVAILABLE,
+    reason: "local_index_not_present",
+    part,
+    indexPath: getIndexDatabasePath(),
+    note: `${PART_LABEL[part]}: ${LOCAL_INDEX_ABSENT_NOTE}`
+  };
+}
+async function checkRelationsIndex() {
+  return await hasAnyDecisionRelation() ? null : describeLocalIndexUnavailable("relations");
+}
+var LOCAL_INDEX_NOT_AVAILABLE, PART_LABEL, LOCAL_INDEX_ABSENT_NOTE;
+var init_local_index_availability = __esm({
+  "dist/src/tools/local-index-availability.js"() {
+    "use strict";
+    init_law_index_store();
+    LOCAL_INDEX_NOT_AVAILABLE = "not_available_on_this_installation";
+    PART_LABEL = {
+      texts: "lok\xE1lny fulltextov\xFD index rozhodnut\xED",
+      relations: "lok\xE1lny index vz\u0165ahov medzi rozhodnutiami (procesn\xFD osud, re\u0165az, cit\xE1cie)",
+      index: "lok\xE1lny index judikat\xFAry"
+    };
+    LOCAL_INDEX_ABSENT_NOTE = "Na tejto in\u0161tal\xE1cii nie je k dispoz\xEDcii: lok\xE1lny index nie je pr\xEDtomn\xFD. Index je ve\u013Ek\xFD sn\xEDmok, ktor\xFD pou\u017E\xEDva len hostovan\xE9 nasadenie; desktopov\xE1 in\u0161tal\xE1cia ho be\u017Ene nem\xE1. Pr\xE1zdny v\xFDsledok tohto n\xE1stroja preto NEZNAMEN\xC1, \u017Ee ni\u010D neexistuje \u2014 n\xE1stroj sa nemal kde pozrie\u0165. Na vyh\u013Ead\xE1vanie pou\u017Ei search_decisions (\u017Eiv\xE9 datab\xE1zy s\xFAdov).";
   }
 });
 
@@ -59381,6 +59489,19 @@ async function buildDecisionTreatment(input) {
     getRelationsReviewing(normalizedRef),
     getRelationsBySourceRef(normalizedRef)
   ]);
+  if (reviewingRows.length === 0 && forwardRows.length === 0) {
+    const unavailable = await checkRelationsIndex();
+    if (unavailable) {
+      return {
+        subject: { spisovaZnacka: input.spisovaZnacka, normalizedRef },
+        status: TREATMENT_NOT_AVAILABLE_STATUS,
+        reviewedBy: [],
+        reviews: [],
+        coverageNote: unavailable.note,
+        availability: unavailable
+      };
+    }
+  }
   const reviewedBy = reviewingRows.map((row) => ({
     reviewingCourt: row.sourceCourt,
     reviewingRef: row.sourceRef,
@@ -59412,7 +59533,7 @@ async function buildDecisionTreatment(input) {
 function registerGetDecisionTreatmentTool(server) {
   server.registerTool("get_decision_treatment", {
     title: "Decision Treatment (osud rozhodnutia)",
-    description: "Zisti, \u010Di bolo rozhodnutie presk\xFAman\xE9 vy\u0161\u0161\xEDm s\xFAdom (Najvy\u0161\u0161\xED/\xDAstavn\xFD s\xFAd) a s ak\xFDm v\xFDrokom (zru\u0161en\xE9/potvrden\xE9/zmenen\xE9/vr\xE1ten\xE9). Reverzn\xFD 'je to e\u0161te dobr\xE1 judikat\xFAra?' lookup nad lok\xE1lnym indexom cit\xE1ci\xED. Vracia kompaktn\xFD \u0161trukt\xFArovan\xFD v\xFDsledok, nie pln\xE9 texty. V\xFDsledok vy\u010D\xEDtan\xFD z textu v\xFDroku je odhad (ozna\u010Den\xFD), nie overen\xFD fakt; p\xE1ruje sa len pod\u013Ea spisovej zna\u010Dky bez s\xFAdu, preto pri rovnakej zna\u010Dke na viacer\xFDch s\xFAdoch sleduj ambiguityNote.",
+    description: "Zisti, \u010Di bolo rozhodnutie presk\xFAman\xE9 vy\u0161\u0161\xEDm s\xFAdom (Najvy\u0161\u0161\xED/\xDAstavn\xFD s\xFAd) a s ak\xFDm v\xFDrokom (zru\u0161en\xE9/potvrden\xE9/zmenen\xE9/vr\xE1ten\xE9). Reverzn\xFD 'je to e\u0161te dobr\xE1 judikat\xFAra?' lookup nad lok\xE1lnym indexom cit\xE1ci\xED. Vracia kompaktn\xFD \u0161trukt\xFArovan\xFD v\xFDsledok, nie pln\xE9 texty. V\xFDsledok vy\u010D\xEDtan\xFD z textu v\xFDroku je odhad (ozna\u010Den\xFD), nie overen\xFD fakt; p\xE1ruje sa len pod\u013Ea spisovej zna\u010Dky bez s\xFAdu, preto pri rovnakej zna\u010Dke na viacer\xFDch s\xFAdoch sleduj ambiguityNote. Na in\u0161tal\xE1cii bez lok\xE1lneho indexu (be\u017En\xFD desktop) vr\xE1ti availability.status=not_available_on_this_installation \u2014 to nie je zistenie o osude rozhodnutia.",
     inputSchema: InputShape
   }, async (input) => {
     const parsed = object(InputShape).parse(input);
@@ -59421,20 +59542,23 @@ function registerGetDecisionTreatmentTool(server) {
     return asToolResult(treatment);
   });
 }
-var InputShape, REF_ONLY_MATCHING_NOTE, COVERAGE_NOTE, ADVERSE, STANDS, isEstimate, isVerified, COURT_LEVELS, NOT_A_SEAT;
+var InputShape, REF_ONLY_MATCHING_NOTE, COVERAGE_NOTE, TREATMENT_NOT_AVAILABLE_STATUS, ADVERSE, STANDS, isEstimate, isVerified, COURT_LEVELS, NOT_A_SEAT;
 var init_get_decision_treatment = __esm({
   "dist/src/tools/get-decision-treatment.js"() {
+    "use strict";
     init_v4();
     init_law_index_store();
     init_relation_extractor();
     init_relation_model_labels();
     init_response();
     init_treatment_flags();
+    init_local_index_availability();
     InputShape = {
       spisovaZnacka: string2().min(2).describe("Spisov\xE1 zna\u010Dka rozhodnutia, ktor\xE9ho osud chce\u0161 preveri\u0165 (napr. krajsk\xE9ho alebo okresn\xE9ho s\xFAdu). Tolerantn\xE9 na medzery a odde\u013Eova\u010De: '5 Co 55/2009' = '5Co/55/2009'.")
     };
     REF_ONLY_MATCHING_NOTE = "Vz\u0165ahy sa p\xE1ruj\xFA len pod\u013Ea spisovej zna\u010Dky, bez s\xFAdu \u2014 t\xE1 ist\xE1 zna\u010Dka m\xF4\u017Ee existova\u0165 na viacer\xFDch s\xFAdoch.";
     COVERAGE_NOTE = "V\xFDsledok vych\xE1dza z lok\xE1lne indexovan\xE9ho korpusu. Nepr\xEDtomnos\u0165 z\xE1sahu vy\u0161\u0161ieho s\xFAdu NEZNAMEN\xC1, \u017Ee rozhodnutie nebolo presk\xFAman\xE9 \u2014 len \u017Ee sa to v indexovan\xFDch rozhodnutiach nena\u0161lo. " + REF_ONLY_MATCHING_NOTE;
+    TREATMENT_NOT_AVAILABLE_STATUS = "NEDOSTUPN\xC9 na tejto in\u0161tal\xE1cii: lok\xE1lny index vz\u0165ahov nie je pr\xEDtomn\xFD, procesn\xFD osud sa t\xFDmto n\xE1strojom overi\u0165 ned\xE1. Toto NIE JE zistenie, \u017Ee rozhodnutie nebolo presk\xFAman\xE9 ani \u017Ee plat\xED \u2014 over osud inak (napr. search_decisions na rozhodnutia vy\u0161\u0161\xEDch s\xFAdov a ich v\xFDrok).";
     ADVERSE = /* @__PURE__ */ new Set(["zrusene", "zrusene_vratene", "zmenene"]);
     STANDS = /* @__PURE__ */ new Set(["odmietnute", "zamietnute", "zastavene"]);
     isEstimate = (r) => r.dispositionSource === "model-estimate";
@@ -59505,6 +59629,19 @@ async function buildCaseChain(input) {
     seen.add(k);
     return true;
   });
+  if (unique.length === 0) {
+    const unavailable = await checkRelationsIndex();
+    if (unavailable) {
+      return {
+        subject: { spisovaZnacka: input.spisovaZnacka, normalizedRef: rootNorm },
+        status: "NEDOSTUPN\xC9 na tejto in\u0161tal\xE1cii: lok\xE1lny index vz\u0165ahov nie je pr\xEDtomn\xFD, procesn\xFA re\u0165az t\xFDmto n\xE1strojom zostavi\u0165 ned\xE1. Toto NIE JE zistenie, \u017Ee vec nem\xE1 \u010Fal\u0161ie \u010Dl\xE1nky.",
+        nodes: [rootNorm],
+        edges: [],
+        coverageNote: unavailable.note,
+        availability: unavailable
+      };
+    }
+  }
   const ambiguityNote = chainAmbiguityNote(unique);
   return {
     subject: { spisovaZnacka: input.spisovaZnacka, normalizedRef: rootNorm },
@@ -59517,7 +59654,7 @@ async function buildCaseChain(input) {
 function registerGetCaseChainTool(server) {
   server.registerTool("get_case_chain", {
     title: "Procesn\xE1 re\u0165az veci",
-    description: "Cel\xFD procesn\xFD \u017Eivot veci jedn\xFDm volan\xEDm: OS \u2192 KS \u2192 NS \u2192 \xDAS strom zo vz\u0165ahov\xE9ho indexu (kto koho presk\xFAmal, s ak\xFDm v\xFDrokom). Lok\xE1lny lookup, kompaktn\xFD v\xFDstup. V\xFDroky vy\u010D\xEDtan\xE9 z textu s\xFA odhady a v\xE4zby sa p\xE1ruj\xFA len pod\u013Ea spisovej zna\u010Dky bez s\xFAdu.",
+    description: "Cel\xFD procesn\xFD \u017Eivot veci jedn\xFDm volan\xEDm: OS \u2192 KS \u2192 NS \u2192 \xDAS strom zo vz\u0165ahov\xE9ho indexu (kto koho presk\xFAmal, s ak\xFDm v\xFDrokom). Lok\xE1lny lookup, kompaktn\xFD v\xFDstup. V\xFDroky vy\u010D\xEDtan\xE9 z textu s\xFA odhady a v\xE4zby sa p\xE1ruj\xFA len pod\u013Ea spisovej zna\u010Dky bez s\xFAdu. Bez lok\xE1lneho indexu (be\u017En\xFD desktop) vr\xE1ti availability.status=not_available_on_this_installation, nie pr\xE1zdnu re\u0165az ako zistenie.",
     inputSchema: InputShape2
   }, async (input) => {
     const parsed = object(InputShape2).parse(input);
@@ -59528,6 +59665,7 @@ function registerGetCaseChainTool(server) {
 var InputShape2, MAX_DEPTH, MAX_NODES, textEstimateField;
 var init_get_case_chain = __esm({
   "dist/src/tools/get-case-chain.js"() {
+    "use strict";
     init_v4();
     init_relation_extractor();
     init_relation_model_labels();
@@ -59535,6 +59673,7 @@ var init_get_case_chain = __esm({
     init_response();
     init_get_decision_treatment();
     init_treatment_flags();
+    init_local_index_availability();
     InputShape2 = { spisovaZnacka: string2().min(2).describe("Spisov\xE1 zna\u010Dka ktor\xE9hoko\u013Evek \u010Dl\xE1nku re\u0165aze (OS/KS/NS/\xDAS)") };
     MAX_DEPTH = 5;
     MAX_NODES = 60;
@@ -59553,6 +59692,7 @@ async function maybeBuildDecisionTreatment(input) {
 }
 var init_detail_treatment = __esm({
   "dist/src/tools/detail-treatment.js"() {
+    "use strict";
     init_get_decision_treatment();
   }
 });
@@ -59597,6 +59737,7 @@ function registerGetDecisionDetailTool(server, registry2) {
 }
 var init_get_decision_detail = __esm({
   "dist/src/tools/get-decision-detail.js"() {
+    "use strict";
     init_decision_followups();
     init_provider_contracts();
     init_presenters();
@@ -59665,6 +59806,7 @@ function registerGetDecisionMarkdownByReferenceTool(server, registry2) {
 }
 var init_get_decision_markdown_by_reference = __esm({
   "dist/src/tools/get-decision-markdown-by-reference.js"() {
+    "use strict";
     init_provider_contracts();
     init_fallback_boundary();
     init_markdown();
@@ -59703,6 +59845,7 @@ function registerGetDecisionMarkdownTool(server, registry2) {
 }
 var init_get_decision_markdown = __esm({
   "dist/src/tools/get-decision-markdown.js"() {
+    "use strict";
     init_provider_contracts();
     init_errors4();
     init_markdown();
@@ -59735,6 +59878,7 @@ function registerGetDecisionTextTool(server, registry2) {
 }
 var init_get_decision_text = __esm({
   "dist/src/tools/get-decision-text.js"() {
+    "use strict";
     init_provider_contracts();
     init_errors4();
     init_response();
@@ -59776,7 +59920,8 @@ function buildNsudIndexStats(records, state, location = currentIndexLocation()) 
     indexPath: where.path,
     indexExists: where.exists,
     indexDataDirSource: where.dataDirSource,
-    indexNote: where.note
+    indexNote: where.note,
+    ...records === 0 ? { availability: { ...describeLocalIndexUnavailable("index"), indexPath: where.path } } : {}
   };
 }
 async function collectNsudIndexStats() {
@@ -59787,7 +59932,7 @@ async function collectNsudIndexStats() {
 function registerGetNsudIndexStatsTool(server) {
   server.registerTool("get_nsud_index_stats", {
     title: "Get NSUD Law-Index Stats",
-    description: "Return the size and backfill cursor of the persisted NSUD law citation index. highestKnownDecisionId means 'verified up to this id' (not 'highest id on the portal') since the 2026-08-11 bounded catch-up fix. discoveredHeadDecisionId (unverified) and remainingToHead are populated once the indexer has persisted a discovered head for this state row (headGapObservable=true); see headGapNote when they are still null. indexPath/indexExists/indexNote say which index file is read; an empty or missing index explains how to point the server elsewhere (JUDIKATY_DATA_DIR).",
+    description: "Return the size and backfill cursor of the persisted NSUD law citation index. highestKnownDecisionId means 'verified up to this id' (not 'highest id on the portal') since the 2026-08-11 bounded catch-up fix. discoveredHeadDecisionId (unverified) and remainingToHead are populated once the indexer has persisted a discovered head for this state row (headGapObservable=true); see headGapNote when they are still null. indexPath/indexExists/indexNote say which index file is read; an empty or missing index explains how to point the server elsewhere (JUDIKATY_DATA_DIR). On a desktop installation without the hosted index snapshot, availability.status=not_available_on_this_installation.",
     inputSchema: object({}).shape
   }, async () => {
     return asToolResult(await collectNsudIndexStats());
@@ -59796,10 +59941,12 @@ function registerGetNsudIndexStatsTool(server) {
 var HEAD_GAP_OBSERVABLE_NOTE, HEAD_GAP_NOT_YET_AVAILABLE_NOTE;
 var init_get_nsud_index_stats = __esm({
   "dist/src/tools/get-nsud-index-stats.js"() {
+    "use strict";
     init_v4();
     init_data_dir();
     init_law_index_store();
     init_response();
+    init_local_index_availability();
     HEAD_GAP_OBSERVABLE_NOTE = "discoveredHeadDecisionId is the raw NS decision id the most recent indexer run discovered, UNVERIFIED (unlike highestKnownDecisionId, which means 'verified up to this id, contiguously'). remainingToHead = discoveredHeadDecisionId - highestKnownDecisionId, floored at 0.";
     HEAD_GAP_NOT_YET_AVAILABLE_NOTE = "discoveredHeadDecisionId/remainingToHead are null: this state row either predates the indexer change that persists the discovered head (normal right after a fresh deploy -- wait for the next nightly run of index:nsud-law, not an error), or the indexer has not yet discovered a head at all (fresh/wiped state with no cursor). Run `npm run index:nsud-law:stats` for an on-demand live check meanwhile.";
   }
@@ -59824,6 +59971,7 @@ function registerGetProviderHealthTool(server, registry2) {
 }
 var init_get_provider_health = __esm({
   "dist/src/tools/get-provider-health.js"() {
+    "use strict";
     init_v4();
     init_provider_contracts();
     init_provider_health();
@@ -59845,6 +59993,14 @@ async function runWatchlistAction(input) {
     return { action: "remove", removed };
   }
   const entries = await listWatchlistEntries();
+  const unavailable = await checkRelationsIndex();
+  if (unavailable) {
+    return {
+      action: input.action,
+      entries: entries.map((entry) => ({ ...entry, treatment: null, treatmentStatus: LOCAL_INDEX_NOT_AVAILABLE })),
+      treatmentAvailability: unavailable
+    };
+  }
   const withTreatment = [];
   for (const entry of entries) {
     withTreatment.push({ ...entry, treatment: await buildTreatmentFlag(entry.refRaw) });
@@ -59854,17 +60010,19 @@ async function runWatchlistAction(input) {
 function registerManageWatchlistTool(server) {
   server.registerTool("manage_watchlist", {
     title: "Watchlist judik\xE1tov",
-    description: "Sleduj spisov\xE9 zna\u010Dky, o ktor\xE9 opiera\u0161 \u017Eiv\xE9 kauzy. action=add/remove/list; list vr\xE1ti aj aktu\xE1lny osud ka\u017Edej zna\u010Dky (\u26A0\uFE0F zru\u0161en\xE9 / potvrden\xE9 / bez z\xE1sahu). Zmeny sledovan\xFDch zna\u010Diek chodia v t\xFD\u017Edennom e-maile.",
+    description: "Sleduj spisov\xE9 zna\u010Dky, o ktor\xE9 opiera\u0161 \u017Eiv\xE9 kauzy. action=add/remove/list; list vr\xE1ti aj aktu\xE1lny osud ka\u017Edej zna\u010Dky (\u26A0\uFE0F zru\u0161en\xE9 / potvrden\xE9 / bez z\xE1sahu). Zmeny sledovan\xFDch zna\u010Diek chodia v t\xFD\u017Edennom e-maile. Bez lok\xE1lneho indexu vz\u0165ahov (be\u017En\xFD desktop) sa zoznam vedie, ale osud nie je k dispoz\xEDcii (treatmentStatus=not_available_on_this_installation).",
     inputSchema: InputShape3
   }, async (input) => asToolResult(await runWatchlistAction(object(InputShape3).parse(input))));
 }
 var InputShape3;
 var init_manage_watchlist = __esm({
   "dist/src/tools/manage-watchlist.js"() {
+    "use strict";
     init_v4();
     init_law_index_store();
     init_treatment_flags();
     init_response();
+    init_local_index_availability();
     InputShape3 = {
       action: _enum2(["add", "remove", "list"]).describe("add/remove sleduje spisov\xFA zna\u010Dku; list vr\xE1ti v\u0161etky s aktu\xE1lnym osudom"),
       spisovaZnacka: string2().min(2).optional().describe("Spisov\xE1 zna\u010Dka (povinn\xE1 pre add/remove)"),
@@ -59890,6 +60048,7 @@ function registerRelatedSlovlexContextTool(server, registry2) {
 }
 var init_related_slovlex_context = __esm({
   "dist/src/tools/related-slovlex-context.js"() {
+    "use strict";
     init_provider_contracts();
     init_errors4();
     init_response();
@@ -59942,6 +60101,7 @@ function registerResolveDecisionIdentityTool(server, registry2) {
 }
 var init_resolve_decision_identity = __esm({
   "dist/src/tools/resolve-decision-identity.js"() {
+    "use strict";
     init_provider_contracts();
     init_fallback_boundary();
     init_errors4();
@@ -59967,6 +60127,7 @@ function registerSearchCourtsTool(server, registry2) {
 }
 var init_search_courts = __esm({
   "dist/src/tools/search-courts.js"() {
+    "use strict";
     init_provider_contracts();
     init_provider_contracts();
     init_errors4();
@@ -60017,148 +60178,8 @@ async function resolveDecisionIdentities(items, loadHeaders) {
 }
 var init_decision_identity = __esm({
   "dist/src/domain/decision-identity.js"() {
+    "use strict";
     init_relation_extractor();
-  }
-});
-
-// dist/src/tools/search-decision-text.js
-function registerSearchDecisionTextTool(server) {
-  server.registerTool("search_decision_text", {
-    title: "Search Decision Text (local FTS5)",
-    description: "Full-text search proti lok\xE1lne indexovan\xE9mu korpusu (bm25 ranking, snippet generation, diacritics-insensitive, prefix-matching). Lok\xE1lny fulltext korpus NS + \xDAS + justice (justice priebe\u017Ene rastie); volite\u013En\xFD filter providers. Pre naviac zdrojov mimo lok\xE1lneho korpusu pou\u017Eite search_decisions.",
-    inputSchema: InputShape4
-  }, async (input) => {
-    const parsed = object(InputShape4).parse(input);
-    const providersFilter = parsed.providers;
-    const includeNsud = !providersFilter || providersFilter.includes("nsud");
-    const otherProviders = providersFilter ? providersFilter.filter((p) => p !== "nsud") : ["ustavny", "justice"];
-    const [nsudHits, otherHits, abstractHits, corpusNsud, corpusUstavny, corpusJustice] = await Promise.all([
-      includeNsud ? searchNsudDecisionTextFts({
-        query: parsed.query,
-        limit: parsed.limit * 2,
-        offset: parsed.offset,
-        snippetCharsAround: parsed.snippetCharsAround
-      }) : Promise.resolve([]),
-      otherProviders.length > 0 ? searchProviderTextsFts({
-        query: parsed.query,
-        limit: parsed.limit * 2,
-        offset: parsed.offset,
-        snippetCharsAround: parsed.snippetCharsAround,
-        providers: otherProviders
-      }) : Promise.resolve([]),
-      searchDecisionAbstractsFts({
-        query: parsed.query,
-        limit: parsed.limit * 2,
-        offset: parsed.offset,
-        // Without this a request for one provider came back with another provider's
-        // decisions, because the abstract index covers all three.
-        ...providersFilter ? { providers: providersFilter } : {}
-      }),
-      countNsudDecisionTexts(),
-      countProviderTexts("ustavny"),
-      countProviderTexts("justice")
-    ]);
-    const records = await getProviderRecords(otherHits.map((hit) => ({ provider: hit.provider, id: hit.id })));
-    const enrichedOtherHits = otherHits.map((hit) => {
-      const record2 = records.get(`${hit.provider}:${hit.id}`);
-      return {
-        provider: hit.provider,
-        providerId: hit.id,
-        ecli: null,
-        spisovaZnacka: record2?.spisovaZnacka ?? null,
-        dateIssued: record2?.dateIssued ?? null,
-        snippet: hit.snippet,
-        rank: hit.rank
-      };
-    });
-    const nsudHitRows = nsudHits.map((hit) => ({
-      provider: "nsud",
-      providerId: hit.id,
-      ecli: hit.ecli,
-      spisovaZnacka: hit.spisovaZnacka,
-      dateIssued: hit.dateIssued,
-      snippet: hit.snippet,
-      rank: hit.rank
-    }));
-    const merged = [...nsudHitRows, ...enrichedOtherHits].sort((a, b) => a.rank - b.rank).slice(0, parsed.limit * 2);
-    const byKey = new Map(merged.map((hit) => [`${hit.provider}:${hit.providerId}`, hit]));
-    for (const abstractHit of abstractHits) {
-      const key = `${abstractHit.provider}:${abstractHit.id}`;
-      const existing = byKey.get(key);
-      if (existing) {
-        existing.rank = Math.min(existing.rank, abstractHit.rank);
-        existing.matchedIn = "abstract+text";
-        continue;
-      }
-      byKey.set(key, {
-        provider: abstractHit.provider,
-        providerId: abstractHit.id,
-        ecli: null,
-        spisovaZnacka: null,
-        dateIssued: null,
-        snippet: "",
-        rank: abstractHit.rank,
-        matchedIn: "abstract"
-      });
-    }
-    const combined = [...byKey.values()].sort((a, b) => a.rank - b.rank);
-    const { items: deduped, duplicatesSuppressed } = await resolveDecisionIdentities(combined, getDecisionTextHeaders);
-    const paged = deduped.slice(0, parsed.limit);
-    const [flags, abstracts] = await Promise.all([
-      buildTreatmentFlags(paged.map((hit) => hit.spisovaZnacka)),
-      getDecisionAbstracts(paged.map((hit) => ({ provider: hit.provider, id: hit.providerId })))
-    ]);
-    const hits = paged.map((hit) => {
-      const flag = hit.spisovaZnacka ? flags.get(hit.spisovaZnacka.trim()) : void 0;
-      const abstract = abstracts.get(`${hit.provider}:${hit.providerId}`);
-      return {
-        ...hit,
-        matchedIn: hit.matchedIn ?? "text",
-        ...abstract?.vyrok ? { vyrok: abstract.vyrok } : {},
-        ...abstract?.lead ? { lead: abstract.lead } : {},
-        ...abstract?.holding ? { holding: abstract.holding } : {},
-        ...flag ? { treatment: flag } : {}
-      };
-    });
-    return asToolResult({
-      corpusSize: {
-        nsud: corpusNsud,
-        ustavny: corpusUstavny,
-        justice: corpusJustice
-      },
-      corpusSizeTotal: corpusNsud + corpusUstavny + corpusJustice,
-      query: parsed.query,
-      ...duplicatesSuppressed > 0 ? { duplicatesSuppressed } : {},
-      hits,
-      readFullText: "export_decision_markdown({provider, id}) vr\xE1ti KOMPLETN\xC9 rozhodnutie (provider a id s\xFA v ka\u017Edom z\xE1sahu). Snippet ni\u017E\u0161ie je len uk\xE1\u017Eka zhody \u2014 nikdy z neho necituj.",
-      notes: [
-        "vyrok = \u010Do s\xFAd rozhodol, lead = \xFAvod od\xF4vodnenia (o \u010Dom vec bola). Snippet ukazuje, kde sa trafil dotaz. Snippets use [[ ]] to highlight matched terms.",
-        "matchedIn: abstract = dotaz sa trafil do v\xFDroku/od\xF4vodnenia (silnej\u0161\xED sign\xE1l), text = len niekde v plnom texte.",
-        "treatment.kind=review = vy\u0161\u0161\xED s\xFAd naozaj rozhodol o tomto rozhodnut\xED. kind=mention = in\xE9 rozhodnutie ho len spom\xEDna, o osude nevieme ni\u010D. Ch\xFDbaj\xFAce treatment znamen\xE1 'ni\u010D nevieme', NIE 'je to platn\xE9'.",
-        "Only decisions whose text has been indexed locally are returned. Use get_provider_health or get_nsud_index_stats to inspect coverage.",
-        "spisovaZnackaSource='derived-from-text' znamen\xE1, \u017Ee zna\u010Dku port\xE1l neuv\xE1dza a bola pre\u010D\xEDtan\xE1 z hlavi\u010Dky rozsudku \u2014 pred citovan\xEDm ju over v plnom texte.",
-        "spisovaZnacka for \xDAS/justice hits is enriched from the local provider_records mirror and may be null if not yet backfilled."
-      ]
-    });
-  });
-}
-var PROVIDERS, InputShape4;
-var init_search_decision_text = __esm({
-  "dist/src/tools/search-decision-text.js"() {
-    init_scalars();
-    init_v4();
-    init_law_index_store();
-    init_decision_identity();
-    init_response();
-    init_treatment_flags();
-    PROVIDERS = ["nsud", "ustavny", "justice"];
-    InputShape4 = {
-      query: string2().min(2).describe("Free-text query. Tokens prefix-match by default to deal with Slovak inflection; wrap in double quotes for an exact phrase."),
-      limit: looseNumber(number2().int().min(1).max(50)).default(10),
-      offset: looseNumber(number2().int().min(0)).default(0),
-      snippetCharsAround: looseNumber(number2().int().min(4).max(32)).default(12).describe("How many tokens of context to include on each side of the match in the snippet."),
-      providers: array(_enum2(PROVIDERS)).optional().describe("Optional filter to restrict the search to a subset of local corpora (nsud, ustavny, justice).")
-    };
   }
 });
 
@@ -60183,6 +60204,7 @@ function resolveCapabilityProviderIds(provider) {
 var SEARCH_DECISIONS_FILTER_CAPABILITIES;
 var init_search_filter_capabilities = __esm({
   "dist/src/domain/search-filter-capabilities.js"() {
+    "use strict";
     SEARCH_DECISIONS_FILTER_CAPABILITIES = {
       // justice/client.ts#searchDecisions sends every field below as an upstream
       // query param. courtName is honoured post-fix by resolving it to guidSud
@@ -60311,6 +60333,7 @@ function looksLikeCaseReference2(value) {
 var CASE_REFERENCE_PATTERN;
 var init_normalize = __esm({
   "dist/src/tools/search-decisions/normalize.js"() {
+    "use strict";
     CASE_REFERENCE_PATTERN = /^\d+[A-Za-zČ-ž]+(?:\/[A-Za-z0-9.-]+)+$/u;
   }
 });
@@ -60322,6 +60345,7 @@ async function runSingleProviderSearchDecisions(input, providerId, provider) {
 }
 var init_single = __esm({
   "dist/src/tools/search-decisions/single.js"() {
+    "use strict";
     init_merge();
   }
 });
@@ -60431,6 +60455,7 @@ function buildFreshnessNote(freshness, lastRunAt, nextDecisionId) {
 var NSUD_LOCAL_ROUTE_FIELD_COMPATIBILITY, NSUD_DATE_TEXT_COMBO_NOTE, JUSTICE_PROVIDER_ALTERNATIVE_NOTE;
 var init_nsud_local_date = __esm({
   "dist/src/tools/search-decisions/nsud-local-date.js"() {
+    "use strict";
     init_court_name_match();
     init_source_availability();
     init_source_provenance();
@@ -60515,6 +60540,7 @@ async function runAutoSearchDecisions(input, providers) {
 }
 var init_auto = __esm({
   "dist/src/tools/search-decisions/auto.js"() {
+    "use strict";
     init_merge();
     init_errors4();
     init_normalize();
@@ -60542,6 +60568,7 @@ function stripMergedCoverageNotes(notes) {
 }
 var init_readability = __esm({
   "dist/src/tools/search-decisions/readability.js"() {
+    "use strict";
   }
 });
 
@@ -60602,6 +60629,7 @@ async function hydrateSearchResultItems(result, registry2) {
 var HYDRATE_MAX_CANDIDATES;
 var init_hydrate = __esm({
   "dist/src/tools/search-decisions/hydrate.js"() {
+    "use strict";
     init_merge();
     init_readability();
     HYDRATE_MAX_CANDIDATES = 3;
@@ -60644,6 +60672,7 @@ function reconcilePostHydrationDates(preHydration, hydrated, input) {
 }
 var init_hydration_date_guard = __esm({
   "dist/src/tools/search-decisions/hydration-date-guard.js"() {
+    "use strict";
     init_merge();
   }
 });
@@ -60676,6 +60705,7 @@ function compareDecisionReadability(a, b) {
 }
 var init_rerank = __esm({
   "dist/src/tools/search-decisions/rerank.js"() {
+    "use strict";
     init_readability();
   }
 });
@@ -60802,6 +60832,7 @@ function decodeHtml(value) {
 }
 var init_web_search = __esm({
   "dist/src/infra/web-search.js"() {
+    "use strict";
     init_pdf();
   }
 });
@@ -60878,6 +60909,7 @@ function buildDecisionWebFallbackQueries(decision) {
 var MAX_WEB_FALLBACK_DECISIONS, MAX_HITS_PER_DECISION, PREVIEW_MAX_CHARS;
 var init_web_fallback = __esm({
   "dist/src/tools/search-decisions/web-fallback.js"() {
+    "use strict";
     init_web_search();
     MAX_WEB_FALLBACK_DECISIONS = 2;
     MAX_HITS_PER_DECISION = 3;
@@ -61081,6 +61113,7 @@ function stripDiacriticsLower(value) {
 var MAX_READABLE_CANDIDATES, MAX_BLOCKED_CANDIDATES, PREVIEW_WINDOW_CHARS, SNIPPET_CONTEXT_CHARS;
 var init_enrichment = __esm({
   "dist/src/tools/search-decisions/enrichment.js"() {
+    "use strict";
     init_law_index_store();
     init_readability();
     init_web_fallback();
@@ -61139,6 +61172,7 @@ async function buildSearchToolOutput(result, input, registry2) {
 }
 var init_output = __esm({
   "dist/src/tools/search-decisions/output.js"() {
+    "use strict";
     init_fallback_boundary();
     init_search_filter_capabilities();
     init_provider2();
@@ -61196,6 +61230,7 @@ function registerSearchDecisionsTool(server, registry2) {
 }
 var init_search_decisions = __esm({
   "dist/src/tools/search-decisions.js"() {
+    "use strict";
     init_provider_contracts();
     init_search_filter_capabilities();
     init_response();
@@ -61208,6 +61243,224 @@ var init_search_decisions = __esm({
     init_nsud_local_date();
     init_output();
     init_single();
+  }
+});
+
+// dist/src/tools/search-decision-text.js
+async function runLiveFallback(parsed, registry2) {
+  const localIndex = describeLocalIndexUnavailable("texts");
+  const liveQuery = parsed.query.replace(/["„“”]/gu, " ").replace(/\s+/gu, " ").trim();
+  const requested = parsed.providers;
+  const provider = requested && requested.length === 1 ? requested[0] : "auto";
+  const providersSearched = provider === "auto" ? ["justice", "nsud"] : [provider];
+  const liveSearch = { tool: "search_decisions", provider, providersSearched, query: liveQuery };
+  const failure = (error48) => ({
+    ...asToolResult({
+      query: parsed.query,
+      mode: "live_fallback_failed",
+      fullTextSearch: false,
+      localIndex,
+      liveSearch,
+      error: error48,
+      note: "Lok\xE1lny fulltextov\xFD index tu nie je a \u017Eiv\xE9 vyh\u013Ead\xE1vanie v datab\xE1zach s\xFAdov zlyhalo. Toto NIE JE v\xFDsledok \u201E0 rozhodnut\xED\u201C \u2014 vyh\u013Ead\xE1vanie neprebehlo. Sk\xFAs to znova nesk\xF4r alebo over stav cez get_provider_health."
+    }),
+    isError: true
+  });
+  if (!registry2)
+    return failure("Live search is not wired into this server instance (no provider registry).");
+  let output;
+  try {
+    output = await runSearchDecisionsTool(SearchDecisionsInputSchema.parse({
+      query: liveQuery,
+      provider,
+      limit: parsed.limit,
+      offset: parsed.offset,
+      view: "compact"
+    }), registry2);
+  } catch (error48) {
+    return failure(error48 instanceof Error ? error48.message : String(error48));
+  }
+  const items = Array.isArray(output.items) ? output.items : [];
+  const wanted = requested ? new Set(requested) : null;
+  const kept = wanted ? items.filter((item) => wanted.has(String(item.provider))) : items;
+  const hits = kept.map((item) => ({ ...item, matchedIn: "live-metadata" }));
+  const limitations = [
+    ...LIVE_FALLBACK_LIMITS,
+    ...provider === "auto" ? [AUTO_SKIPS_USTAVNY] : [],
+    ...wanted && kept.length !== items.length ? ["Z\xE1sahy z poskytovate\u013Eov mimo filtra providers boli vynechan\xE9; total je po\u010Det pred t\xFDmto vynechan\xEDm."] : []
+  ];
+  return asToolResult({
+    query: parsed.query,
+    mode: "live_fallback",
+    fullTextSearch: false,
+    localIndex,
+    liveSearch,
+    fallbackNote: LIVE_FALLBACK_NOTE,
+    limitations,
+    total: output.total,
+    providerBreakdown: output.providerBreakdown,
+    ...Array.isArray(output.coverageNotes) && output.coverageNotes.length > 0 ? { coverageNotes: output.coverageNotes } : {},
+    hits,
+    readFullText: "export_decision_markdown({provider, id: providerId}) vr\xE1ti KOMPLETN\xC9 rozhodnutie. Z metad\xE1t z\xE1sahu nikdy necituj."
+  });
+}
+async function runSearchDecisionText(input, registry2) {
+  const parsed = object(InputShape4).parse(input);
+  const providersFilter = parsed.providers;
+  const includeNsud = !providersFilter || providersFilter.includes("nsud");
+  const otherProviders = providersFilter ? providersFilter.filter((p) => p !== "nsud") : ["ustavny", "justice"];
+  const [nsudHits, otherHits, abstractHits, corpusNsud, corpusUstavny, corpusJustice] = await Promise.all([
+    includeNsud ? searchNsudDecisionTextFts({
+      query: parsed.query,
+      limit: parsed.limit * 2,
+      offset: parsed.offset,
+      snippetCharsAround: parsed.snippetCharsAround
+    }) : Promise.resolve([]),
+    otherProviders.length > 0 ? searchProviderTextsFts({
+      query: parsed.query,
+      limit: parsed.limit * 2,
+      offset: parsed.offset,
+      snippetCharsAround: parsed.snippetCharsAround,
+      providers: otherProviders
+    }) : Promise.resolve([]),
+    searchDecisionAbstractsFts({
+      query: parsed.query,
+      limit: parsed.limit * 2,
+      offset: parsed.offset,
+      // Without this a request for one provider came back with another provider's
+      // decisions, because the abstract index covers all three.
+      ...providersFilter ? { providers: providersFilter } : {}
+    }),
+    countNsudDecisionTexts(),
+    countProviderTexts("ustavny"),
+    countProviderTexts("justice")
+  ]);
+  const records = await getProviderRecords(otherHits.map((hit) => ({ provider: hit.provider, id: hit.id })));
+  const enrichedOtherHits = otherHits.map((hit) => {
+    const record2 = records.get(`${hit.provider}:${hit.id}`);
+    return {
+      provider: hit.provider,
+      providerId: hit.id,
+      ecli: null,
+      spisovaZnacka: record2?.spisovaZnacka ?? null,
+      dateIssued: record2?.dateIssued ?? null,
+      snippet: hit.snippet,
+      rank: hit.rank
+    };
+  });
+  const nsudHitRows = nsudHits.map((hit) => ({
+    provider: "nsud",
+    providerId: hit.id,
+    ecli: hit.ecli,
+    spisovaZnacka: hit.spisovaZnacka,
+    dateIssued: hit.dateIssued,
+    snippet: hit.snippet,
+    rank: hit.rank
+  }));
+  const merged = [...nsudHitRows, ...enrichedOtherHits].sort((a, b) => a.rank - b.rank).slice(0, parsed.limit * 2);
+  const byKey = new Map(merged.map((hit) => [`${hit.provider}:${hit.providerId}`, hit]));
+  for (const abstractHit of abstractHits) {
+    const key = `${abstractHit.provider}:${abstractHit.id}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.rank = Math.min(existing.rank, abstractHit.rank);
+      existing.matchedIn = "abstract+text";
+      continue;
+    }
+    byKey.set(key, {
+      provider: abstractHit.provider,
+      providerId: abstractHit.id,
+      ecli: null,
+      spisovaZnacka: null,
+      dateIssued: null,
+      snippet: "",
+      rank: abstractHit.rank,
+      matchedIn: "abstract"
+    });
+  }
+  const combined = [...byKey.values()].sort((a, b) => a.rank - b.rank);
+  const { items: deduped, duplicatesSuppressed } = await resolveDecisionIdentities(combined, getDecisionTextHeaders);
+  const paged = deduped.slice(0, parsed.limit);
+  const [flags, abstracts] = await Promise.all([
+    buildTreatmentFlags(paged.map((hit) => hit.spisovaZnacka)),
+    getDecisionAbstracts(paged.map((hit) => ({ provider: hit.provider, id: hit.providerId })))
+  ]);
+  const corpusSizeTotal = corpusNsud + corpusUstavny + corpusJustice;
+  if (corpusSizeTotal === 0 && paged.length === 0) {
+    return runLiveFallback(parsed, registry2);
+  }
+  const hits = paged.map((hit) => {
+    const flag = hit.spisovaZnacka ? flags.get(hit.spisovaZnacka.trim()) : void 0;
+    const abstract = abstracts.get(`${hit.provider}:${hit.providerId}`);
+    return {
+      ...hit,
+      matchedIn: hit.matchedIn ?? "text",
+      ...abstract?.vyrok ? { vyrok: abstract.vyrok } : {},
+      ...abstract?.lead ? { lead: abstract.lead } : {},
+      ...abstract?.holding ? { holding: abstract.holding } : {},
+      ...flag ? { treatment: flag } : {}
+    };
+  });
+  return asToolResult({
+    corpusSize: {
+      nsud: corpusNsud,
+      ustavny: corpusUstavny,
+      justice: corpusJustice
+    },
+    corpusSizeTotal,
+    query: parsed.query,
+    mode: "local_fulltext",
+    fullTextSearch: true,
+    ...duplicatesSuppressed > 0 ? { duplicatesSuppressed } : {},
+    hits,
+    readFullText: READ_FULL_TEXT,
+    notes: [
+      "vyrok = \u010Do s\xFAd rozhodol, lead = \xFAvod od\xF4vodnenia (o \u010Dom vec bola). Snippet ukazuje, kde sa trafil dotaz. Snippets use [[ ]] to highlight matched terms.",
+      "matchedIn: abstract = dotaz sa trafil do v\xFDroku/od\xF4vodnenia (silnej\u0161\xED sign\xE1l), text = len niekde v plnom texte.",
+      "treatment.kind=review = vy\u0161\u0161\xED s\xFAd naozaj rozhodol o tomto rozhodnut\xED. kind=mention = in\xE9 rozhodnutie ho len spom\xEDna, o osude nevieme ni\u010D. Ch\xFDbaj\xFAce treatment znamen\xE1 'ni\u010D nevieme', NIE 'je to platn\xE9'.",
+      "Only decisions whose text has been indexed locally are returned. Use get_provider_health or get_nsud_index_stats to inspect coverage.",
+      "spisovaZnackaSource='derived-from-text' znamen\xE1, \u017Ee zna\u010Dku port\xE1l neuv\xE1dza a bola pre\u010D\xEDtan\xE1 z hlavi\u010Dky rozsudku \u2014 pred citovan\xEDm ju over v plnom texte.",
+      "spisovaZnacka for \xDAS/justice hits is enriched from the local provider_records mirror and may be null if not yet backfilled."
+    ]
+  });
+}
+function registerSearchDecisionTextTool(server, registry2) {
+  server.registerTool("search_decision_text", {
+    title: "Search Decision Text (local full text, live fallback)",
+    description: "Fulltext nad LOK\xC1LNYM indexom textov rozhodnut\xED (bm25, snippety, bez diakritiky, prefixov\xE9 zhody) \u2014 NS + \xDAS + justice, volite\u013En\xFD filter providers. Lok\xE1lny index m\xE1 len hostovan\xE9 nasadenie; na in\u0161tal\xE1cii bez neho (be\u017En\xFD desktop) n\xE1stroj automaticky prejde na \u017Eiv\xE9 vyh\u013Ead\xE1vanie search_decisions a ozna\u010D\xED to (mode=live_fallback, fullTextSearch=false, localIndex.status=not_available_on_this_installation): metad\xE1ta a k\u013E\xFA\u010Dov\xE9 slov\xE1, nie fulltext nad od\xF4vodnen\xEDm. Na be\u017En\xE9 vyh\u013Ead\xE1vanie rozhodnut\xED pou\u017Ei search_decisions.",
+    inputSchema: InputShape4
+  }, async (input) => runSearchDecisionText(input, registry2));
+}
+var PROVIDERS, InputShape4, READ_FULL_TEXT, LIVE_FALLBACK_NOTE, LIVE_FALLBACK_LIMITS, AUTO_SKIPS_USTAVNY;
+var init_search_decision_text = __esm({
+  "dist/src/tools/search-decision-text.js"() {
+    "use strict";
+    init_scalars();
+    init_v4();
+    init_law_index_store();
+    init_decision_identity();
+    init_provider_contracts();
+    init_response();
+    init_local_index_availability();
+    init_search_decisions();
+    init_treatment_flags();
+    PROVIDERS = ["nsud", "ustavny", "justice"];
+    InputShape4 = {
+      query: string2().min(2).describe("Free-text query. Tokens prefix-match by default to deal with Slovak inflection; wrap in double quotes for an exact phrase."),
+      limit: looseNumber(number2().int().min(1).max(50)).default(10),
+      offset: looseNumber(number2().int().min(0)).default(0),
+      snippetCharsAround: looseNumber(number2().int().min(4).max(32)).default(12).describe("How many tokens of context to include on each side of the match in the snippet."),
+      providers: array(_enum2(PROVIDERS)).optional().describe("Optional filter to restrict the search to a subset of local corpora (nsud, ustavny, justice).")
+    };
+    READ_FULL_TEXT = "export_decision_markdown({provider, id}) vr\xE1ti KOMPLETN\xC9 rozhodnutie (provider a id s\xFA v ka\u017Edom z\xE1sahu). Snippet ni\u017E\u0161ie je len uk\xE1\u017Eka zhody \u2014 nikdy z neho necituj.";
+    LIVE_FALLBACK_NOTE = "Lok\xE1lny fulltextov\xFD index na tejto in\u0161tal\xE1cii nie je k dispoz\xEDcii (je to sn\xEDmok, ktor\xFD m\xE1 len hostovan\xE9 nasadenie). V\xFDsledky preto poch\xE1dzaj\xFA zo \u017Eiv\xFDch datab\xE1z s\xFAdov cez search_decisions: vyh\u013Ead\xE1vanie pod\u013Ea metad\xE1t a k\u013E\xFA\u010Dov\xFDch slov, ktor\xE9 pon\xFAkaj\xFA s\xFAdne port\xE1ly, NIE lok\xE1lny fulltext nad od\xF4vodnen\xEDm rozhodnut\xED. Datab\xE1za ministerstva (justice) h\u013Ead\xE1 v metad\xE1tach; port\xE1l NS SR vo vlastnom textovom indexe, ktor\xFD zaost\xE1va za zverej\u0148ovan\xEDm.";
+    LIVE_FALLBACK_LIMITS = [
+      "Rozhodnutie, ktor\xE9 h\u013Eadan\xFD v\xFDraz obsahuje len v od\xF4vodnen\xED, sa takto nemus\xED n\xE1js\u0165. Nen\xE1jdenie preto nie je d\xF4kaz, \u017Ee tak\xE9 rozhodnutie neexistuje.",
+      "Z\xE1sahy nemaj\xFA snippet ani bm25 poradie (matchedIn=live-metadata); poradie ur\u010Duje port\xE1l. Pred pou\u017Eit\xEDm si rozhodnutie pre\u010D\xEDtaj cel\xE9.",
+      "\xDAvodzovky sa do \u017Eiv\xE9ho vyh\u013Ead\xE1vania neposielaj\xFA, presn\xE1 fr\xE1za sa teda nevynucuje.",
+      "Ch\xFDbaj\xFAce treatment pri z\xE1sahu znamen\xE1 \u201Enevieme\u201C, nie \u201Eplat\xED\u201C \u2014 bez lok\xE1lneho indexu vz\u0165ahov sa osud nezis\u0165uje."
+    ];
+    AUTO_SKIPS_USTAVNY = 'Re\u017Eim auto preh\u013Ead\xE1va rozhodnutia v\u0161eobecn\xFDch s\xFAdov (justice) a NS SR, nie \xDAstavn\xFD s\xFAd. Pre \xDAS zavolaj n\xE1stroj s providers:["ustavny"].';
   }
 });
 
@@ -61251,6 +61504,7 @@ async function collectCacheDiskUsage() {
 }
 var init_disk_usage = __esm({
   "dist/src/infra/disk-usage.js"() {
+    "use strict";
     init_data_dir();
   }
 });
@@ -61307,6 +61561,7 @@ async function gatherCurrent() {
       existedBeforeOpen,
       empty: metadataRecords === 0 && corpus === 0
     }),
+    ...metadataRecords === 0 && corpus === 0 && total === 0 ? { availability: describeLocalIndexUnavailable("index") } : {},
     generatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
@@ -61322,14 +61577,16 @@ async function collectTreatmentIndexStats(input) {
 function registerGetTreatmentIndexStatsTool(server) {
   server.registerTool("get_treatment_index_stats", {
     title: "Treatment Index Stats",
-    description: "Preh\u013Ead stavu indexu osudu rozhodnut\xED: ve\u013Ekos\u0165 NS textov\xE9ho korpusu, po\u010Dty vz\u0165ahov pod\u013Ea s\xFAdu (NS/\xDAS/justice), pokrytie crawlerov a posledn\xFD beh. Read-only; nezapisuje snapshot. Pole index uv\xE1dza cestu k \u010D\xEDtan\xE9mu s\xFAboru indexu (JUDIKATY_DATA_DIR alebo pracovn\xFD adres\xE1r) a pri pr\xE1zdnom indexe vysvetl\xED, ako ho nasmerova\u0165.",
+    description: "Preh\u013Ead stavu indexu osudu rozhodnut\xED: ve\u013Ekos\u0165 NS textov\xE9ho korpusu, po\u010Dty vz\u0165ahov pod\u013Ea s\xFAdu (NS/\xDAS/justice), pokrytie crawlerov a posledn\xFD beh. Read-only; nezapisuje snapshot. Pole index uv\xE1dza cestu k \u010D\xEDtan\xE9mu s\xFAboru indexu (JUDIKATY_DATA_DIR alebo pracovn\xFD adres\xE1r) a pri pr\xE1zdnom indexe vysvetl\xED, ako ho nasmerova\u0165. Bez lok\xE1lneho indexu (be\u017En\xFD desktop) vr\xE1ti availability.status=not_available_on_this_installation \u2014 nuly vtedy nie s\xFA \xFAdaj o judikat\xFAre.",
     inputSchema: {}
   }, async () => asToolResult(await collectTreatmentIndexStats({ recordSnapshot: false })));
 }
 var init_treatment_index_stats = __esm({
   "dist/src/tools/treatment-index-stats.js"() {
+    "use strict";
     init_law_index_store();
     init_data_dir();
+    init_local_index_availability();
     init_disk_usage();
     init_response();
   }
@@ -61349,7 +61606,7 @@ function registerTools(server, registry2) {
 }
 function registerAllTools(server, registry2) {
   registerSearchDecisionsTool(server, registry2);
-  registerSearchDecisionTextTool(server);
+  registerSearchDecisionTextTool(server, registry2);
   registerGetDecisionDetailTool(server, registry2);
   registerGetDecisionByReferenceTool(server, registry2);
   registerGetDecisionMarkdownByReferenceTool(server, registry2);
@@ -61373,6 +61630,7 @@ function registerAllTools(server, registry2) {
 }
 var init_tool_registry = __esm({
   "dist/src/server/tool-registry.js"() {
+    "use strict";
     init_law_index_store();
     init_autocomplete_decisions();
     init_batch_get_decision_summaries();
@@ -61419,6 +61677,7 @@ function createApplicationServer(config2) {
 }
 var init_factory = __esm({
   "dist/src/server/factory.js"() {
+    "use strict";
     init_mcp();
     init_registry();
     init_tool_registry();

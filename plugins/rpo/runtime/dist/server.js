@@ -6,7 +6,11 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -31594,6 +31598,8 @@ var EntityDetailSchema = external_exports.object({
 
 // dist/rpo-client.js
 var DEFAULT_BASE = "https://api.statistics.sk/rpo/v1/";
+var RATE_LIMIT_MAX_WAIT_MS = 5e3;
+var RATE_LIMIT_BUDGET_MS = 5e3;
 var RpoApiError = class extends Error {
   status;
   constructor(message, status) {
@@ -31617,7 +31623,9 @@ var RpoClient = class {
   }
   async getJson(path) {
     let lastErr;
-    for (let attempt = 0; attempt <= this.retries; attempt++) {
+    const maxAttempts = this.retries > 0 ? this.retries + 2 : 1;
+    let rateLimitWaited = 0;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), this.timeoutMs);
       try {
@@ -31625,6 +31633,16 @@ var RpoClient = class {
           signal: ctrl.signal,
           headers: { accept: "application/json" }
         });
+        if (res.status === 429) {
+          const retryAfterMs = parseRetryAfter(res.headers?.get?.("retry-after"));
+          const delay = rateLimitDelay(retryAfterMs, attempt);
+          if (attempt + 1 < maxAttempts && delay !== void 0 && rateLimitWaited + delay <= RATE_LIMIT_BUDGET_MS) {
+            rateLimitWaited += delay;
+            await sleep(delay);
+            continue;
+          }
+          throw rateLimitError(retryAfterMs);
+        }
         if (!res.ok) {
           if (res.status >= 500 && attempt < this.retries) {
             lastErr = new RpoApiError(`RPO API request failed: HTTP ${res.status}.`, res.status);
@@ -31704,8 +31722,32 @@ function digits(value) {
   return value.replace(/\D/g, "");
 }
 function backoff(attempt) {
-  const ms = 250 * 2 ** attempt;
+  return sleep(250 * 2 ** attempt);
+}
+function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+function parseRetryAfter(value, now = Date.now()) {
+  const v = value?.trim();
+  if (!v)
+    return void 0;
+  if (/^\d+$/.test(v))
+    return Number(v) * 1e3;
+  const at = /[a-z]/i.test(v) ? Date.parse(v) : Number.NaN;
+  if (Number.isNaN(at))
+    return void 0;
+  return Math.max(0, at - now);
+}
+function rateLimitDelay(retryAfterMs, attempt) {
+  if (retryAfterMs !== void 0 && retryAfterMs > 0) {
+    return retryAfterMs <= RATE_LIMIT_MAX_WAIT_MS ? retryAfterMs : void 0;
+  }
+  const base = 500 * 2 ** attempt;
+  return Math.min(RATE_LIMIT_MAX_WAIT_MS, Math.round(base / 2 + Math.random() * (base / 2)));
+}
+function rateLimitError(retryAfterMs) {
+  const hint = retryAfterMs !== void 0 && retryAfterMs > 0 ? `Sk\xFAs to znova o ${Math.ceil(retryAfterMs / 1e3)} s.` : "Sk\xFAs to o chv\xED\u013Eu znova.";
+  return new RpoApiError(`Register pr\xE1vnick\xFDch os\xF4b moment\xE1lne obmedzuje po\u010Det po\u017Eiadaviek (HTTP 429). ${hint}`, 429);
 }
 function buildSearchQuery(params) {
   const qs = new URLSearchParams();
@@ -32145,6 +32187,16 @@ function formatToolError(operation, error51, input) {
     status: error51 instanceof RpoApiError ? error51.status : 500,
     errorClass
   });
+  if (error51 instanceof RpoApiError && error51.status === 429) {
+    return {
+      ok: false,
+      operation,
+      input: redactToolInput(input),
+      error_class: errorClass,
+      error_message: error51.message,
+      http_status: error51.status
+    };
+  }
   return {
     ok: false,
     operation,
