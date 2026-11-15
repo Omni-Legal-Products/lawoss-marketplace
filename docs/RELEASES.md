@@ -40,3 +40,9 @@ python3 scripts/update_plugins.py --marketplace lawoss --apply   # expect: updat
 After source tests, packaging, catalog validation, and local launcher checks pass, the workflow uploads the complete candidate and pushes a release branch. Its summary links to a branch comparison. It does not open or merge a pull request. A reviewer must inspect the comparison, complete platform install/update/rollback acceptance, and decide whether to open a pull request under the organization release policy.
 
 The former CRZ-only release path (`release_crz.py`, `package_crz.py` and the **Prepare CRZ release** workflow) was removed in CRZ 1.4.3 because it produced a runtime without `runtime-config.json` and with a different launcher. The workflow does not publish a repository, deploy a gateway, change authentication, or transfer operator credentials and state.
+
+## LAWOSS app installer contract
+
+The LAWOSS desktop app installs a Node plugin only when every file matches `/(?:\.(?:json|js|mjs|cjs|md)|(?:^|\/)LICENSE)$/`, it has at most 128 files and no `..`, empty or backslash path segments. `scripts/validate.py` (`APP_INSTALLER_FILE`) and `scripts/package_runtime.py` enforce this for every directory under `plugins/`; a packaged runtime therefore ships its third-party notices as `THIRD_PARTY_NOTICES.md`. The app additionally refuses files over 1 MiB and plugins over 8 MiB. That limit is not enforced here yet because the bundled judikaty, orsr, rpo, ruz and slovlex runtimes exceed it.
+
+A bundle is reproducible only with the esbuild that built it. The packager uses `ESBUILD_BINARY`, else the source build's own esbuild. Bundles built before 15 November 2026 (kalkulacky, orsr, ruz) used esbuild 0.27.2; rebuild them with `ESBUILD_BINARY` pointing to that version, or record the bundle change and renew its reviewed digest in `scripts/validate.py`.

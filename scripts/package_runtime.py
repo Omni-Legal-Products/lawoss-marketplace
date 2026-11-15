@@ -2,6 +2,7 @@
 """Build a reviewed source commit into a portable local Node runtime."""
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -12,6 +13,16 @@ import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+# Markdown, not .txt: the LAWOSS app installer accepts only .json/.js/.mjs/.cjs/.md and LICENSE
+# (see APP_INSTALLER_FILE in validate.py).
+NOTICES = 'THIRD_PARTY_NOTICES.md'
+
+
+def load_validator():
+    spec = importlib.util.spec_from_file_location('lawoss_validate', Path(__file__).resolve().with_name('validate.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def record_for(root, name):
@@ -141,7 +152,7 @@ def package_built(name, built, root=ROOT):
                 shutil.copyfile(source, target)
         entries = list(spec.get('servers', {}).values()) or [spec['entrypoint']]
         if bundled:
-            (staged / 'THIRD_PARTY_NOTICES.txt').write_text(
+            (staged / NOTICES).write_text(
                 third_party_notices(bundle_entrypoints(built, staged, entries, bool(spec.get('bundleDomShims')))))
             # Files a bundled library loads by path at run time (pdf.js loads its worker beside the bundle).
             for origin, destination_name in spec.get('bundleCopy', {}).items():
@@ -158,6 +169,14 @@ def package_built(name, built, root=ROOT):
         provenance = {'repository': record['repository'], 'commit': record['commit'], 'configSha256': hashlib.sha256(config_bytes).hexdigest(), 'files': files}
         (staged / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
         destination = plugin / 'runtime'
+        # Refuse to write a runtime that the LAWOSS app installer would reject (assets and
+        # bundleCopy can bring in any file type).
+        validator = load_validator()
+        kept = [p.relative_to(plugin).as_posix() for p in plugin.rglob('*') if p.is_file() and not p.is_relative_to(destination)] \
+            if plugin.exists() else []
+        problems = validator.app_installer_violations(kept + ['runtime/' + p.relative_to(staged).as_posix() for p in staged.rglob('*') if p.is_file()])
+        if problems:
+            raise ValueError('LAWOSS app installer would refuse the packaged plugin: ' + '; '.join(problems))
         if destination.exists():
             shutil.rmtree(destination)
         shutil.copytree(staged, destination)
