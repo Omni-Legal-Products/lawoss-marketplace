@@ -1,6 +1,6 @@
 ---
 name: kalkulacky-pravne-vypocty
-description: Použi na vyčíslenie peňažného nároku podľa slovenského práva — úrok z omeškania, trovy právneho zastúpenia, súdny poplatok, trovy exekúcie. SK - úrok z omeškania, trovy zastúpenia, súdny poplatok, trovy exekúcie, vyčíslenie nároku, tarifná odmena advokáta. EN - default interest, attorney fees, court fee calculation, enforcement costs, Slovak legal calculator.
+description: Použi na vyčíslenie peňažného nároku podľa slovenského práva — úrok z omeškania, trovy právneho zastúpenia, súdny poplatok, trovy exekúcie — a na výpočet posledného dňa procesnej lehoty (CSP, SSP, doručenie do e-schránky). SK - úrok z omeškania, trovy zastúpenia, súdny poplatok, trovy exekúcie, vyčíslenie nároku, tarifná odmena advokáta, kedy končí lehota, posledný deň lehoty, lehota na odvolanie, 15 dní od doručenia, fikcia doručenia, e-schránka. EN - default interest, attorney fees, court fee calculation, enforcement costs, procedural deadline, last day of deadline, Slovak legal calculator.
 ---
 
 # Kalkulačky — slovenské právne výpočty
@@ -8,7 +8,7 @@ description: Použi na vyčíslenie peňažného nároku podľa slovenského pr�
 ## Načo to je
 
 Server počíta úrok z omeškania, trovy právneho zastúpenia, súdny poplatok a trovy
-exekúcie podľa aktuálnych tabuliek. Nie je právne stanovisko — vstupy aj výstup si
+exekúcie podľa aktuálnych tabuliek a posledný deň procesnej lehoty (`koniec_lehoty`). Nie je právne stanovisko — vstupy aj výstup si
 over, výpočet ide priamo do žaloby.
 
 ## Kedy sem siahnuť
@@ -18,6 +18,8 @@ over, výpočet ide priamo do žaloby.
   rovnaký výsledok.
 - **Audit tabuliek** — história sadzieb ECB a výpočtových základov cez `sadzby_info`.
 - **Doloženie výpočtu v podaní** — rozpis po úsekoch, nie len konečná suma.
+- **Kedy končí lehota** — „15 dní od doručenia“, lehota na odvolanie, vyjadrenie či
+  odpor: `koniec_lehoty` vráti posledný deň, každý krok výpočtu a právny základ.
 
 ## Kedy sem nesiahať
 
@@ -37,7 +39,15 @@ over, výpočet ide priamo do žaloby.
 3. **Trovy exekúcie pri zastavení:** vždy zadaj `inyDovodUkonceniaVLehote` (true = dôvod
    ukončenia nastal do uplynutia lehoty na návrh na zastavenie → paušál 50 %, § 22 ods. 2).
    Pri `platitelDph` zadaj `datumPlnenia` — DPH bola do 31. 12. 2024 20 %, od 2025 23 %.
-4. **Úrok 2009 – 1/2013 so `sposob: "najvyhodnejsi"`:** polročný spôsob (§ 3 ods. 2
+4. **Koniec lehoty:** zisti z listiny dĺžku lehoty a deň doručenia. Ak išlo o e-schránku,
+   zadaj `ulozenieVSchranke`, `doVlastnychRuk` a `prevzate` (+ `datumPrevzatia`) — nástroj
+   vypočíta deň doručenia sám (§ 32 zák. 305/2013 Z. z.). Ak deň doručenia nepoznáš,
+   **opýtaj sa, neodhaduj ho**. Výsledok podaj ako posledný deň lehoty s krokmi, uveď
+   `alternativy[]`, ak nejaké sú (sú vždy neskoršie a menujú otvorený bod), a výslovne povedz,
+   že ho musí overiť advokát
+   (`overit: true`). Potom **ponúkni zápis lehoty do pamäte prípadu so štítkom „overiť“**
+   — zapíš ju len so súhlasom používateľa (karta súhlasu).
+5. **Úrok 2009 – 1/2013 so `sposob: "najvyhodnejsi"`:** polročný spôsob (§ 3 ods. 2
    nar. vl. 87/1995) sa vyberie len ak sa sadzba ECB počas omeškania zmenila; pozri
    `alternativy[].podmienkaZmenyEcbSplnena`.
 
@@ -71,6 +81,11 @@ over, výpočet ide priamo do žaloby.
   znenie predpisu — zákon interakciu zľavy s minimom nerieši. Zdokumentované v
   README (Známe limity) a golden test presne tento prípad počíta (12,50 € z
   minimálnej sadzby 25 €).
+- **`koniec_lehoty` pri spornom výklade uvádza ako `poslednyDenLehoty` najskorší deň zo všetkých výkladov** (rozhodnutie vlastníka produktu); použitý výklad je v `kroky[]`. Otvorené body: úložná lehota (+15 vs. +16 dní),
+  doručenie v sobotu alebo v štátny sviatok, ktorý nie je dňom pracovného pokoja (1. 9.,
+  28. 10., 17. 11.), či je deň podľa § 32 ods. 9 prvým dňom lehoty a či sa pri mesiacoch koniec
+  viaže na deň doručenia — neskoršie výklady sú v `alternativy[]` s `otvoreneBody`. Nepočíta hodiny, hmotnoprávne lehoty, neplynutie lehoty ani Trestný
+  poriadok. Zoznam sviatkov je podľa stavu Slov-Lex k 16. 11. 2026.
 - **Nástroj nespája viacero samostatných pohľadávok v jednom volaní.** Pri viacerých
   nárokoch sa volá opakovane, každý so svojím vstupom.
 
