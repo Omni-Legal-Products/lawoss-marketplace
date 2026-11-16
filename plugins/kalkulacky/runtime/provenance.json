@@ -1,17 +1,18 @@
 {
   "repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
-  "commit": "5ff45d0d03887bd3a166f80f40635a508a2d1a3f",
+  "commit": "0845653617d1fd2d29665314427f0965d1c2d212",
   "configSha256": "c8f2a9dc897dbf74856c2d0d472143e1d09dec93a214e726a58d2ec5a14f41b6",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
-    "THIRD_PARTY_NOTICES.md": "52d03ef2ab4dee35697f2aed7a97c26d34824ce17b46fcc064563808c14164c9",
+    "THIRD_PARTY_NOTICES.md": "722b5582aa5c75a8bf8ad75b710ec7dbf466a963e41d8c2f0e05bc788f77dd84",
+    "data/dni-pracovneho-pokoja.json": "0ed508e831690bb56b460f6c5dfa4cad3ea6e3d4f04366ce060112ce0ebf9b46",
     "data/ecb-main-rate.json": "e1d00836e54d133efbeedd420a8344bf24a75f3b71c5453b2de81b95101226a7",
     "data/exekucia.json": "93962c78bfb404e9030118400ca75aeaa0b2415ebb8b03d681c4978e0547fa81",
     "data/rezimy-urokov.json": "f75735bdbaa0644840afc14a194b20ed57c416bdb2c438f74cf22dabed913120",
     "data/sudne-poplatky.json": "e73581a4623816958bdee38326cf60a86bc96ea67b81a17f95e36202e1903fc4",
     "data/trovy.json": "73bd84bbe5945751ced2dd24d48e27cccc536f40e67bc950a1a45afe15edd57e",
     "data/vypoctovy-zaklad.json": "dd4e56b887984b39f592868a5e81066191736b1f5e64fd52011f4244e4c6cd14",
-    "dist/src/server.js": "00e5a0594aa6394032b394d2f9aecc8f48f4b73fe723f54b982d20822a21cfab",
-    "package.json": "32eb53bbfd8598eae7d7410e2e6d039cb61522145e2a30c1c5064d58ebc7fece"
+    "dist/src/server.js": "d361074aad949b34839c907378e2a886a65359060ed4624aef580626aa3c74c1",
+    "package.json": "5a74908023c328ff80d2a162ddeac722abdc5a069ed17fdb7a08c421cf2ce2b9"
   }
 }

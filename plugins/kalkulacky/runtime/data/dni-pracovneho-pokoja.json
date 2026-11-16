@@ -1,0 +1,161 @@
+{
+  "version": "2026-11-16",
+  "fetchedAt": "2026-11-16",
+  "source": "zák. NR SR č. 241/1993 Z. z. o štátnych sviatkoch, dňoch pracovného pokoja a pamätných dňoch – časové znenia Slov-Lex 1. 1. 2016 až znenie účinné od 29. 10. 2026 (256/2026 Z. z.), https://static.slov-lex.sk/static/SK/ZZ/1993/241/20261029.portal, overené 2026-11-16",
+  "_comment": "Pre každý deň sa rozhoduje podľa znenia zákona 241/1993 Z. z. účinného V TEN DEŇ (nie podľa začiatku lehoty). Obdobia sú zostavené výlučne z porovnania časových znení na Slov-Lex: 20160101 (409/2015), 20181011 (281/2018), 20210101 (324-326/2020), 20230101 (409/2022, 414/2022), 20240101 (530/2023), 20251101 (261/2025), 20261029 (256/2026). Novela 256/2026 Z. z. zmenila iba pamätné dni (§ 3), nie dni pracovného pokoja. Portálový text Slov-Lex má informatívny charakter; právne záväzná je pdf verzia. Nedeľa je dňom pracovného pokoja podľa § 2 ods. 2 ('okrem nedieľ'); sobota nie je dňom pracovného pokoja, procesné predpisy ju uvádzajú samostatne (§ 121 ods. 4 CSP, § 69 ods. 5 SSP).",
+  "pokrytie": { "od": "2016-01-01", "znenieOd": "2026-10-29" },
+  "dni": [
+    {
+      "id": "1-1",
+      "mesiacDen": "01-01",
+      "nazov": "Deň vzniku Slovenskej republiky",
+      "statnySviatok": true,
+      "ustanovenie": "§ 1 písm. a) a § 2 ods. 1 zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 1: Štátne sviatky sú dni pracovného pokoja (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "6-1",
+      "mesiacDen": "01-06",
+      "nazov": "Zjavenie Pána (Traja králi a vianočný sviatok pravoslávnych kresťanov)",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. a) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. a) (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "velky-piatok",
+      "velkonocnyPosun": -2,
+      "nazov": "Veľký piatok",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. b) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. b) (všetky znenia od 1. 1. 2016); dátum = Veľkonočná nedeľa − 2 dni." }]
+    },
+    {
+      "id": "velkonocny-pondelok",
+      "velkonocnyPosun": 1,
+      "nazov": "Veľkonočný pondelok",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. c) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. c) (všetky znenia od 1. 1. 2016); dátum = Veľkonočná nedeľa + 1 deň." }]
+    },
+    {
+      "id": "1-5",
+      "mesiacDen": "05-01",
+      "nazov": "Sviatok práce",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. d) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. d) (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "8-5",
+      "mesiacDen": "05-08",
+      "nazov": "Deň víťazstva nad fašizmom",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. j) zák. 241/1993 Z. z.",
+      "obdobia": [
+        { "od": "2016-01-01", "do": "2025-12-31", "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. j) (znenia od 1. 1. 2016)." },
+        { "od": "2026-01-01", "do": "2026-12-31", "denPracovnehoPokoja": false, "zaklad": "§ 4b (vložený 261/2025 Z. z., účinný od 1. 11. 2025): V roku 2026 nie sú sviatky uvedené v § 2 ods. 2 písm. e) a j) dňami pracovného pokoja." },
+        { "od": "2027-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. j) „ak § 4b neustanovuje inak“ – § 4b sa týka len roku 2026 (znenie účinné od 29. 10. 2026)." }
+      ]
+    },
+    {
+      "id": "5-7",
+      "mesiacDen": "07-05",
+      "nazov": "Sviatok svätého Cyrila a svätého Metoda",
+      "statnySviatok": true,
+      "ustanovenie": "§ 1 písm. b) a § 2 ods. 1 zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 1 (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "29-8",
+      "mesiacDen": "08-29",
+      "nazov": "Výročie Slovenského národného povstania",
+      "statnySviatok": true,
+      "ustanovenie": "§ 1 písm. c) a § 2 ods. 1 zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 1 (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "1-9",
+      "mesiacDen": "09-01",
+      "nazov": "Deň Ústavy Slovenskej republiky",
+      "statnySviatok": true,
+      "ustanovenie": "§ 1 písm. d) zák. 241/1993 Z. z.",
+      "obdobia": [
+        { "od": "2016-01-01", "do": "2023-12-31", "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 1 (znenia 1. 1. 2016 – 31. 12. 2023)." },
+        { "od": "2024-01-01", "do": null, "denPracovnehoPokoja": false, "zaklad": "§ 2 ods. 3 v znení 530/2023 Z. z. (účinné od 1. 1. 2024): Štátny sviatok podľa § 1 písm. d) a e) nie je dňom pracovného pokoja; od 1. 11. 2025 (261/2025 Z. z.) „písm. d), e) a f)“." }
+      ]
+    },
+    {
+      "id": "15-9",
+      "mesiacDen": "09-15",
+      "nazov": "Sedembolestná Panna Mária",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. e) zák. 241/1993 Z. z.",
+      "obdobia": [
+        { "od": "2016-01-01", "do": "2025-12-31", "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. e) (znenia od 1. 1. 2016)." },
+        { "od": "2026-01-01", "do": "2026-12-31", "denPracovnehoPokoja": false, "zaklad": "§ 4b (vložený 261/2025 Z. z., účinný od 1. 11. 2025): V roku 2026 nie sú sviatky uvedené v § 2 ods. 2 písm. e) a j) dňami pracovného pokoja." },
+        { "od": "2027-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. e) „ak § 4b neustanovuje inak“ – § 4b sa týka len roku 2026 (znenie účinné od 29. 10. 2026)." }
+      ]
+    },
+    {
+      "id": "28-10",
+      "mesiacDen": "10-28",
+      "nazov": "Deň vzniku samostatného česko-slovenského štátu",
+      "statnySviatok": true,
+      "ustanovenie": "§ 1 písm. e) zák. 241/1993 Z. z.",
+      "obdobia": [
+        { "od": "2021-01-01", "do": null, "denPracovnehoPokoja": false, "zaklad": "§ 1 písm. e) a § 2 ods. 3 (znenia od 1. 1. 2021): štátny sviatok, ktorý nie je dňom pracovného pokoja. Pred 1. 1. 2021 nebol štátnym sviatkom." }
+      ]
+    },
+    {
+      "id": "30-10-2018",
+      "mesiacDen": "10-30",
+      "nazov": "Výročie Deklarácie slovenského národa (jednorazovo v roku 2018)",
+      "statnySviatok": true,
+      "ustanovenie": "§ 4a a § 2 ods. 1 zák. 241/1993 Z. z. v znení 281/2018 Z. z.",
+      "obdobia": [{ "od": "2018-10-30", "do": "2018-10-30", "denPracovnehoPokoja": true, "zaklad": "§ 4a (účinný od 11. 10. 2018): V roku 2018 je 30. október – výročie Deklarácie slovenského národa štátnym sviatkom; § 2 ods. 1: štátne sviatky sú dni pracovného pokoja." }]
+    },
+    {
+      "id": "1-11",
+      "mesiacDen": "11-01",
+      "nazov": "Sviatok Všetkých svätých",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. f) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. f) (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "17-11",
+      "mesiacDen": "11-17",
+      "nazov": "Deň boja za slobodu a demokraciu",
+      "statnySviatok": true,
+      "ustanovenie": "§ 1 písm. f) zák. 241/1993 Z. z.",
+      "obdobia": [
+        { "od": "2016-01-01", "do": "2025-10-31", "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 1 (znenia 1. 1. 2016 – 31. 10. 2025)." },
+        { "od": "2025-11-01", "do": null, "denPracovnehoPokoja": false, "zaklad": "§ 2 ods. 3 v znení 261/2025 Z. z. (účinné od 1. 11. 2025): Štátny sviatok podľa § 1 písm. d), e) a f) nie je dňom pracovného pokoja." }
+      ]
+    },
+    {
+      "id": "24-12",
+      "mesiacDen": "12-24",
+      "nazov": "Štedrý deň",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. g) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. g) (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "25-12",
+      "mesiacDen": "12-25",
+      "nazov": "Prvý sviatok vianočný",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. h) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. h) (všetky znenia od 1. 1. 2016)." }]
+    },
+    {
+      "id": "26-12",
+      "mesiacDen": "12-26",
+      "nazov": "Druhý sviatok vianočný",
+      "statnySviatok": false,
+      "ustanovenie": "§ 2 ods. 2 písm. i) zák. 241/1993 Z. z.",
+      "obdobia": [{ "od": "2016-01-01", "do": null, "denPracovnehoPokoja": true, "zaklad": "§ 2 ods. 2 písm. i) (všetky znenia od 1. 1. 2016)." }]
+    }
+  ]
+}
