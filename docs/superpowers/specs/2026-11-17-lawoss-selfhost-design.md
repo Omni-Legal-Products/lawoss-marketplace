@@ -1,9 +1,13 @@
 # LAWOSS self-hosted MCP servers: design
 
 Status: **approved by the maintainer on 2026-11-17** (all ten decisions in
-section 9). The license of the public repository `lawoss-selfhost` is still to
-be chosen before that repository is created. Nothing in this document is
-deployed, published or registered yet.
+section 9, including the direction of decision 4). The approval covers the
+content of this design and its plan. Each of these outward steps still needs
+its own maintainer consent when it comes up: creating the public repository
+`lawoss-selfhost`, choosing its license (no license is proposed yet),
+publishing container images, exporting from the private upstream, merging
+into `main`, and any deployment. Nothing in this document is deployed,
+published or registered yet.
 
 ## 1. Intent
 
