@@ -70,8 +70,8 @@ Verified on 17 November 2026 by reading the repositories.
 - The CZ Agents runtime has HTTP listeners, but they authenticate with one
   static operator bearer token. That is not personal identity and is not
   reused here.
-- The reference authorization server (private) is `oidc-provider` with
-  SQLite: personal accounts, one-time activation links stored only as hashes,
+- The public edition inherits, unchanged, the behavior of the existing
+  authorization server, which is `oidc-provider` with SQLite: personal accounts, one-time activation links stored only as hashes,
   per-resource grants with a tenant value, authorization code with mandatory
   PKCE S256, dynamic registration restricted to loopback HTTP callbacks,
   opaque 60-minute access tokens checked by introspection on every request,
@@ -87,16 +87,26 @@ Verified on 17 November 2026 by reading the repositories.
 - The LAWOSS app connects remote MCP with OAuth through a loopback callback
   (`127.0.0.1`, fixed port), which the authority's dynamic registration rule
   already accepts. Remote workspaces can paste the callback manually.
-- The maintainer's private gateway proves the pattern of spawning these public
-  stdio runtimes behind one OAuth-protected HTTP service. It exposes four
-  meta-tools (search services, search tools, describe, call) rather than each
-  service's tools, and its backends share one container user.
-- Several tools write files on the machine that runs the runtime or keep
-  state: Judikáty `manage_watchlist`, `export_decision_markdown`,
-  `export_decision_markdown_by_reference`, `download_decision_document`;
-  Slov-Lex `save_law_markdown`, `save_explanatory_report_markdown`,
-  `read_saved_markdown`; CRZ `crz_download_attachment`; RÚZ
-  `ruz_download_attachment`; EUR-Lex `eurlex_document_export`.
+- Spawning these public stdio runtimes behind one OAuth-protected HTTP
+  service has been done before with a four-meta-tool interface (search
+  services, search tools, describe, call) instead of each service's tools.
+- Tool inventory of the 14 version 1 services (109 tools, listed through each
+  plugin's launcher, schemas checked for path-like parameters):
+  - Tools whose purpose is writing, downloading or reading back server files,
+    or keeping state: Judikáty `manage_watchlist`, `export_decision_markdown`,
+    `export_decision_markdown_by_reference`, `download_decision_document`;
+    Slov-Lex `save_law_markdown`, `save_explanatory_report_markdown`,
+    `read_saved_markdown`; CRZ `crz_download_attachment`; RÚZ
+    `ruz_download_attachment`; EUR-Lex `eurlex_document_export`.
+  - Read tools with an optional save argument: Judikáty
+    `get_decision_full_text` and `get_decision_full_text_by_reference`
+    (`savePath`, `saveToDefaultPath`); CRZ `crz_contract_to_markdown`
+    (`save_to_dir`).
+  - DISQ, Finančná správa, Kalkulačky, ORSR, OV, RPO, RPVS, RU and ÚVO have no
+    file parameters.
+- Eight of the 14 runtimes (CRZ, DISQ, EUR-Lex, Finančná správa, OV, RPVS, RU,
+  ÚVO) are not bundled: the local launcher installs their npm dependencies on
+  first run into a cache under the user's home directory.
 - This catalog's policy says today: "No hosted transport is permitted in
   LAWOSS" (`docs/local-runtime.md`) and "No public hosting service is
   included" (`README.md`).
@@ -122,7 +132,7 @@ Verified on 17 November 2026 by reading the repositories.
 | B. One hub endpoint with four meta-tools | One URL and the smallest context, proven in the private gateway. But tool names differ from the local plugins, so every skill needs a remote variant, and one grant covers all services. Possible later addition, not the default. |
 | C. One endpoint merging all native tools | One URL, but about 35,000 schema tokens and no per-service grants; name collisions are not guaranteed absent. Rejected. |
 | D. Separate HTTP container per MCP (as the private deployment) | Proven, but requires releasing HTTP mode with the OAuth adapter from every organization repository (a contract change in each), and about 15 containers on a small server. Rejected for now. |
-| E. Authorization and MCP on one origin | One DNS record and certificate, but the authorization server's well-known paths and the resource metadata paths collide, and the issuer must stay a bare origin. Rejected; the wildcard record gives the same simplicity. |
+| E. Authorization and MCP on one origin | One DNS record and certificate, but per-service resources under approach A need their own hosts anyway (the resource path must be `/mcp`), so a shared origin would only remove the `auth` host. Rejected; the wildcard record gives the same simplicity. |
 
 *Decision 2:* approach A. Hostnames under one base the user chooses, for
 example base `mcp.example.com`:
@@ -225,7 +235,8 @@ Compatibility choices (no contract change for the private deployment):
 | Internal client metadata property name | Unchanged (internal, invisible, renaming would orphan registered clients) |
 | Backup envelope format labels | Unchanged in both editions, so the backup tooling stays one code path |
 | Adapter environment variable names | Unchanged; the hub builds the adapter configuration directly, not from those variables |
-| Healthcheck host header | Moved out of code into the compose file, parameterized by the deployment's own hostname |
+| Private compose file and its healthcheck host | Untouched and excluded from the export; only the public compose file defines its own healthcheck with `${AUTH_PUBLIC_HOST}` |
+| Static assets of the private deployment | Byte-identical after moving into the default pack; enforced by the golden test |
 
 Default LAWOSS brand pack: the LAWOSS mark from the LAWOSS app repository,
 colors and typography from the LAWOSS design language (IBM Plex Sans and
@@ -239,7 +250,10 @@ One container, Node, no native build tools at runtime.
 
 - **Runtimes.** The image contains the plugin runtimes from this catalog at one
   recorded commit, verified against `runtime-packages.json` and each runtime's
-  SHA-256 manifest at build time and again at start.
+  SHA-256 manifest at build time and again at start. The image build runs each
+  launcher once to install the non-bundled runtimes' dependencies into one
+  shared cache (`LAWOSS_CACHE_DIR`), which is read-only at runtime; starting a
+  runtime needs neither npm nor network for dependencies.
 - **Routing.** The `Host` header selects the service. Unknown hosts get 404.
   Each enabled service is one OAuth resource
   (`https://<service>.<base>/mcp`) with its own introspection secret, using the
@@ -268,11 +282,15 @@ One container, Node, no native build tools at runtime.
   in total and 8 per service, which keeps runtime memory under about 5 GB at
   roughly 120 MB per process. The skill states this in step 1.
 - **Tool policy.** A service manifest in the hub lists every tool of every
-  service as `allow` or `deny-remote`. Tools that write files on the server or
-  read them back are `deny-remote` in version 1 (the list in section 3, plus
-  `manage_watchlist` until its per-principal storage is accepted). They are
-  absent from `tools/list`; a direct call returns an explicit error saying the
-  tool is available in the local plugin only. A new tool in a runtime update is
+  service as `allow`, `allow-without` (a list of arguments) or `deny-remote`.
+  Version 1, from the inventory in section 3: the ten file and state tools are
+  `deny-remote` (`manage_watchlist` included until its per-principal storage is
+  accepted); the three read tools with save arguments are `allow-without`
+  those arguments. Denied tools are absent from `tools/list` and a direct call
+  returns an explicit error saying the tool is available in the local plugin
+  only; `allow-without` tools are listed with those properties removed from
+  the input schema, and a call that sends them is refused with the same kind
+  of error. A new tool or a new path-like argument in a runtime update is
   denied until the manifest is reviewed.
 - **Environment.** Each runtime receives only its own allowlisted variables
   (for example `FS_API_KEY` for Finančná správa). Missing provider keys make the
@@ -292,6 +310,9 @@ One container, Node, no native build tools at runtime.
 Docker Compose with three services on a fresh Linux host:
 
 - `proxy`: Caddy, ports 80 and 443 only, automatic certificates per hostname.
+  On the internal network it carries the `auth.<base>` hostname as an alias,
+  so the hub reaches the issuer's public origin for introspection without
+  leaving the host (servers without hairpin NAT would otherwise fail).
 - `auth`: the authorization server, internal port only, read-only root
   filesystem, dropped capabilities, persistent `auth-data` volume.
 - `hub`: the MCP hub, internal port only, same hardening, persistent
@@ -316,7 +337,7 @@ HTTP API is added.
 |---|---|
 | `init --base BASE --services LIST --brand PACK` | Generates cookie keys, signing keys and one introspection secret per service; writes `.env` (0600); prints only the list of hostnames to create in DNS |
 | `brand check PACK` / `brand preview` | Validates a pack; preview on loopback for an SSH tunnel |
-| `invite USER SERVICES OUTFILE` | Writes a one-time activation link (1 hour, single use) into a new 0600 file; prints only the file path |
+| `invite USER SERVICES` | Creates the account with a one-time activation link (1 hour, single use) for the first service and grants the remaining ones; the tenant value is the account name, so every person is their own tenant. The one-off container writes the link into `/opt/lawoss/handoff` (a 0700 host directory bind-mounted only for this command); the host command then sets the file to root-owned 0600 and prints only its path |
 | `grant`, `revoke`, `disable`, `list` | Account and grant administration |
 | `doctor` | Checks DNS, certificates, issuer metadata, each resource's metadata and 401 challenge, and an in-container stdio `tools/list` per service compared with the manifest; prints pass or fail per check, never secrets |
 | `backup` / `restore --dry-run` | Encrypted backup of both volumes and the configuration; the backup key goes to a 0600 file the human must copy elsewhere |
@@ -452,6 +473,13 @@ other catalog changes.
    endpoint; a hosted LAWOSS offer would be a separate decision.
 9. Usage skills for self-hosted users through one generated skill-only plugin
    `lawoss-remote-skills` (section 5.8).
+10. The public edition keeps three internal identifiers inherited from the
+    private upstream unchanged (client metadata property, backup envelope
+    labels, adapter variable names). They carry the upstream's name; renaming
+    them in the public edition only would split the code.
+
+The memory figure (about 120 MB per process) and the 40-process cap are
+estimates; acceptance measures them on the target server size.
 
 Calls made by the author after the builder check, for review while reading:
 adapter and hub sources of truth (5.1), version 1 service list and target

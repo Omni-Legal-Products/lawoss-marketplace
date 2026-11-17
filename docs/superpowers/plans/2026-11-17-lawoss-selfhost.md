@@ -15,7 +15,7 @@
 ## Global Constraints
 
 - Nothing is deployed, no DNS is changed, no repository is created or made public, and no image is published without explicit maintainer approval of that exact action.
-- The private deployment's six rendered pages stay byte-identical (golden test).
+- The private deployment's six rendered pages and its served assets stay byte-identical (golden test); its compose file is not modified.
 - `AUTH_CONFIG_JSON` format unchanged; `brand` is optional and additive.
 - Internal client metadata property name, backup envelope labels, adapter environment variable names: unchanged.
 - The resource-server adapter is copied byte-for-byte; its SHA-256 equals the upstream copy.
@@ -26,6 +26,8 @@
 - The CLI runs on the host with `sudo`; no container mounts the Docker socket; account and backup commands run as one-off containers.
 - Trust root: `lawoss-selfhost` commit and image digests recorded in a reviewed commit of this catalog.
 - Remote-denied tools in version 1: `manage_watchlist`, `export_decision_markdown`, `export_decision_markdown_by_reference`, `download_decision_document`, `save_law_markdown`, `save_explanatory_report_markdown`, `read_saved_markdown`, `crz_download_attachment`, `ruz_download_attachment`, `eurlex_document_export`.
+- `allow-without` in version 1: `get_decision_full_text` and `get_decision_full_text_by_reference` without `savePath`, `saveToDefaultPath`; `crz_contract_to_markdown` without `save_to_dir`.
+- Runtime dependencies are installed at image build into one shared read-only `LAWOSS_CACHE_DIR`; starting a runtime needs no npm and no network for dependencies.
 - No secret, key, activation link or password is ever printed by the CLI; outputs are file paths with mode 0600.
 - Example hosts in public files use `example.com`; only URL hosts allowed by `scripts/validate.py` appear in this catalog.
 - English for code comments and repository docs; the agent skill text is Slovak with catalog localizations in sk, cs, en, de.
@@ -57,7 +59,7 @@ Repository: the maintainer's private authorization-server repository. Its own AG
 
 - [ ] **Step 1:** Write `test/golden.test.mjs` with `goldenOptions` using synthetic values (service `Ukážková služba`, client `Ukážková aplikácia`, redirect `http://127.0.0.1:19876/mcp/oauth/callback`, csrf `x`, username `kolega`, error `Nesprávne údaje.`). Freeze the year by passing a fixed `Date` via `t.mock.timers` set to 2026-11-17.
 - [ ] **Step 2:** Generate the six fixtures once from the current `main` with a one-off script and commit them unchanged.
-- [ ] **Step 3:** Test `golden pages are byte-identical`: `assert.equal(renderPage(goldenOptions[state]), readFileSync(fixture))` for each state.
+- [ ] **Step 3:** Test `golden pages are byte-identical`: `assert.equal(renderPage(goldenOptions[state]), readFileSync(fixture))` for each state. Test `served assets are byte-identical`: a fixture `test/golden/assets.sha256` with the SHA-256 of every file served under `/assets/` today; the test fetches each through the app and compares.
 - [ ] **Step 4:** Run `npm test`. Expected: PASS on unchanged code.
 - [ ] **Step 5:** Commit `test: freeze the six rendered pages as golden fixtures`.
 
@@ -86,7 +88,7 @@ Repository: the maintainer's private authorization-server repository. Its own AG
 - [ ] **Step 2:** Run `npm test`. Expected: the new tests FAIL, golden PASS.
 - [ ] **Step 3:** Implement `loadBrand` and thread `Brand` through `renderPage`; the default pack reproduces today's strings exactly. Built-in text catalogs for `cs`, `en`, `de` live in `src/brand.ts` as data.
 - [ ] **Step 4:** Run `npm test`. Expected: all PASS, golden byte-identical.
-- [ ] **Step 5:** Parameterize the compose healthcheck host header as `${AUTH_PUBLIC_HOST}` with the current value as the deployment's env default outside Git; `docker build -t auth:test .` succeeds.
+- [ ] **Step 5:** `docker build -t auth:test .` succeeds. `compose.yaml` stays untouched.
 - [ ] **Step 6:** Commit `feat(auth): brand packs with the current brand as the default, pages unchanged`.
 
 ### Task 1.3: Public export
@@ -97,7 +99,7 @@ Repository: the maintainer's private authorization-server repository. Its own AG
 **Interfaces:**
 - Produces: `python3 scripts/export_public.py --commit SHA --brand-pack DIR --output DIR` writing a tree with `SOURCE_COMMIT` and `EXPORT_MANIFEST.sha256`; exit 1 with the offending path on a scan hit.
 
-- [ ] **Step 1: Failing tests:** `excludes the default private pack`, `excludes listed docs and deploy files`, `fails on a private hostname` (fixture file with a hostname from a deny list read from an untracked local file, so the deny list itself is never committed), `fails on a user path`, `fails on a PEM header`, `writes SOURCE_COMMIT equal to --commit`, `replaces brand/default with the given pack`.
+- [ ] **Step 1: Failing tests:** `excludes compose.yaml`, `excludes the default private pack`, `excludes listed docs and deploy files`, `fails on a private hostname` (fixture file with a hostname from a deny list read from an untracked local file, so the deny list itself is never committed), `fails on a user path`, `fails on a PEM header`, `writes SOURCE_COMMIT equal to --commit`, `replaces brand/default with the given pack`.
 - [ ] **Step 2:** Run `python3 -m unittest scripts/test_export_public.py`. Expected: FAIL.
 - [ ] **Step 3:** Implement with `git archive SHA` into a temp dir, apply `export-exclude.txt`, copy the pack to `brand/default`, run the scan (same patterns as this catalog's `scripts/validate.py` plus the local deny list).
 - [ ] **Step 4:** Tests PASS; run against `HEAD` with a placeholder pack. Expected: exit 0.
@@ -145,7 +147,7 @@ Gate: maintainer creates the organization repository and picks the license.
   - `loadManifest(path: string): Manifest`; `type ServiceId = string` (lowercase DNS label).
   - `fetch-runtimes.mjs --catalog-commit SHA --out DIR` copies `plugins/<p>/{runtime,runtime-config.json,scripts/run.mjs}` from this catalog at that commit and verifies every runtime's manifest SHA-256.
 
-- [ ] **Step 1: Failing tests:** `rejects a service id that is not a DNS label`, `rejects duplicate tool policy keys`, `every Global Constraints denied tool is deny-remote`, `service ids equal the Global Constraints version 1 list`, `fetch fails when a runtime file digest differs`.
+- [ ] **Step 1: Failing tests:** `rejects a service id that is not a DNS label`, `rejects duplicate tool policy keys`, `every Global Constraints denied tool is deny-remote`, `allow-without entries equal the Global Constraints list`, `every tool reported by each runtime has a policy entry`, `service ids equal the Global Constraints version 1 list`, `fetch fails when a runtime file digest differs`.
 - [ ] **Step 2–4:** Implement, run `npm test` in `hub/`, expect PASS.
 - [ ] **Step 5:** Commit `feat(hub): reviewed service manifest and verified runtime bundle`.
 
@@ -165,6 +167,8 @@ Gate: maintainer creates the organization repository and picks the license.
   - `token for orsr is refused on crz host` (audience mismatch).
   - `tools/list hides deny-remote tools and tools absent from the manifest`.
   - `calling a deny-remote tool returns isError with text "Tento nástroj je dostupný len v lokálnom plugine."`.
+  - `allow-without tool is listed without savePath and saveToDefaultPath in its input schema`.
+  - `allow-without tool called with savePath returns isError with text "Ukladanie súborov na server nie je dostupné; výsledok dostanete v odpovedi."` and the runtime is not called.
 - [ ] **Step 2–4:** Implement; `npm test`; PASS.
 - [ ] **Step 5:** Commit `feat(hub): one OAuth resource per service host with reviewed tool policy`.
 
@@ -184,7 +188,8 @@ Gate: maintainer creates the organization repository and picks the license.
   - `idle process stops after idleMs` (fake timers, 10 minutes default).
   - `maxTotal evicts the least recently used idle process`.
   - `31st call within a minute is refused`; `third concurrent call for one principal is refused`; `fifth concurrent call across principals for one service waits or is refused`.
-  - `env contains only allowlisted keys plus PATH, HOME, TMPDIR`.
+  - `env contains only allowlisted keys plus PATH, HOME, TMPDIR, LAWOSS_CACHE_DIR`.
+  - `runtime starts with PATH lacking npm and network disabled` (warm shared cache from the image build; run for one non-bundled runtime, CRZ).
   - `disabled principal: introspection inactive → stopPrincipal called and request 401` (Review Focus 2).
 - [ ] **Step 2–4:** Implement (stdio client from the SDK, `cwd`, `HOME`, `TMPDIR` and the manifest's `stateEnv` set to `dataDir/<sha256(principal)>/<id>/`); PASS.
 - [ ] **Step 5:** Commit `feat(hub): per-principal runtimes with call and concurrency limits`.
@@ -194,7 +199,7 @@ Gate: maintainer creates the organization repository and picks the license.
 **Files:**
 - Create: `deploy/compose.yaml`, `deploy/Caddyfile.template`, `hub/Dockerfile`, `deploy/test/compose.test.py`
 
-- [ ] **Step 1: Failing tests** (`deploy/test/compose.test.py`, parses YAML): only `proxy` publishes ports and only 80 and 443; `auth` and `hub` have `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`, memory and pids limits; images are referenced as `name@sha256:`; no literal secret values; healthcheck host is `${AUTH_PUBLIC_HOST}`; no service mounts `/var/run/docker.sock`.
+- [ ] **Step 1: Failing tests** (`deploy/test/compose.test.py`, parses YAML): only `proxy` publishes ports and only 80 and 443; `auth` and `hub` have `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`, memory and pids limits; images are referenced as `name@sha256:`; no literal secret values; healthcheck host is `${AUTH_PUBLIC_HOST}`; no service mounts `/var/run/docker.sock`; `proxy` has the network alias `${AUTH_PUBLIC_HOST}` so the hub introspects without hairpin NAT.
 - [ ] **Step 2–4:** Implement; `python3 -m unittest deploy/test/compose.test.py`; PASS; `docker compose -f deploy/compose.yaml config -q` with `.env.example` exits 0.
 - [ ] **Step 5:** Commit `feat(deploy): hardened compose with automatic per-host certificates`.
 
@@ -211,7 +216,8 @@ Gate: maintainer creates the organization repository and picks the license.
   - `account commands run as docker compose run --rm auth node dist/admin.js with only auth-data mounted` (assert the composed argument vector with a fake runner).
   - `init writes .env with mode 0600 and prints only hostnames` (stdout contains `auth.<base>` and `<id>.<base>` lines and nothing matching `/[A-Za-z0-9_-]{32,}/`).
   - `init refuses to overwrite an existing .env`.
-  - `invite writes a new 0600 file and prints only its path`; `invite refuses an existing file`.
+  - `invite USER orsr,crz runs invite for orsr with tenant USER, then grant-resource for crz with tenant USER` (fake runner).
+  - `invite leaves a root-owned 0600 file in /opt/lawoss/handoff and prints only its path`; `invite refuses when the account already has a pending file`.
   - `doctor never prints values from .env` (run against fixtures with known secrets; assert none appears in stdout or stderr) (Review Focus 5).
   - `doctor reports manifest drift when a runtime lists a tool absent from services.json` (Review Focus 3).
   - `update refuses a release whose digest is not in the signed release record`; `update rolls back when doctor fails after switch`.
