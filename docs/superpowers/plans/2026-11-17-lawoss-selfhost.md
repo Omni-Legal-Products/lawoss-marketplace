@@ -21,7 +21,10 @@
 - The resource-server adapter is copied byte-for-byte; its SHA-256 equals the upstream copy.
 - Resource URLs are `https://<service>.<base>/mcp`; the issuer is the bare origin of `auth.<base>`.
 - Access token 60 minutes, refresh at most 90 days, activation link 1 hour and single use, password at least 15 characters: inherited, not re-implemented.
-- Default limits: 30 calls per minute and 2 concurrent per (principal, service); 4 concurrent outbound per service; idle process stop after 10 minutes.
+- Default limits: 30 calls per minute and 2 concurrent per (principal, service); 4 concurrent outbound per service; idle process stop after 10 minutes; at most 40 runtime processes in total and 8 per service (target 1–20 users, 4 vCPU, 8 GB RAM).
+- Version 1 services (one hostname each): `crz`, `disq`, `eurlex`, `fs`, `judikaty`, `kalkulacky`, `orsr`, `ov`, `rpo`, `rpvs`, `ru`, `ruz`, `slovlex`, `uvo`. CZ Agents and skill-only plugins are out of scope.
+- The CLI runs on the host with `sudo`; no container mounts the Docker socket; account and backup commands run as one-off containers.
+- Trust root: `lawoss-selfhost` commit and image digests recorded in a reviewed commit of this catalog.
 - Remote-denied tools in version 1: `manage_watchlist`, `export_decision_markdown`, `export_decision_markdown_by_reference`, `download_decision_document`, `save_law_markdown`, `save_explanatory_report_markdown`, `read_saved_markdown`, `crz_download_attachment`, `ruz_download_attachment`, `eurlex_document_export`.
 - No secret, key, activation link or password is ever printed by the CLI; outputs are file paths with mode 0600.
 - Example hosts in public files use `example.com`; only URL hosts allowed by `scripts/validate.py` appear in this catalog.
@@ -142,7 +145,7 @@ Gate: maintainer creates the organization repository and picks the license.
   - `loadManifest(path: string): Manifest`; `type ServiceId = string` (lowercase DNS label).
   - `fetch-runtimes.mjs --catalog-commit SHA --out DIR` copies `plugins/<p>/{runtime,runtime-config.json,scripts/run.mjs}` from this catalog at that commit and verifies every runtime's manifest SHA-256.
 
-- [ ] **Step 1: Failing tests:** `rejects a service id that is not a DNS label`, `rejects duplicate tool policy keys`, `every Global Constraints denied tool is deny-remote`, `fetch fails when a runtime file digest differs`.
+- [ ] **Step 1: Failing tests:** `rejects a service id that is not a DNS label`, `rejects duplicate tool policy keys`, `every Global Constraints denied tool is deny-remote`, `service ids equal the Global Constraints version 1 list`, `fetch fails when a runtime file digest differs`.
 - [ ] **Step 2–4:** Implement, run `npm test` in `hub/`, expect PASS.
 - [ ] **Step 5:** Commit `feat(hub): reviewed service manifest and verified runtime bundle`.
 
@@ -191,20 +194,21 @@ Gate: maintainer creates the organization repository and picks the license.
 **Files:**
 - Create: `deploy/compose.yaml`, `deploy/Caddyfile.template`, `hub/Dockerfile`, `deploy/test/compose.test.py`
 
-- [ ] **Step 1: Failing tests** (`deploy/test/compose.test.py`, parses YAML): only `proxy` publishes ports and only 80 and 443; `auth` and `hub` have `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`, memory and pids limits; images are referenced as `name@sha256:`; no literal secret values; healthcheck host is `${AUTH_PUBLIC_HOST}`.
+- [ ] **Step 1: Failing tests** (`deploy/test/compose.test.py`, parses YAML): only `proxy` publishes ports and only 80 and 443; `auth` and `hub` have `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`, memory and pids limits; images are referenced as `name@sha256:`; no literal secret values; healthcheck host is `${AUTH_PUBLIC_HOST}`; no service mounts `/var/run/docker.sock`.
 - [ ] **Step 2–4:** Implement; `python3 -m unittest deploy/test/compose.test.py`; PASS; `docker compose -f deploy/compose.yaml config -q` with `.env.example` exits 0.
 - [ ] **Step 5:** Commit `feat(deploy): hardened compose with automatic per-host certificates`.
 
 ### Task 4.5: Server CLI
 
 **Files:**
-- Create: `cli/lawoss-selfhost.mjs`, `cli/commands/{init,brand,invite,admin,doctor,backup,update}.mjs`, `cli/test/*.test.mjs`
+- Create: `cli/lawoss-selfhost.mjs` (installed to `/opt/lawoss/bin`, runs on the host with `sudo`), `cli/commands/{init,brand,invite,admin,doctor,backup,update}.mjs`, `cli/test/*.test.mjs`
 
 **Interfaces:**
 - Consumes: the authorization server's existing `admin.js` commands and `scripts/backup.mjs`; `Manifest`.
 - Produces: the commands in spec section 5.5 with exit code 0 on success, 1 on failure, 2 on usage errors.
 
 - [ ] **Step 1: Failing tests:**
+  - `account commands run as docker compose run --rm auth node dist/admin.js with only auth-data mounted` (assert the composed argument vector with a fake runner).
   - `init writes .env with mode 0600 and prints only hostnames` (stdout contains `auth.<base>` and `<id>.<base>` lines and nothing matching `/[A-Za-z0-9_-]{32,}/`).
   - `init refuses to overwrite an existing .env`.
   - `invite writes a new 0600 file and prints only its path`; `invite refuses an existing file`.
@@ -231,11 +235,24 @@ Repository: `lawoss-marketplace`. Gate: maintainer approves the policy sentences
 
 **Files:**
 - Create: `plugins/lawoss-selfhost/{README.md,.claude-plugin/plugin.json,.codex-plugin/plugin.json}`, `plugins/lawoss-selfhost/skills/lawoss-selfhost/SKILL.md`, `plugins/lawoss-selfhost/skills/lawoss-selfhost/references/{gates.md,dns-and-tls.md,brand.md,operations.md}`
-- Modify: `.agents/plugins/marketplace.json`, `.claude-plugin/marketplace.json` (via `scripts/sync_claude.py`), `lawoss-catalog.json` (category General, sk/cs/en/de titles), `releases.json` (`inRepoSkills` entry with `distribution: "skill-only"`), `tests/test_marketplace.py`
+- Modify: `.agents/plugins/marketplace.json`, `.claude-plugin/marketplace.json` (via `scripts/sync_claude.py`), `lawoss-catalog.json` (category General, sk/cs/en/de titles), `releases.json` (regular `releases` entry: repository `Omni-Legal-Products/lawoss-selfhost`, recorded commit, `distribution: "selfhost-skill"`), `scripts/validate.py` (accept that distribution: skill-only wrapper with a recorded source), `tests/test_marketplace.py`
 
 - [ ] **Step 1: Failing tests:** `test_selfhost_is_skill_only` (no `.mcp.json`, no `runtime`, no `scripts`), `test_selfhost_skill_lists_all_fifteen_gates` (SKILL.md contains the 15 step headings of spec 5.6), `test_selfhost_skill_forbids_secret_commands` (contains a "Nikdy nespúšťaj" list including `cat .env`, `docker compose config`, `env`, `printenv`).
 - [ ] **Step 2–4:** Write the skill from spec 5.6 (Slovak; each step has "Agent smie sám" and "Potvrdí človek"); pin the `lawoss-selfhost` release by commit and digest; run all checks; PASS.
 - [ ] **Step 5:** Maintainer review of the skill text (required by the `inRepoSkills` exception). Commit `feat: lawoss-selfhost skill for agent-guided self-hosting`.
+
+### Task 5.3: `lawoss-remote-skills` generated plugin
+
+**Files:**
+- Create: `scripts/build_remote_skills.py`, `tests/test_remote_skills.py`, `plugins/lawoss-remote-skills/{README.md,.claude-plugin/plugin.json,.codex-plugin/plugin.json}`, `plugins/lawoss-remote-skills/skills/<skill>/SKILL.md` (generated, one per version 1 service)
+- Modify: both catalogs, `lawoss-catalog.json`, `releases.json` (`inRepoSkills`)
+
+**Interfaces:**
+- Produces: `python3 scripts/build_remote_skills.py [--check]` copies each local usage skill, removes the local CLI section, appends a Slovak "Vzdialený režim" section listing that service's remote-denied tools and the local alternative; `--check` exits 1 if the committed output differs.
+
+- [ ] **Step 1: Failing tests:** `remote skills exist for every version 1 service`, `remote skill text contains no scripts/run.mjs`, `remote skill names every denied tool of its service`, `generated output is up to date` (`--check` exits 0), `local skills are unchanged` (digest of `plugins/*/skills` outside `lawoss-remote-skills` equals `main`).
+- [ ] **Step 2–4:** Implement and generate; run all catalog checks; PASS.
+- [ ] **Step 5:** Maintainer review of the generated text. Commit `feat: remote editions of usage skills for self-hosted servers`.
 
 ## Phase 6 — Acceptance on a throwaway VM
 
@@ -260,7 +277,8 @@ Repository: `lawoss-marketplace`. Gate: maintainer approves the policy sentences
 | 5 Phase 3 | lawoss-selfhost (new, public) | new public artifact (maintainer gate) |
 | 6–10 Tasks 4.1–4.5 | lawoss-selfhost | remote tool subset (new contract, remote only) |
 | 11 Task 5.1 | lawoss-marketplace | catalog policy (maintainer gate) |
-| 12 Task 5.2 | lawoss-marketplace | additive catalog entry |
+| 12 Task 5.2 | lawoss-marketplace | additive catalog entry, validator accepts `selfhost-skill` |
+| 12b Task 5.3 | lawoss-marketplace | additive catalog entry |
 | 13 Phase 6 | lawoss-marketplace | none |
 
 PRs 2–4 and 6–9 can proceed in parallel once their gates pass; PR 5 must precede 6–10; PR 12 needs a released `lawoss-selfhost` commit to pin.

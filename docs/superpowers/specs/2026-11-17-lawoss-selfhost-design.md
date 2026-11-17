@@ -35,7 +35,9 @@ Goals
   configurable brand: logo, colors, fonts, texts, language and service names.
   LAWOSS is the default brand.
 - The self-hosted endpoints expose the same tool names and input schemas as
-  the local plugins, so the existing usage skills work unchanged.
+  the local plugins, minus the reviewed remote-denied tools, so the usage
+  skills carry over with a remote-mode section instead of a rewrite
+  (section 5.8).
 - Updates are pinned, reviewable and reversible.
 
 Non-goals
@@ -137,7 +139,7 @@ example base `mcp.example.com`:
 
 | Approach | Trade-off |
 |---|---|
-| **A. A skill-only plugin in this catalog driving a small deterministic CLI shipped in the self-host repository** (proposed) | The skill holds judgment and human gates; the CLI does the parts that must be exact (key generation, file permissions, checks), so agents do not improvise security steps. Fits the `inRepoSkills` exception. |
+| **A. A skill-only plugin in this catalog driving a small deterministic CLI shipped in the self-host repository** (proposed) | The skill holds judgment and human gates; the CLI does the parts that must be exact (key generation, file permissions, checks), so agents do not improvise security steps. Because it depends on an organization repository, it is a regular `releases` entry with a recorded `lawoss-selfhost` commit and the full release gate, not an `inRepoSkills` exception. |
 | B. A prose runbook only | Simple, but every agent improvises key generation and verification. Rejected. |
 | C. A fully automatic installer script | Fast, but hides the decisions a human must make (DNS, terms of the certificate authority, who gets access). Rejected. |
 
@@ -163,6 +165,13 @@ ship in the catalog).
 
 Creating the repository, choosing its license and publishing container images
 are maintainer decisions (section 9).
+
+Sources of truth (builder-check answer): `auth/` and the resource-server
+adapter both come from the private authority repository through the same
+export (the adapter already lives there as a standalone file); `hub/`,
+`cli/`, `deploy/` and `brand/lawoss/` have no private counterpart and are
+developed directly in the public repository. Implementers of Phases 1 to 3
+need read access to the private authority repository; Phases 4 to 6 do not.
 
 ### 5.2 Authorization server, public edition
 
@@ -234,7 +243,17 @@ One container, Node, no native build tools at runtime.
 - **Routing.** The `Host` header selects the service. Unknown hosts get 404.
   Each enabled service is one OAuth resource
   (`https://<service>.<base>/mcp`) with its own introspection secret, using the
-  unchanged resource-server adapter (exact copy, SHA-256 compared).
+  unchanged resource-server adapter (exact copy, SHA-256 compared). The adapter
+  keeps no per-resource module state, so one hub process creates one adapter
+  instance per enabled service.
+- **Services in version 1** (*builder-check call*): one hostname per runtime
+  plugin: CRZ, DISQ, EUR-Lex, Finančná správa, Judikáty, Kalkulačky, ORSR,
+  Obchodný vestník, RPO, RPVS, Register úpadcov, RÚZ, Slov-Lex, ÚVO. CZ Agents
+  is excluded in version 1 (alpha data limitations; its real-estate server has
+  an ingest component that conflicts with the no-background-jobs rule); later
+  it would get one hostname per sub-server. ŽRSR and the other skill-only
+  plugins have no runtime and stay as they are; the skill lists them as
+  "not available on a self-hosted server".
 - **Transport.** Streamable HTTP on `/mcp`; protected-resource metadata on
   both well-known paths; 401 with the `WWW-Authenticate` challenge without a
   valid token.
@@ -244,7 +263,10 @@ One container, Node, no native build tools at runtime.
   processes, processes per service, concurrent calls per process; over the cap,
   the least recently used idle process stops, otherwise the call returns a
   retryable error. Per-principal processes make per-user state (for example a
-  watchlist) safe by construction.
+  watchlist) safe by construction. Target size (*builder-check call*): a firm
+  of 1 to 20 users on a server with 4 vCPU and 8 GB RAM; defaults 40 processes
+  in total and 8 per service, which keeps runtime memory under about 5 GB at
+  roughly 120 MB per process. The skill states this in step 1.
 - **Tool policy.** A service manifest in the hub lists every tool of every
   service as `allow` or `deny-remote`. Tools that write files on the server or
   read them back are `deny-remote` in version 1 (the list in section 3, plus
@@ -280,8 +302,15 @@ generated on the server by the CLI. Images are referenced by digest.
 
 ### 5.5 CLI on the server
 
-`lawoss-selfhost` runs inside the hub container (or as a one-off container) and
-is the only way the skill touches secrets:
+`lawoss-selfhost` is a host-side command installed to `/opt/lawoss/bin` and
+run with `sudo` by the operator's agent. It is the only way the skill touches
+secrets. Privilege model (*builder-check call*): the host command writes
+`/opt/lawoss/.env` and drives Docker Compose; account commands run as one-off
+`docker compose run --rm auth node dist/admin.js …` containers with only the
+`auth-data` volume mounted; backups and snapshots run as one-off containers
+with the volumes mounted read-only. No container ever gets the Docker socket,
+and the long-running `auth` and `hub` containers stay read-only. No admin
+HTTP API is added.
 
 | Command | Effect |
 |---|---|
@@ -305,7 +334,7 @@ standard four localizations in catalog metadata. Steps and gates:
 | 3 | Connect to the server | Read-only inspection (OS, Docker, free ports, disk, memory) | Provide SSH access; approve any package installation (Docker) |
 | 4 | Firewall | Show the planned rules | Approve opening 80 and 443 |
 | 5 | DNS | Print the exact records to create | Create them (DNS changes are the human's) |
-| 6 | Fetch the pinned release | Download, verify digests and signatures, show the release note | — |
+| 6 | Fetch the pinned release | Download, verify the repository commit and image digests against the release record pinned in this catalog, show the release note | — |
 | 7 | Generate secrets | Run `init`; never read or print `.env` | — |
 | 8 | Brand | Build a pack from the user's logo and colors; run `brand check` and the preview | Approve the preview; confirm the right to use the logo |
 | 9 | Certificates | Explain the certificate authority's terms and the contact e-mail field | Accept the terms and supply the e-mail |
@@ -342,18 +371,42 @@ Rules the skill states at every step:
   the server's IP and that the operator is responsible for respecting their
   terms.
 - **Supply chain:** runtimes only from a recorded catalog commit with
-  SHA-256 manifests; images by digest; updates explicit.
+  SHA-256 manifests; images by digest; updates explicit. Trust root
+  (*builder-check call*): the `lawoss-selfhost` commit and image digests
+  recorded in a reviewed commit of this catalog. Images are built by the
+  organization's CI and carry GitHub build provenance attestations, which the
+  CLI verifies when `gh` is available; no maintainer-held signing key is
+  introduced.
 - **Exposure:** only the proxy listens publicly; containers read-only with
   dropped capabilities and resource limits.
 - **Brand misuse:** the skill asks for confirmation that the user may use the
   logo and names; the default LAWOSS pack is for LAWOSS users only.
+
+### 5.8 Usage skills for self-hosted users
+
+Today the usage skills ship only inside the runtime plugins, next to their
+local `.mcp.json`, and some of them call remote-denied tools or the local CLI
+(`node scripts/run.mjs`): CRZ, Judikáty, ORSR, RÚZ, RPO and Slov-Lex.
+Installing a runtime plugin only for its skill would start local Node, which
+self-hosting is meant to avoid, and would duplicate every tool.
+
+| Approach | Trade-off |
+|---|---|
+| **A. One skill-only plugin `lawoss-remote-skills` with remote editions of all usage skills** (proposed) | One install next to the remote connections; no local server; each skill is generated from the local skill plus a remote-mode section (no CLI, list of denied tools, what to do instead). Local plugins stay byte-identical. A generator and a test keep the two editions in step. |
+| B. Add a remote-mode section to each local skill and tell users to disable the plugin's local server | No new catalog entry, but changes 15 local plugins and depends on every harness allowing a plugin's server to be disabled. |
+| C. One skill-only remote wrapper per service | Mirrors the local catalog, but doubles the catalog to about 30 entries. |
+
+*Decision 9:* approach A. It is a new catalog entry and a release
+dependency of the self-host plugin, so it needs the same approval as the
+other catalog changes.
 
 ## 6. Contract changes
 
 | Change | Where | Kind |
 |---|---|---|
 | Replace "No hosted transport is permitted in LAWOSS" with: LAWOSS hosts nothing; operators may self-host the reviewed runtimes through `lawoss-selfhost` | `docs/local-runtime.md`, `README.md`, `docs/distribution-model.html` | Catalog policy (maintainer approval) |
-| New skill-only plugin `lawoss-selfhost` under `inRepoSkills` | `releases.json`, both catalogs, `lawoss-catalog.json` | Additive catalog entry |
+| New skill-only plugin `lawoss-selfhost` as a regular `releases` entry recording its `lawoss-selfhost` commit | `releases.json`, both catalogs, `lawoss-catalog.json`, validator | Additive catalog entry |
+| New skill-only plugin `lawoss-remote-skills` (generated from the local skills, `inRepoSkills`) | same | Additive catalog entry |
 | Remote tool set is a reviewed subset of the local one; denied tools return an explicit error | `lawoss-selfhost` hub manifest and docs | New contract for the remote edition only; local unchanged |
 | Optional `brand` field in the authorization configuration | Private upstream and public edition | Additive, default keeps current output |
 | None for the local plugins, their tools, schemas, launcher or update path | — | — |
@@ -397,3 +450,12 @@ Rules the skill states at every step:
 7. Default limits toward public portals (section 5.3).
 8. The LAWOSS project itself does not register `auth.lawoss.app` or run any
    endpoint; a hosted LAWOSS offer would be a separate decision.
+9. Usage skills for self-hosted users through one generated skill-only plugin
+   `lawoss-remote-skills` (section 5.8).
+
+Calls made by the author after the builder check, for review while reading:
+adapter and hub sources of truth (5.1), version 1 service list and target
+size (5.3), host-side CLI privilege model without a Docker socket in any
+container (5.5), trust root in a reviewed catalog commit with CI provenance
+attestations (5.7), and the self-host plugin as a regular release entry rather
+than an `inRepoSkills` exception (4.3, 6).
