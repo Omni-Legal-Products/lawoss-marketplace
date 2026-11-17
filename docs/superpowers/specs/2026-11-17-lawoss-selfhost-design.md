@@ -1,8 +1,9 @@
 # LAWOSS self-hosted MCP servers: design
 
-Status: **proposal, awaiting maintainer approval.** Nothing in this document is
-deployed, published or registered. Every item marked *decision* is a proposal
-until the maintainer approves it.
+Status: **approved by the maintainer on 2026-11-17** (all ten decisions in
+section 9). The license of the public repository `lawoss-selfhost` is still to
+be chosen before that repository is created. Nothing in this document is
+deployed, published or registered yet.
 
 ## 1. Intent
 
