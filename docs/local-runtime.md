@@ -2,7 +2,7 @@
 
 ## Scope
 
-Historical record of the CRZ pilot from 12 September 2026. All runtime plugins now ship local MCP and CLI (see [full rollout](full-rollout.md)). Since plugin version 1.4.3 CRZ also uses the shared launcher and the generic packager. No hosted transport is permitted in LAWOSS.
+Historical record of the CRZ pilot from 12 September 2026. All runtime plugins now ship local MCP and CLI (see [full rollout](full-rollout.md)). Since plugin version 1.4.3 CRZ also uses the shared launcher and the generic packager. LAWOSS does not host or operate any server or endpoint; local runtimes remain the default and are unchanged. An operator may self-host the same reviewed runtimes on infrastructure they control through the public repository `lawoss-selfhost` (`Omni-Legal-Products/lawoss-selfhost`). The operator is then responsible for that server, its users and respecting the terms of the public sources.
 
 ## Build and validation
 

@@ -31,7 +31,7 @@ The 15 runtime plugins register their bundled local stdio MCP and include CLI ac
   or automatic connection to a personal MCP service.
 
 The catalog is a source distribution. It does not host, deploy, or operate the
-listed MCP servers. The marketplace is public. Maintainer source repositories remain private, while reviewed runtime artifacts are included here. No public hosting service is included.
+listed MCP servers. The marketplace is public. Maintainer source repositories remain private, while reviewed runtime artifacts are included here. LAWOSS does not host or operate any server or endpoint, and no public hosting service is included. Local runtimes remain the default and are unchanged. An operator may self-host the same reviewed runtimes on infrastructure they control through the public repository `lawoss-selfhost` (`Omni-Legal-Products/lawoss-selfhost`); the operator is then responsible for that server, its users and respecting the terms of the public sources.
 
 ## Catalog
 

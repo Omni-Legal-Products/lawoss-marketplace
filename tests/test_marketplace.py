@@ -280,6 +280,28 @@ class MarketplaceValidationTest(unittest.TestCase):
             with self.assertRaisesRegex(module.ValidationFailure, 'private network address'):
                 module.validate_public_tree(copied)
 
+    def test_policy_names_selfhost_and_no_lawoss_hosting(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("LAWOSS does not host or operate", readme)
+        self.assertIn("lawoss-selfhost", readme)
+        runtime_doc = (ROOT / "docs" / "local-runtime.md").read_text(encoding="utf-8")
+        self.assertIn("lawoss-selfhost", runtime_doc)
+        model = (ROOT / "docs" / "distribution-model.html").read_text(encoding="utf-8")
+        self.assertIn("lawoss-selfhost", model)
+        for path in (ROOT / "docs").rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".html"}:
+                self.assertNotIn(
+                    "No hosted transport is permitted",
+                    path.read_text(encoding="utf-8"),
+                    msg=str(path),
+                )
+        for name in ("README.md", "AGENTS.md", "CLAUDE.md"):
+            self.assertNotIn(
+                "No hosted transport is permitted",
+                (ROOT / name).read_text(encoding="utf-8"),
+                msg=name,
+            )
+
     def test_repository_validator_accepts_its_own_public_safe_rules(self) -> None:
         """Catch a sanitization rule that rejects its own validator source."""
         result = subprocess.run(
