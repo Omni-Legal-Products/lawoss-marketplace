@@ -1,7 +1,7 @@
 # LAWOSS Marketplace
 
 LAWOSS Marketplace distributes public-safe plugin wrappers for approved LAWOSS
-MCP projects. The 15 organization plugins include a local MCP runtime, usage skills and CLI; Google Workspace cez gog and ŽRSR are skill-only wrappers, with no bundled MCP. ŽRSR requires a separately configured MCP connection. The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
+MCP projects. The 15 organization plugins include a local MCP runtime, usage skills and CLI; Google Workspace cez gog and ŽRSR are skill-only wrappers, with no bundled MCP. ŽRSR requires a separately configured MCP connection. `lawoss-remote-skills` is a skill-only plugin with generated remote editions of the usage skills for users of a self-hosted LAWOSS server (`scripts/build_remote_skills.py`). The Czech bundle contains eight separately selectable services. Source coverage and provider prerequisites are documented per plugin; installation does not make unavailable datasets complete.
 
 Read the [local runtime acceptance record](docs/local-runtime.md) for the CRZ
 pilot and the remaining rollout.
@@ -37,7 +37,8 @@ listed MCP servers. The marketplace is public. Maintainer source repositories re
 
 CRZ · CZ Agents · DISQ · EUR-Lex · Finančná správa · Judikáty · Kalkulačky ·
 ORSR · Obchodný vestník · RPO · RPVS · Register úpadcov · RÚZ · Slov-Lex · ÚVO ·
-Google Workspace cez gog · Živnostenský register SR (skill-only).
+Google Workspace cez gog · Živnostenský register SR · Skilly pre self-hosted server
+(skill-only).
 
 `lawoss-catalog.json` carries the LAWOSS metadata: categories by jurisdiction
 (Slovakia, Czechia), General, and bundles (`sk-zaklad`, provisional `cz-zaklad`),
