@@ -1,0 +1,24 @@
+{
+  "name": "oz-2027-prechod",
+  "version": "0.1.0",
+  "description": "Slovenský skill pre rozhodné právo a cielené porovnanie OZ 40/1964 Zb. a 260/2026 Z. z. pri prechode od 1. júla 2027.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OZ 2027 — prechod",
+    "shortDescription": "Rozhodné právo · starý a nový OZ",
+    "longDescription": "Pri slovenskej súkromnoprávnej veci prechádzajúcej cez 1. júl 2027 rozlíši právny režim jednotlivých otázok a cielene porovná overené ustanovenia. Balík je iba čítací skill; neobsahuje MCP ani prihlasovacie údaje.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "defaultPrompt": [
+      "Zmluva bola uzavretá v júni 2027 a porušená v auguste 2027. Urči rozhodné právo a oddeľ účinnosť predpisu od jeho použitia na túto vec."
+    ]
+  }
+}

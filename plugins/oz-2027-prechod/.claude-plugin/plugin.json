@@ -1,0 +1,10 @@
+{
+  "name": "oz-2027-prechod",
+  "version": "0.1.0",
+  "description": "Slovenský skill pre prechod medzi OZ 40/1964 Zb. a 260/2026 Z. z. v konkrétnej veci.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}
