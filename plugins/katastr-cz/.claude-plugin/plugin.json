@@ -1,7 +1,7 @@
 {
   "name": "katastr-cz",
-  "version": "0.1.0",
-  "description": "Katastr nemovitostí ČR: skill pro bezplatné REST API ČÚZK s vlastním klíčem uživatele, bez MCP.",
+  "version": "0.1.1",
+  "description": "Katastr nemovitostí ČR: skill pro bezplatné REST API ČÚZK s vlastním klíčem v proměnné prostředí, bez MCP. V LAWOSS zatím nefunguje.",
   "author": {
     "name": "LAWOSS"
   },

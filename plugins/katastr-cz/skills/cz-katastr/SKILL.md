@@ -1,6 +1,6 @@
 ---
 name: cz-katastr
-description: Čtení údajů českého katastru nemovitostí přes bezplatné REST API ČÚZK (parcely, stavby, jednotky, práva stavby a řízení). Použij při prověrce nemovitosti nebo stavu řízení na katastrálním úřadu. Vyžaduje vlastní bezplatný ApiKey uživatele. Plugin obsahuje jen skill, bez MCP a bez klíčů.
+description: Čtení údajů českého katastru nemovitostí přes bezplatné REST API ČÚZK (parcely, stavby, jednotky, práva stavby a řízení). Použij při prověrce nemovitosti nebo stavu řízení na katastrálním úřadu. Vyžaduje vlastní bezplatný ApiKey uživatele v proměnné prostředí CUZK_API_KEY, proto v LAWOSS zatím nefunguje. Plugin obsahuje jen skill, bez MCP a bez klíčů.
 ---
 
 Tento plugin nepřipojuje MCP, neobsahuje runtime ani přihlašovací údaje.
@@ -10,6 +10,22 @@ uživatele.
 
 # Katastr nemovitostí ČR
 
+## Nejdřív: lze skill použít?
+
+**V LAWOSS tento skill zatím použít nelze.** Aplikace nemá bezpečné úložiště
+klíčů pro skilly. Uživatel v ní nemůže nastavit proměnnou prostředí
+`CUZK_API_KEY` a nástroj `execute` proměnné prostředí nečte. V LAWOSS proto
+API nevolej a nic nezkoušej. Uživateli řekni, že katastr přes tento skill
+v LAWOSS zatím nefunguje, a odkaž ho na veřejnou aplikaci ČÚZK Nahlížení
+do katastru nemovitostí, kde údaje dohledá sám.
+
+**Nikdy uživatele nežádej, aby klíč vložil do konverzace.** Text konverzace
+odchází poskytovateli modelu, klíč by tím unikl.
+
+Skill použij jen v prostředí, kde agent spouští kód s přístupem k proměnným
+prostředí a kde je `CUZK_API_KEY` nastavený mimo konverzaci (například
+Claude Code nebo Codex v terminálu uživatele).
+
 ## Přístup
 
 1. ApiKey si uživatel zřídí sám v aplikaci Registrace ke službám ČÚZK
@@ -17,7 +33,7 @@ uživatele.
    nemovitostí“. Fyzická osoba se registruje přes Identitu občana.
 2. Klíč čti z proměnné prostředí `CUZK_API_KEY`. Nikdy ho nevypisuj, neukládej
    do spisu ani nevkládej do odpovědi. Když chybí, řekni uživateli, jak ho
-   získat, a skonči. Bez klíče API vrací HTTP 401.
+   získat a nastavit mimo konverzaci, a skonči. Bez klíče API vrací HTTP 401.
 3. Volání: `GET https://api-kn.cuzk.gov.cz/api/v1/...` s hlavičkou
    `ApiKey: <klíč>`. Specifikace OpenAPI je na
    `https://api-kn.cuzk.gov.cz/swagger/v1.0/swagger.json`.
