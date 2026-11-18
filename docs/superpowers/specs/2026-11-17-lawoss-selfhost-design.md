@@ -2,12 +2,14 @@
 
 Status: **approved by the maintainer on 2026-11-17** (all ten decisions in
 section 9, including the direction of decision 4). The approval covers the
-content of this design and its plan. Each of these outward steps still needs
-its own maintainer consent when it comes up: creating the public repository
-`lawoss-selfhost`, choosing its license (no license is proposed yet),
-publishing container images, exporting from the private upstream, merging
-into `main`, and any deployment. Nothing in this document is deployed,
-published or registered yet.
+content of this design and its plan. On 2026-11-18 the maintainer created the
+public repository `Omni-Legal-Products/lawoss-selfhost` with the license
+**AGPL-3.0** (decision 4, first part). Each of these outward steps still needs
+its own maintainer consent when it comes up: publishing container images,
+exporting from the private upstream, the first push to `main` of
+`lawoss-selfhost`, merging into `main` where that deploys, and any deployment.
+Nothing in this document is deployed or registered yet, and no image is
+published.
 
 ## 1. Intent
 
@@ -179,7 +181,10 @@ ship in the catalog).
   SHA-256 manifests.
 
 Creating the repository, choosing its license and publishing container images
-are maintainer decisions (section 9).
+are maintainer decisions (section 9). The repository exists since 2026-11-18
+under AGPL-3.0; the whole repository, including the exported authorization
+edition, is distributed under that license. Bundled fonts keep the SIL Open
+Font License.
 
 Sources of truth (builder-check answer): `auth/` and the resource-server
 adapter both come from the private authority repository through the same
@@ -470,7 +475,9 @@ other catalog changes.
 2. Topology A: hub with one hostname per service under one wildcard record.
 3. Skill plus deterministic CLI; the skill is a skill-only catalog plugin.
 4. Creating the public repository `lawoss-selfhost`, its license, and
-   publishing container images to a public registry.
+   publishing container images to a public registry. Done for the first two
+   on 2026-11-18: repository created, license AGPL-3.0. Publishing images
+   remains open.
 5. Changing the catalog policy sentences listed in section 6.
 6. Tools denied remotely in version 1 (section 5.3).
 7. Default limits toward public portals (section 5.3).

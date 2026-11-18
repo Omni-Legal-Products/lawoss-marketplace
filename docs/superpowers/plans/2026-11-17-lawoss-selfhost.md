@@ -121,7 +121,7 @@ Repository: `lawoss-selfhost` once created (Phase 3 gate); until then a branch i
 
 ## Phase 3 — Public repository `lawoss-selfhost`: authorization edition
 
-Gate: maintainer creates the organization repository and picks the license.
+Gate: maintainer creates the organization repository and picks the license. Passed on 2026-11-18: `Omni-Legal-Products/lawoss-selfhost`, AGPL-3.0, `main` holds only `LICENSE`. The export (Step 1) and the first push to `main` each need their own maintainer consent; work lands through pull requests.
 
 ### Task 3.1: First export and CI
 
