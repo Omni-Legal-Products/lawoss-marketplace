@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi na vyčísl
 
 # Kalkulačky — slovenské právne výpočty
 
+> **Vzdialený režim:** táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Načo to je
 
 Server počíta úrok z omeškania, trovy právneho zastúpenia, súdny poplatok a trovy
@@ -89,19 +91,9 @@ over, výpočet ide priamo do žaloby.
 - **Nástroj nespája viacero samostatných pohľadávok v jednom volaní.** Pri viacerých
   nárokoch sa volá opakovane, každý so svojím vstupom.
 
-## Pripojenie a autorizácia
-
-Lokálny plugin používa stdio launcher z `.mcp.json` a neobsahuje vzdialený endpoint.
-Ak vlastník nasadí vlastný remote server, musí použiť HTTPS a OAuth 2.1 s PKCE `S256`.
-OAuth štartuje fail-closed: bez autorizačného hesla, durable token store alebo HTTPS
-issuera server nenabehne. Produkčné hodnoty a tajomstvá nepatria do skillu ani repozitára.
-
-**English summary.** Local use is stdio-only. An owner-hosted remote deployment requires
-HTTPS, fail-closed OAuth, persistent state, and separate live security/privacy review.
-
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Server ponúka všetky nástroje, ktoré tento skill spomína; žiadny z nich nie je vyhradený lokálnemu pluginu.
 

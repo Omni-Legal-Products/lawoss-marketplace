@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # CRZ — Centrálny register zmlúv
 
+> **Vzdialený režim:** server neponúka nástroj `crz_download_attachment`; súbory na server neukladá. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Kedy použiť CRZ
 
 - dohľadanie zmluvy alebo dodatku podľa predmetu, strany, IČO, sumy či obdobia;
@@ -58,13 +60,12 @@ Pri `truncated: true` zúž filter alebo zvýš `max_pages`.
 - Heuristická extrakcia ani deterministický súhrn nie sú právnym stanoviskom.
 - Prázdny text zo skenu nemusí znamenať prázdnu prílohu; skontroluj warning a originál.
 - OCR posiela dokument externému poskytovateľovi iba vtedy, keď je zapnuté a má API kľúč.
-- `save_path` zapisuje na filesystem servera; používaj iba kontrolovanú cestu.
-- Nepodporované prípony sa dajú stiahnuť, ale vrátia
+- Prílohy s nepodporovanou príponou vrátia
   `unsupported_attachment_type:<ext>` namiesto extrahovaného textu.
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Tieto nástroje server neponúka; namiesto nich postupuj takto:
 

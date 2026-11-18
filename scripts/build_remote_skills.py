@@ -58,7 +58,8 @@ ALTERNATIVES = {
         "export_decision_markdown": "dlhý text čítaj po oknách cez `get_decision_markdown`.",
         "export_decision_markdown_by_reference": "dlhý text čítaj po oknách cez "
         "`get_decision_markdown_by_reference`.",
-        "manage_watchlist": "sledovanie vecí potrebuje uložený stav, preto je len v lokálnom plugine.",
+        "manage_watchlist": "na jednorazovú kontrolu procesného osudu použi `get_decision_treatment` "
+        "alebo `get_case_chain`; trvalé sledovanie potrebuje uložený stav, preto je len v lokálnom plugine.",
     },
     "ruz": {
         "ruz_download_attachment": "čísla zo závierky čítaj cez `ruz_get_report`; originál PDF (aj pri "
@@ -73,6 +74,108 @@ ALTERNATIVES = {
     },
 }
 BACKTICKED = re.compile(r"`([^`]+)`")
+
+# Whole H2 sections about local setup, per local skill. Every listed heading must exist, and a
+# section that runs the local CLI is removed only when it is listed here.
+DROP_SECTIONS = {
+    "crz-register-zmluv": ["Lokálny plugin"],
+    "eurlex-celex": ["Transport"],
+    "judikaty-sudne-rozhodnutia": ["Autorizácia"],
+    "kalkulacky-pravne-vypocty": ["Pripojenie a autorizácia"],
+    "orsr-obchodny-register": ["Autorizácia"],
+    "rpo-pravnicke-osoby": ["Autorizácia"],
+    "ru-register-upadcov": ["Autorizácia"],
+    "ruz-uctovne-zavierky": ["Autorizácia"],
+    "slovlex-zbierka-zakonov": ["Autorizácia"],
+    "uvo-verejne-obstaravanie": ["Inštalácia", "Autentifikácia"],
+}
+# Headings a reference file may lose when it runs the local CLI (no reference file exists yet).
+REFERENCE_DROP_HEADINGS = {"Lokálny plugin", "Autorizácia", "Inštalácia", "Autentifikácia",
+                           "Pripojenie a autorizácia", "Transport"}
+
+# Exact source passages that route to denied tools or describe local setup, per local skill.
+# Each passage must occur exactly once in the source, or generation fails; "" drops it.
+REPLACEMENTS = {
+    "crz-register-zmluv": [
+        ("- `save_path` zapisuje na filesystem servera; používaj iba kontrolovanú cestu.\n"
+         "- Nepodporované prípony sa dajú stiahnuť, ale vrátia\n"
+         "  `unsupported_attachment_type:<ext>` namiesto extrahovaného textu.",
+         "- Prílohy s nepodporovanou príponou vrátia\n"
+         "  `unsupported_attachment_type:<ext>` namiesto extrahovaného textu."),
+    ],
+    "eurlex-celex": [
+        ("- **Export `format=\"xml\"` uloží `.zip`.** Formex 4 je viacsúborový balík; PDF sa berie\n"
+         "  prednostne ako PDF/A.\n", ""),
+        ("- Exporty zapisujú iba do nakonfigurovaného `EXPORT_DIR`; pri lokálnom použití používaj "
+         "adresár mimo repozitára.\n", ""),
+    ],
+    "fs-danove-udaje": [
+        ("- `FS_AUTH` means the local `FS_API_KEY` is missing or rejected, not a source outage.",
+         "- `FS_AUTH` znamená, že kľúč na serveri chýba alebo ho zdroj odmietol — obráť sa na "
+         "správcu servera."),
+    ],
+    "judikaty-sudne-rozhodnutia": [
+        ("4. **Na dlhý text:** `get_decision_markdown_by_reference` po oknách — opakované volanie\n"
+         "   `export_decision_markdown` na celé znenie stojí toľko, čo celý dokument.",
+         "4. **Na dlhý text:** `get_decision_markdown_by_reference` po oknách; celé znenie\n"
+         "   naraz zbytočne míňa kontext."),
+        ("vrátia `availability.status: \"not_available_on_this_installation\"`, `manage_watchlist list`\n"
+         "  `treatmentAvailability.status` a pri položke `treatmentStatus` s tou istou hodnotou —",
+         "vrátia `availability.status: \"not_available_on_this_installation\"` —"),
+    ],
+    "ov-obchodny-vestnik": [
+        ("Lokálne MCP beží cez `stdio`; remote režim musí byť fail-closed OAuth alebo bearer, prípadne "
+         "výslovne povolený anonymous. Tieto transportné režimy nemenia význam dát.\n\n", ""),
+        ("*English summary: choose `ov_search`, `ov_get_by_ico`, or `ov_get_notice` by task; stdio is "
+         "local, while remote authentication is fail-closed OAuth or bearer.*",
+         "*English summary: choose `ov_search`, `ov_get_by_ico`, or `ov_get_notice` by task.*"),
+    ],
+    "rpvs-partneri-verejneho-sektora": [
+        ("Lokálny stdio režim stále používa verejnú sieť k RPVS; nie je offline.\n"
+         "Vzdialený režim je určený na súkromné self-hostovanie cez TLS a OAuth/PKCE.\n"
+         "Autorizáciu dokonči manuálne v klientovi a nikdy nevkladaj heslá ani tokeny do\n"
+         "promptu, dokumentácie alebo repozitára.",
+         "Server číta verejné RPVS API cez verejnú sieť. Nikdy nevkladaj heslá ani tokeny do\n"
+         "promptu, dokumentácie alebo repozitára."),
+    ],
+    "ruz-uctovne-zavierky": [
+        ("4. Originál na disk: `ruz_list_attachments` → `ruz_download_attachment`; bez\n"
+         "   `savePath` sa PDF vráti ako base64, čo je pri väčších prílohách zbytočne\n"
+         "   nákladné. `savePath` funguje len pri lokálnom (stdio) serveri; vzdialený\n"
+         "   server ho odmietne.",
+         "4. Originál PDF: `ruz_list_attachments` ukáže prílohy závierky; samotný súbor\n"
+         "   stiahne len lokálny plugin `ruz`."),
+        ("  poisťovniach, oznámeniach a pri Výkaze vybraných údajov (VÚ POD) — vtedy\n"
+         "  siahni po prílohe cez `ruz_list_attachments` a `ruz_download_attachment`,\n"
+         "  štruktúrované čísla tam nie sú.",
+         "  poisťovniach, oznámeniach a pri Výkaze vybraných údajov (VÚ POD) — vtedy\n"
+         "  štruktúrované čísla nie sú a originál prílohy (zoznam cez `ruz_list_attachments`)\n"
+         "  stiahne len lokálny plugin `ruz`."),
+    ],
+    "slovlex-zbierka-zakonov": [
+        ("4. **Na celé znenie vrátane príloh (sadzobníky, zoznamy):** `get_version` a stránkuj cez\n"
+         "   `MCP_NEXT_OFFSET`, kým nepríde `MCP_WINDOW_COMPLETE: true`; alebo `save_law_markdown`\n"
+         "   s dostatočným `max_chars` a `read_saved_markdown`.\n"
+         "5. **Na uloženie do spisu:** `save_law_markdown` alebo `save_explanatory_report_markdown`,\n"
+         "   spätné čítanie cez `read_saved_markdown`.",
+         "4. **Na celé znenie vrátane príloh (sadzobníky, zoznamy):** `get_version` a stránkuj cez\n"
+         "   `MCP_NEXT_OFFSET`, kým nepríde `MCP_WINDOW_COMPLETE: true`.\n"
+         "5. **Na uloženie do spisu:** server nič neukladá; text z `get_version` alebo\n"
+         "   `get_explanatory_report_text` odovzdaj v odpovedi, súbor uloží len lokálny plugin `slovlex`."),
+        ("`get_version` / `save_law_markdown` vracajú\n", "`get_version` vracia\n"),
+        ("  nie je `MCP_WINDOW_COMPLETE: true`, a pri `save_law_markdown` skontroluj\n"
+         "  `MCP_TEXT_TRUNCATED`. Príloha",
+         "  nie je `MCP_WINDOW_COMPLETE: true`. Príloha"),
+        ("- **Kontrola desiatok citácií naraz:** jedným volaním `save_law_markdown` ulož celé\n"
+         "  znenie a over citácie cez `read_saved_markdown`, nie paragraf po paragrafe.",
+         "- **Kontrola desiatok citácií naraz:** načítaj celé znenie cez `get_version` po oknách\n"
+         "  a citácie over v ňom, nie paragraf po paragrafe."),
+        ("\n- **Self-hosted OAuth režim podporuje jednu repliku** — OAuth stav je v jednom súbore\n"
+         "  (`/data/oauth-state.json`), uložené exporty sú v adresári na samostatnom\n"
+         "  volume (`/data/exports`). Ani jedno nie je distribuované naprieč replikami,\n"
+         "  takže pri viacerých replikách by si save/read nemuseli sedieť.", ""),
+    ],
+}
 
 
 class GenerationError(RuntimeError):
@@ -178,26 +281,77 @@ def split_sections(body: str) -> tuple[str, list[tuple[str, str]]]:
     return "\n".join(preamble), [(heading, "\n".join(lines)) for heading, lines in sections]
 
 
-def scrub(body: str, where: str, catalog_install: bool) -> tuple[str, list[str]]:
-    """Remove local-runtime sections; return the body and the removed headings."""
+def replace_passages(body: str, where: str, passages: list[tuple[str, str]]) -> str:
+    """Apply exact replacements; each source passage must occur exactly once."""
+    for old, new in passages:
+        count = body.count(old)
+        if count != 1:
+            fail(f"{where}: a reviewed passage occurs {count} times instead of once; review the replacement "
+                 f"starting {old.strip()[:60]!r}")
+        body = body.replace(old, new)
+    return body
+
+
+def scrub(body: str, where: str, drop_headings: set[str], catalog_install: bool) -> tuple[str, list[str]]:
+    """Remove local setup sections; return the body and the removed headings.
+
+    A listed heading must exist. A section that runs the local CLI must be listed.
+    """
     preamble, sections = split_sections(body)
     if CLI_MARKER in preamble:
         fail(f"{where}: the local CLI is mentioned before the first section; cannot remove it safely")
+    present = {heading[3:] for heading, _ in sections}
+    missing = sorted(drop_headings - present)
+    if missing:
+        fail(f"{where}: sections listed for removal are missing: {missing}")
     kept, removed = [preamble.rstrip("\n")], []
     for heading, text in sections:
+        title = heading[3:]
         content = text[len(heading):].strip()
-        if CLI_MARKER in text:
-            removed.append(heading[3:])
+        if title in drop_headings:
+            removed.append(title)
+        elif CLI_MARKER in text:
+            fail(f"{where}: section '{title}' runs the local CLI but is not listed for removal")
         elif catalog_install and heading == INSTALL_HEADING:
             if content != INSTALL_BODY:
                 fail(f"{where}: '{INSTALL_HEADING}' changed; review whether it still only describes the local runtime")
-            removed.append(heading[3:])
+            removed.append(title)
         else:
             kept.append(text.rstrip("\n"))
     result = "\n\n".join(part for part in kept if part.strip()) + "\n"
     if "run.mjs" in result:
         fail(f"{where}: a local CLI mention survived scrubbing")
     return result, removed
+
+
+def code_list(names: list[str]) -> str:
+    quoted = [f"`{name}`" for name in names]
+    return quoted[0] if len(quoted) == 1 else ", ".join(quoted[:-1]) + " a " + quoted[-1]
+
+
+def notice_line(entry: dict) -> str:
+    """One line under the H1 so the agent learns the limits before any step that needs them."""
+    denied = entry["denyRemote"]
+    if not denied:
+        lead = "táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína"
+    elif len(denied) == 1:
+        lead = f"server neponúka nástroj {code_list(denied)}"
+    else:
+        lead = f"server neponúka nástroje {code_list(denied)}"
+    if entry["allowWithout"]:
+        lead += "; súbory na server neukladá"
+    return f"> **Vzdialený režim:** {lead}. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci."
+
+
+def insert_notice(body: str, where: str, notice: str) -> str:
+    lines = body.split("\n")
+    headings = [index for index, line in enumerate(lines) if line.startswith("# ")]
+    if not headings:
+        fail(f"{where}: no H1 heading to put the remote notice under")
+    first = headings[0]
+    if any(line.strip() for line in lines[:first]):
+        fail(f"{where}: text before the H1; the notice would not come first")
+    return "\n".join(lines[: first + 1] + ["", notice] + lines[first + 1:])
 
 
 def bullet_list(items: list[str]) -> str:
@@ -212,8 +366,9 @@ def remote_section(service: str, entry: dict) -> str:
         "## Vzdialený režim",
         "Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na "
         "serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. "
-        "Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, "
-        "inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup "
+        "Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny "
+        "o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, "
+        "`MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup "
         "vyššie líši od tejto časti, platí táto časť.",
     ]
     if denied:
@@ -247,6 +402,7 @@ def generate() -> tuple[dict[str, bytes], list[dict]]:
     policy = load_policy()
     files: dict[str, bytes] = {}
     summary = []
+    seen_skills: set[str] = set()
     for service in sorted(policy["services"]):
         entry = policy["services"][service]
         skills_dir = ROOT / "plugins" / entry["plugin"] / "skills"
@@ -260,7 +416,11 @@ def generate() -> tuple[dict[str, bytes], list[dict]]:
             if f"{target}/SKILL.md" in files:
                 fail(f"{where}: duplicate remote skill name {target}")
             lines, body = split_frontmatter((source / "SKILL.md").read_text(encoding="utf-8"), where)
-            scrubbed, removed = scrub(body, where, catalog_install=True)
+            passages = REPLACEMENTS.get(name, [])
+            body = replace_passages(body, where, passages)
+            scrubbed, removed = scrub(body, where, set(DROP_SECTIONS.get(name, [])), catalog_install=True)
+            scrubbed = insert_notice(scrubbed, where, notice_line(entry))
+            seen_skills.add(name)
             text = remote_frontmatter(lines, name, where) + scrubbed + "\n" + remote_section(service, entry)
             if "run.mjs" in text:
                 fail(f"{where}: generated text mentions the local CLI")
@@ -269,11 +429,17 @@ def generate() -> tuple[dict[str, bytes], list[dict]]:
                 relative = path.relative_to(source).as_posix()
                 if not (relative.startswith("references/") and path.suffix == ".md"):
                     fail(f"{where}: unsupported skill file {relative}; only references/*.md are copied")
-                reference, _ = scrub(path.read_text(encoding="utf-8"), f"{where}/{relative}", catalog_install=False)
+                reference_text = path.read_text(encoding="utf-8")
+                reference_drop = {heading[3:] for heading, text in split_sections(reference_text)[1]
+                                  if CLI_MARKER in text and heading[3:] in REFERENCE_DROP_HEADINGS}
+                reference, _ = scrub(reference_text, f"{where}/{relative}", reference_drop, catalog_install=False)
                 files[f"{target}/{relative}"] = reference.encode("utf-8")
             summary.append({"service": service, "plugin": entry["plugin"], "skill": target,
-                            "removed": removed, "denied": list(entry["denyRemote"]),
+                            "removed": removed, "replaced": len(passages), "denied": list(entry["denyRemote"]),
                             "allowWithout": dict(entry["allowWithout"])})
+    stale = sorted((set(DROP_SECTIONS) | set(REPLACEMENTS)) - seen_skills)
+    if stale:
+        fail(f"removal or replacement rules for unknown skills: {stale}")
     return files, summary
 
 

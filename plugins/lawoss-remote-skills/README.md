@@ -25,8 +25,13 @@ The generator copies each local usage skill and:
 
 - renames it with the `-remote` suffix and says in its description that it is
   for a self-hosted server;
-- removes every section that runs the local CLI and the catalog note about the
-  bundled local runtime, and fails if a local CLI mention survives;
+- puts a one-line notice under the title that names the tools the server does
+  not offer;
+- removes the local setup sections listed per skill (local CLI, transport,
+  authentication) and the catalog note about the bundled local runtime, and
+  replaces reviewed passages that point to tools the server does not offer.
+  It fails when a listed section or passage no longer matches the source, or
+  when a local CLI mention survives;
 - appends a Slovak `## Vzdialený režim` section that lists the tools the server
   does not offer (they answer "Tento nástroj je dostupný len v lokálnom
   plugine."), the tools offered without their file-saving arguments, and what

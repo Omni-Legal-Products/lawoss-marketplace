@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # OV — Obchodný vestník
 
+> **Vzdialený režim:** táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Kedy použiť
 
 Použi tento skill, keď treba vyhľadať verejné oznámenie podľa mena, presne osemmiestneho IČO, značky, sídla, kapitoly alebo dátumu a potom overiť PDF detail. Nezamieňaj dátum zverejnenia s dátumom rozhodnutia alebo zápisu v ORSR.
@@ -34,9 +36,7 @@ Použi tento skill, keď treba vyhľadať verejné oznámenie podľa mena, presn
 - WebForms HTML a PDF: 512 KiB; extrahovaný text: 128 KiB; pole: 8 KiB.
 - Typované chyby: `OV_INPUT`, `OV_HTTP`, `OV_TIMEOUT`, `OV_CONTENT_TYPE`, `OV_SCHEMA`.
 
-Lokálne MCP beží cez `stdio`; remote režim musí byť fail-closed OAuth alebo bearer, prípadne výslovne povolený anonymous. Tieto transportné režimy nemenia význam dát.
-
-*English summary: choose `ov_search`, `ov_get_by_ico`, or `ov_get_notice` by task; stdio is local, while remote authentication is fail-closed OAuth or bearer.*
+*English summary: choose `ov_search`, `ov_get_by_ico`, or `ov_get_notice` by task.*
 
 ## Hranice
 
@@ -50,7 +50,7 @@ Use `ov_search` for a bounded public query, `ov_get_by_ico` for exact eight-digi
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Server ponúka všetky nástroje, ktoré tento skill spomína; žiadny z nich nie je vyhradený lokálnemu pluginu.
 

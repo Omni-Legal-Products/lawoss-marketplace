@@ -12,12 +12,13 @@ The tool policy is a copy of `hub/services.json` in
 
 Verified 2026-11-18:
 
-- 65 destination Python tests ran: 60 passed, 4 were skipped, and the known
+- 67 destination Python tests ran: 62 passed, 4 were skipped, and the known
   baseline failure `test_cold_start_reports_missing_npm` failed. It fails on the
   same machine without this change.
 - `python3 scripts/build_remote_skills.py --check` reports the committed output
   as current.
-- The local plugins' skills are byte-identical to `main`.
+- Running the generator on a copy of the repository changes nothing outside
+  `plugins/lawoss-remote-skills`.
 - The public-tree and semantic catalog validator passed for 22 plugins.
 - Claude strict catalog and plugin validation passed.
 - Codex CLI 0.170.0 installed `lawoss-remote-skills@lawoss` in an isolated

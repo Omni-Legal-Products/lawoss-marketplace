@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # EUR-Lex CELEX
 
+> **Vzdialený režim:** server neponúka nástroj `eurlex_document_export`. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Kedy použiť
 
 Použi tento skill pri identifikácii alebo overení aktu EÚ, vyhľadaní čísla CELEX,
@@ -45,8 +47,6 @@ zistení vzťahov a verzií dokumentov.
   pozri `totals` a dopýtaj konkrétny vzťah s vyšším `limit`.
 - **Národné opatrenia majú názov v národnom jazyku** a jedno opatrenie môže transponovať viac
   smerníc (nástroj vráti CELEX patriaci k zadanej smernici).
-- **Export `format="xml"` uloží `.zip`.** Formex 4 je viacsúborový balík; PDF sa berie
-  prednostne ako PDF/A.
 - **ELI majú len niektoré dokumenty** (rozsudky a staršie akty často nie). „No ELI found“
   znamená, že ho CELLAR neeviduje, nie chybu dopytu.
 - **`eurlex_document_find` počíta najviac 200 zhôd.** Pri `matchCountCapped: true` je zhôd viac —
@@ -56,17 +56,9 @@ zistení vzťahov a verzií dokumentov.
 
 - `eurlex_celex_parse`, `eurlex_eli_resolve` a validačné funkcie zachovávajú pôvodný CELEX/ELI formát.
 - `eurlex_document_get` je stránkovaný cez `offset_chars` a `max_chars`; rešpektuj `MCP_WINDOW_COMPLETE`, `MCP_TOTAL_CHARS` a `MCP_NEXT_OFFSET`.
-- Exporty zapisujú iba do nakonfigurovaného `EXPORT_DIR`; pri lokálnom použití používaj adresár mimo repozitára.
 - SOAP full-text vyhľadávanie je voliteľné a podlieha účtu a dennému limitu EUR-Lex.
 
 *English summary: use the CELEX parser and public EUR-Lex tools first, report source freshness and pagination, and keep optional SOAP credentials outside the repository.*
-
-## Transport
-
-Lokálne použitie je `stdio` cez prenosný `.mcp.json`. Vzdialený HTTP režim je
-samostatný deployment: nastav vlastný HTTPS origin, bearer/OAuth ochranu,
-`ALLOWED_ORIGINS` a izolované export/cache volume. Repozitár neobsahuje osobný
-remote endpoint ani automatické prihlasovanie.
 
 ## Hranice
 
@@ -76,7 +68,7 @@ vlastnými credentials.
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Tieto nástroje server neponúka; namiesto nich postupuj takto:
 

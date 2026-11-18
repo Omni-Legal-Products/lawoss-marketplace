@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # RÚZ — register účtovných závierok
 
+> **Vzdialený režim:** server neponúka nástroj `ruz_download_attachment`. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Načo to je
 
 RÚZ poskladá z uložených účtovných závierok viacročný finančný profil firmy
@@ -41,17 +43,15 @@ je iba na čítanie.
    `ruz_get_report`. Do `ruz_get_statement` môžeš poslať priamo `statementId`
    z profilu. Čistý obrat (r. 01) a brutto/korekcie aktív sú len
    v `ruz_get_report`.
-4. Originál na disk: `ruz_list_attachments` → `ruz_download_attachment`; bez
-   `savePath` sa PDF vráti ako base64, čo je pri väčších prílohách zbytočne
-   nákladné. `savePath` funguje len pri lokálnom (stdio) serveri; vzdialený
-   server ho odmietne.
+4. Originál PDF: `ruz_list_attachments` ukáže prílohy závierky; samotný súbor
+   stiahne len lokálny plugin `ruz`.
 
 ## Pasce
 
 - **`structuredDataAvailable: false`** pri IFRS závierkach, bankách,
   poisťovniach, oznámeniach a pri Výkaze vybraných údajov (VÚ POD) — vtedy
-  siahni po prílohe cez `ruz_list_attachments` a `ruz_download_attachment`,
-  štruktúrované čísla tam nie sú. `attachmentHint` pomenuje konkrétny dôvod
+  štruktúrované čísla nie sú a originál prílohy (zoznam cez `ruz_list_attachments`)
+  stiahne len lokálny plugin `ruz`. `attachmentHint` pomenuje konkrétny dôvod
   pri IFRS, VÚ POD, samotnej správe/oznámení a neverejných výkazoch; pri banke
   alebo poisťovni vráti generickú vetu bez toho, aby dôvod uhádol. Keď dáta
   nemá žiadny rok (typicky IFRS filer), povie to aj `note` celého profilu —
@@ -93,7 +93,7 @@ je iba na čítanie.
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Tieto nástroje server neponúka; namiesto nich postupuj takto:
 

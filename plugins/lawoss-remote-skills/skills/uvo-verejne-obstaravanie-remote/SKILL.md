@@ -5,17 +5,7 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # ÚVO — verejné obstarávanie
 
-## Inštalácia
-
-Očakávaj lokálny stdio server z node dist/server.js alebo vlastný HTTPS remote POST /mcp. Remote musí mať explicitný oauth, bearer alebo schválený anonymous režim.
-
-**English summary.** Use the portable stdio launcher or an explicitly authenticated self-hosted remote endpoint.
-
-## Autentifikácia
-
-OAuth používa PKCE S256, jeden worker a trvalý mode-0600 store. Bearer token je alternatíva. Anonymous je povolený iba s MCP_AUTH_MODE=anonymous a MCP_ALLOW_ANONYMOUS=true. Nikdy si nepýtaj ani nezapisuj heslo, token, cookie alebo OAuth state.
-
-**English summary.** Authentication fails closed; never collect or expose credentials.
+> **Vzdialený režim:** táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
 
 ## Nástroje a kontrakty
 
@@ -41,7 +31,7 @@ Pri chybe uveď tool, typovaný kód, čas a redigovaný popis; neprikladaj raw 
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Server ponúka všetky nástroje, ktoré tento skill spomína; žiadny z nich nie je vyhradený lokálnemu pluginu.
 

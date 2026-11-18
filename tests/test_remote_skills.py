@@ -1,10 +1,11 @@
 """Remote editions of the usage skills in plugins/lawoss-remote-skills (generated)."""
 
-import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,10 @@ REMOTE_PLUGIN = "lawoss-remote-skills"
 REMOTE_SKILLS = ROOT / "plugins" / REMOTE_PLUGIN / "skills"
 DENY_TEXT = "Tento nástroj je dostupný len v lokálnom plugine."
 REMOTE_HEADING = "## Vzdialený režim"
+NOTICE_PREFIX = "> **Vzdialený režim:**"
+# Local setup sections that a remote edition must not carry.
+LOCAL_SETUP_HEADINGS = {"## Lokálny plugin", "## Autorizácia", "## Inštalácia", "## Autentifikácia",
+                        "## Pripojenie a autorizácia", "## Transport", "## Inštalácia v LAWOSS"}
 
 
 def source_skills(plugin: str) -> list[str]:
@@ -27,14 +32,6 @@ def remote_section(text: str) -> str:
     rest = text[start + len(REMOTE_HEADING):]
     following = re.search(r"^## ", rest, flags=re.MULTILINE)
     return rest[: following.start()] if following else rest
-
-
-def git(*args: str) -> str:
-    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-
-
-def blob_id(data: bytes) -> str:
-    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 
 class RemoteSkillsTest(unittest.TestCase):
@@ -77,34 +74,49 @@ class RemoteSkillsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_local_skills_are_unchanged(self) -> None:
-        """The remote editions never touch the local plugins' skills (compared with main)."""
-        base = None
-        for ref in ("origin/main", "main"):
-            try:
-                base = git("merge-base", "HEAD", ref).strip()
-                break
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                continue
-        if not base:
-            self.skipTest("no main branch in this checkout (shallow clone); cannot compare local skills")
-        skill_path = re.compile(r"plugins/([^/]+)/skills/")
+        """Running the generator changes nothing outside plugins/lawoss-remote-skills."""
+        def snapshot(root: Path) -> dict[str, bytes]:
+            return {path.relative_to(root).as_posix(): path.read_bytes()
+                    for path in root.rglob("*") if path.is_file()}
 
-        def local(path: str) -> bool:
-            match = skill_path.match(path)
-            return bool(match) and match.group(1) != REMOTE_PLUGIN
+        with tempfile.TemporaryDirectory() as directory:
+            copy = Path(directory) / "marketplace"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            shutil.rmtree(copy / "plugins" / REMOTE_PLUGIN / "skills")
+            before = snapshot(copy)
+            result = subprocess.run([sys.executable, str(copy / "scripts" / "build_remote_skills.py")],
+                                    cwd=copy, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            after = snapshot(copy)
+        changed = {path for path in set(before) | set(after) if before.get(path) != after.get(path)}
+        self.assertTrue(changed, "the generator wrote nothing")
+        outside = sorted(path for path in changed if not path.startswith(f"plugins/{REMOTE_PLUGIN}/"))
+        self.assertEqual(outside, [])
 
-        expected = {}
-        for line in git("ls-tree", "-r", base, "--", "plugins").splitlines():
-            meta, path = line.split("\t", 1)
-            if local(path):
-                expected[path] = meta.split()[2]
-        actual = {}
-        for path in (ROOT / "plugins").glob("*/skills/**/*"):
-            relative = path.relative_to(ROOT).as_posix()
-            if path.is_file() and local(relative):
-                actual[relative] = blob_id(path.read_bytes())
-        self.assertTrue(expected, "main has no local skills")
-        self.assertEqual(actual, expected)
+    def test_denied_tools_appear_only_in_the_notice_and_remote_section(self) -> None:
+        for service, entry in POLICY["services"].items():
+            for name in source_skills(entry["plugin"]):
+                text = (REMOTE_SKILLS / f"{name}-remote" / "SKILL.md").read_text(encoding="utf-8")
+                body = text.split("\n---\n", 1)[1]
+                lines = body.split("\n")
+                heading = next(index for index, line in enumerate(lines) if line.startswith("# "))
+                self.assertEqual(lines[heading + 1], "", f"{name}: blank line after the H1")
+                self.assertTrue(lines[heading + 2].startswith(NOTICE_PREFIX), f"{name}: notice must sit right under the H1")
+                notice = lines[heading + 2]
+                rest = "\n".join(lines[:heading + 2] + lines[heading + 3:])
+                rest = rest[: rest.index(REMOTE_HEADING + "\n")]
+                for tool in entry["denyRemote"]:
+                    self.assertIn(f"`{tool}`", notice, f"{name}: notice must name {tool}")
+                    self.assertIsNone(re.search(rf"\b{tool}\b", rest), f"{name}: body still mentions denied {tool}")
+
+    def test_remote_skills_carry_no_local_setup_sections(self) -> None:
+        for path in sorted(REMOTE_SKILLS.glob("*/SKILL.md")):
+            text = path.read_text(encoding="utf-8")
+            headings = {line for line in text.split("\n") if line.startswith("## ")}
+            self.assertFalse(headings & LOCAL_SETUP_HEADINGS, f"{path.parent.name}: {sorted(headings & LOCAL_SETUP_HEADINGS)}")
+            for fragment in ("FS_API_KEY", "/data/oauth-state.json", "node dist/server.js", "MCP_ALLOW_ANONYMOUS",
+                             "Lokálne MCP beží cez", "Lokálny stdio režim"):
+                self.assertNotIn(fragment, text, f"{path.parent.name}: {fragment}")
 
 
 if __name__ == "__main__":

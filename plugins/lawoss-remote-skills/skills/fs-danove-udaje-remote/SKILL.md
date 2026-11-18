@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Use for read-only 
 
 # FS public tax-list checks
 
+> **Vzdialený režim:** táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 Use the smallest applicable tool and report the result's validity block:
 
 - `fs_vat_status`
@@ -42,7 +44,7 @@ Pitfalls:
   hit is a name match only — compare the address. Passing only `ico` lets the
   tool resolve the name the Financial Administration uses.
 - Quote the list date from `validity.listUpdateDates`, not today's date.
-- `FS_AUTH` means the local `FS_API_KEY` is missing or rejected, not a source outage.
+- `FS_AUTH` znamená, že kľúč na serveri chýba alebo ho zdroj odmietol — obráť sa na správcu servera.
 
 These are public-source checks, not tax or legal advice. Use ORSR for corporate
 identity and authority, RÚZ for financial statements, and the relevant
@@ -50,7 +52,7 @@ insolvency source for insolvency proceedings.
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Server ponúka všetky nástroje, ktoré tento skill spomína; žiadny z nich nie je vyhradený lokálnemu pluginu.
 

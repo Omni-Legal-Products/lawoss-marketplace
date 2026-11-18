@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # RPVS — partneri verejného sektora
 
+> **Vzdialený režim:** táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Rozsah
 
 Server iba číta verejné RPVS OData API. Vracia registerové údaje o partnerovi,
@@ -55,14 +57,12 @@ Chybový výsledok používa MCP `isError` a stabilný kód, napríklad
 upstream body a query URL sa do chyby ani logu nevkladajú. Pagination môže
 pokračovať iba na nakonfigurovanom HTTPS origin a v jeho API ceste.
 
-Lokálny stdio režim stále používa verejnú sieť k RPVS; nie je offline.
-Vzdialený režim je určený na súkromné self-hostovanie cez TLS a OAuth/PKCE.
-Autorizáciu dokonči manuálne v klientovi a nikdy nevkladaj heslá ani tokeny do
+Server číta verejné RPVS API cez verejnú sieť. Nikdy nevkladaj heslá ani tokeny do
 promptu, dokumentácie alebo repozitára.
 
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Server ponúka všetky nástroje, ktoré tento skill spomína; žiadny z nich nie je vyhradený lokálnemu pluginu.
 

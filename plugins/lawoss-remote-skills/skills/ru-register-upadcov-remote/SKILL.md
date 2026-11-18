@@ -5,6 +5,8 @@ description: Vzdialená verzia pre self-hosted server LAWOSS. Použi pri otázka
 
 # RU — register úpadcov
 
+> **Vzdialený režim:** táto verzia je pre self-hosted server LAWOSS; server ponúka všetky nástroje, ktoré skill spomína. Pred postupmi nižšie si prečítaj časť „Vzdialený režim“ na konci.
+
 ## Načo to je
 
 Register úpadcov (REPLIK) zverejňuje konkurzné, reštrukturalizačné a oddlžovacie
@@ -74,18 +76,9 @@ stav a históriu. Je iba na čítanie a nie je právne stanovisko.
   `RU_SOURCE_CONTENT_TYPE`, `RU_SOURCE_SIZE`, `RU_SOURCE_PARSE`,
   `RU_SOURCE_TIMEOUT` alebo `RU_INTERNAL` znamená, že screening nebol úspešný.
 
-## Autorizácia
-
-Predvolená repozitárová konfigurácia používa lokálny `stdio` proces, ktorý stále
-volá verejný register cez HTTPS. Vzdialený súkromný Streamable HTTP server sa
-pripája iba manuálne na `https://<your-ru-mcp-host>/mcp`; inštalácia ho
-nekonfiguruje. Také nasadenie vyžaduje TLS, OAuth, jeden worker a durable store.
-Pri prvom pripojení môže klient otvoriť OAuth prihlásenie a jednorazový súhlas.
-Heslá ani tokeny nevkladaj do promptu alebo konfigurácie skillu.
-
 ## Vzdialený režim
 
-Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie a prihlásenie spravuje server, takže pokyny vyššie o lokálnom `stdio`, inštalácii alebo vlastnom nasadení sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
+Táto verzia skillu je pre pripojenie na self-hosted server LAWOSS. Nástroje bežia na serveri, nie na tvojom počítači: nič lokálne neinštaluj a nepoužívaj lokálne CLI. Pripojenie nastavuje používateľ alebo správca, prihlásenie zabezpečuje server, takže pokyny o lokálnom `stdio`, inštalácii alebo o samostatnom nasadení jednotlivej služby (OAuth, bearer, `MCP_AUTH_MODE`, `EXPORT_DIR`) sa na toto pripojenie nevzťahujú. Ak sa postup vyššie líši od tejto časti, platí táto časť.
 
 Server ponúka všetky nástroje, ktoré tento skill spomína; žiadny z nich nie je vyhradený lokálnemu pluginu.
 
