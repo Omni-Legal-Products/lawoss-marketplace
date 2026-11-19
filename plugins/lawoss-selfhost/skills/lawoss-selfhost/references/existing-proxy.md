@@ -7,9 +7,9 @@ zo servera. Existujúca proxy jej podľa názvu hostiteľa (SNI) posiela spojeni
 pre adresy nasadenia bez rozšifrovania TLS. Caddy ďalej sám ukončuje TLS
 a získava certifikáty. Používatelia sa pripájajú stále na port 443.
 
-Postup potrebuje vydanie `lawoss-selfhost`, ktorého `init` pozná voľby
-`--http-port`, `--https-port` a `--proxy-bind`. Ak ich `init` odmietne,
-pripnuté vydanie ich ešte nepozná: zastav sa a povedz to človeku.
+Voľby `--http-port`, `--https-port` a `--proxy-bind` pozná `init` od
+vydania `lawoss-selfhost` 0.2.0. Ak ich `init` odmietne, zastav sa a povedz to
+človeku.
 
 ## Čo agent s existujúcou proxy nikdy nerobí
 
@@ -57,22 +57,27 @@ sudo docker inspect <traefik> --format '{{range $name, $net := .NetworkSettings.
 ```
 
 Každý riadok je názov siete Dockeru a jej gateway, teda adresa servera v tej
-sieti:
+sieti. Vyber podľa tohto poradia:
 
-- jedna sieť s vyplnenou adresou: to je `<HOST_ADDR>`;
-- sieť `host` (proxy beží priamo v sieti servera): `<HOST_ADDR>` je
-  `127.0.0.1`;
-- prázdna adresa pri prekryvnej sieti Docker Swarm (tú používa napríklad
-  Dokploy): kontajner vtedy server zvyčajne dosiahne cez sieť
-  `docker_gwbridge`. Jej adresu prečítaš takto a človeku ju navrhneš ako
-  `<HOST_ADDR>`:
+1. Sieť `bridge` (predvolená sieť Dockeru) s vyplnenou adresou: to je
+   `<HOST_ADDR>`, adresa rozhrania `docker0` servera. Môžeš ju overiť len
+   čítaním:
 
-  ```sh
-  sudo docker network inspect docker_gwbridge --format '{{range .IPAM.Config}}{{.Gateway}}{{println}}{{end}}'
-  ```
+   ```sh
+   ip -4 addr show docker0
+   ```
 
-- viac sietí, prázdny výsledok aj z `docker_gwbridge` alebo čokoľvek
-  nejasné: zastav sa a opýtaj sa človeka. Adresu nehádaj.
+2. Sieť `host` (proxy beží priamo v sieti servera): `<HOST_ADDR>` je
+   `127.0.0.1`.
+3. Prekryvné siete Docker Swarm (napríklad `dokploy-network` v Dokploy) nemajú
+   použiteľnú gateway (adresa je prázdna alebo neplatná); vynechaj ich.
+4. Bez siete `bridge` a `host`: ak ostane práve jedna sieť s vyplnenou
+   adresou, je to `<HOST_ADDR>`. Ak ostane viac takých adries alebo žiadna,
+   zastav sa a opýtaj sa človeka. Adresu nehádaj.
+
+Napríklad Traefik v Dokploy (`dokploy-traefik`) býva pripojený k sieti
+`bridge` aj k prekryvnej sieti `dokploy-network`; `<HOST_ADDR>` je potom
+gateway siete `bridge`.
 
 Či je adresa správna, potvrdí až `doctor` po spustení (krok 10).
 

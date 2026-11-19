@@ -463,13 +463,13 @@ class MarketplaceValidationTest(unittest.TestCase):
             return mutate
 
         def record_bytes(root: Path) -> None:
-            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.1.0.json"
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.2.0.json"
             path.write_bytes(path.read_bytes() + b" ")
 
         def skill_pin(root: Path) -> None:
             path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/SKILL.md"
             text = path.read_text(encoding="utf-8")
-            path.write_text(text.replace("6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde", "0" * 64), encoding="utf-8")
+            path.write_text(text.replace("425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3", "0" * 64), encoding="utf-8")
 
         other_digest = "sha256:" + "0" * 64
         cases = (

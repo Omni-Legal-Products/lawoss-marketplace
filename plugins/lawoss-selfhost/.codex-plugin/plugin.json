@@ -1,7 +1,7 @@
 {
   "name": "lawoss-selfhost",
-  "version": "0.1.0",
-  "description": "Vlastný server LAWOSS: skill, ktorý agenta prevedie nasadením lawoss-selfhost 0.1.0 s potvrdeniami človeka.",
+  "version": "0.2.0",
+  "description": "Vlastný server LAWOSS: skill, ktorý agenta prevedie nasadením lawoss-selfhost 0.2.0 s potvrdeniami človeka.",
   "author": {
     "name": "LAWOSS"
   },
@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Vlastný server LAWOSS",
-    "shortDescription": "lawoss-selfhost 0.1.0 · skill · nasadenie",
+    "shortDescription": "lawoss-selfhost 0.2.0 · skill · nasadenie",
     "longDescription": "Skill, ktorý agenta krok za krokom prevedie nasadením lawoss-selfhost na server používateľa: kontrola servera, firewall, DNS, overené vydanie, tajomstvá, značka, certifikáty, prvý účet, overenie, zálohy a odovzdanie. Pri každom kroku uvádza, čo agent smie sám a čo potvrdí človek. Tajomstvá nikdy nevstupujú do konverzácie. Balík neobsahuje server, endpoint, runtime ani OAuth klienta.",
     "developerName": "LAWOSS",
     "category": "Productivity",

@@ -161,11 +161,11 @@ staré mazať.
 
 ```sh
 sudo /opt/lawoss/bin/lawoss-selfhost restore --dry-run --private-key <cesta ku kľúču> /opt/lawoss/backups/<čas>
-sudo /opt/lawoss/bin/lawoss-selfhost restore --apply --record-sha256 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde --private-key <cesta ku kľúču> /opt/lawoss/backups/<čas>
+sudo /opt/lawoss/bin/lawoss-selfhost restore --apply --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3 --private-key <cesta ku kľúču> /opt/lawoss/backups/<čas>
 ```
 
 `--apply` spusti iba po potvrdení. `--record-sha256` je odtlačok záznamu toho
-vydania, z ktorého záloha pochádza, ako ho pripína katalóg (pre 0.1.0 hodnota
+vydania, z ktorého záloha pochádza, ako ho pripína katalóg (pre 0.2.0 hodnota
 vyššie). Funguje aj na novom serveri bez `.env`; nástroj tam musí byť
 nainštalovaný (krok 6). Cesta ku kľúču musí byť absolútna. Súkromný kľúč na
 server dočasne vráti človek a po obnove ho zmaže. Pri obnove na novom
@@ -251,8 +251,8 @@ odkazy ani zoznam používateľov.
 sudo tee /opt/lawoss/PREVADZKA.md > /dev/null <<'NOTE'
 # Vlastný server LAWOSS: prevádzka
 
-- Vydanie: lawoss-selfhost 0.1.0, commit d041ee6fb116a65dde7201fb4c7d15bbb0b51256
-- Odtlačok záznamu vydania: 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde
+- Vydanie: lawoss-selfhost 0.2.0, commit 29440f8af25792e42b4c764f8334ec9be239439b
+- Odtlačok záznamu vydania: 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
 - Základná doména: lawoss.example.com
 - Služby: slovlex, orsr, judikaty
 - Nasadené: <dátum>, správca: <meno alebo rola>

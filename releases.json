@@ -110,13 +110,13 @@
     {
       "name": "lawoss-selfhost",
       "repository": "Omni-Legal-Products/lawoss-selfhost",
-      "commit": "d041ee6fb116a65dde7201fb4c7d15bbb0b51256",
+      "commit": "29440f8af25792e42b4c764f8334ec9be239439b",
       "distribution": "selfhost-skill",
-      "version": "0.1.0",
-      "recordSha256": "6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde",
+      "version": "0.2.0",
+      "recordSha256": "425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3",
       "images": {
-        "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:93e84a8a52d3286b07cc1fd231dc4d679db5e15ecf27daf8dc510876390bc1ea",
-        "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:c86179af9093b1b26405da51aedcd343e66b33bf90a61018a21e12e08e667ea7"
+        "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7",
+        "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714"
       },
       "reviewDate": "2026-11-19"
     }

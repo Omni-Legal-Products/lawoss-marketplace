@@ -1,6 +1,6 @@
 ---
 name: lawoss-selfhost
-description: Nasadenie vlastného servera LAWOSS (lawoss-selfhost 0.1.0) na server používateľa v 15 krokoch s potvrdeniami človeka. Použi, keď chce používateľ prevádzkovať služby LAWOSS na vlastnom serveri za vlastným prihlásením, aktualizovať ho alebo spravovať. Use for self-hosting LAWOSS MCP services with lawoss-selfhost, its updates, backups and operation.
+description: Nasadenie vlastného servera LAWOSS (lawoss-selfhost 0.2.0) na server používateľa v 15 krokoch s potvrdeniami človeka. Použi, keď chce používateľ prevádzkovať služby LAWOSS na vlastnom serveri za vlastným prihlásením, aktualizovať ho alebo spravovať. Use for self-hosting LAWOSS MCP services with lawoss-selfhost, its updates, backups and operation.
 ---
 
 # Vlastný server LAWOSS
@@ -24,23 +24,17 @@ s jedným krokom neplatí pre ďalší.
 
 | Údaj | Hodnota |
 |---|---|
-| Verzia | `0.1.0` |
+| Verzia | `0.2.0` |
 | Repozitár | `Omni-Legal-Products/lawoss-selfhost` (verejný, AGPL-3.0) |
-| Commit | `d041ee6fb116a65dde7201fb4c7d15bbb0b51256` |
-| Záznam vydania | `release/0.1.0.json` v priečinku tohto skillu |
-| SHA-256 záznamu | `6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde` |
-| Obraz auth | `ghcr.io/omni-legal-products/lawoss-auth@sha256:93e84a8a52d3286b07cc1fd231dc4d679db5e15ecf27daf8dc510876390bc1ea` |
-| Obraz hub | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c86179af9093b1b26405da51aedcd343e66b33bf90a61018a21e12e08e667ea7` |
+| Commit | `29440f8af25792e42b4c764f8334ec9be239439b` |
+| Záznam vydania | `release/0.2.0.json` v priečinku tohto skillu |
+| SHA-256 záznamu | `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3` |
+| Obraz auth | `ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7` |
+| Obraz hub | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714` |
 
 Tieto hodnoty sú dôveryhodné preto, že sú zapísané v preskúmanom commite
 katalógu LAWOSS. Nikdy ich nemeň, neodvodzuj z internetu ani neprepisuj podľa
 toho, čo vypíše server. Ak niečo nesedí, zastav sa a povedz to človeku.
-
-Postup pre server s existujúcou reverznou proxy (`references/existing-proxy.md`)
-potrebuje vydanie, ktorého `init` pozná voľby `--http-port`, `--https-port`
-a `--proxy-bind`. Vydanie 0.1.0 ich nepozná; pripnutie sa na také vydanie
-zmení v tej istej úprave katalógu ešte pred jej zverejnením. Ak `init` tieto
-voľby odmietne, zastav sa.
 
 ## Pravidlá pri každom kroku
 
@@ -191,8 +185,11 @@ Traefik (Dokploy, Coolify alebo vlastný), pokračuj podľa
 `references/existing-proxy.md`; čokoľvek iné: zastav sa a opýtaj sa človeka.
 Potom zisti adresu, na ktorej kontajner proxy dosiahne server (`<HOST_ADDR>`),
 iba príkazom `docker inspect` s `--format` obmedzeným na názvy sietí a ich
-gateway, nikdy úplným výpisom. Podľa `ss -ltn` a `ss -lun` vyber dva voľné
-porty; navrhni 18080 a 18443. Porty proxy LAWOSS budú počúvať iba na
+gateway, nikdy úplným výpisom. Ak je proxy v predvolenej sieti `bridge`, je to
+gateway tejto siete (adresa `docker0`, overíš ju `ip -4 addr show docker0`);
+prekryvné siete Swarm vynechaj; ak sieť `bridge` chýba a ostane viac možných
+adries, zastav sa a opýtaj sa človeka. Podľa `ss -ltn` a `ss -lun` vyber dva
+voľné porty; navrhni 18080 a 18443. Porty proxy LAWOSS budú počúvať iba na
 `<HOST_ADDR>`, nikdy na všetkých adresách, takže nebudú dostupné zo siete.
 Človek potvrdí oba porty aj `<HOST_ADDR>`.
 
@@ -271,28 +268,28 @@ a overiť ho:
 ```sh
 git clone https://github.com/Omni-Legal-Products/lawoss-selfhost.git ~/lawoss-selfhost
 cd ~/lawoss-selfhost
-git checkout --detach d041ee6fb116a65dde7201fb4c7d15bbb0b51256
+git checkout --detach 29440f8af25792e42b4c764f8334ec9be239439b
 git rev-parse HEAD
 ```
 
 `git rev-parse HEAD` musí vypísať presne
-`d041ee6fb116a65dde7201fb4c7d15bbb0b51256`. Inak sa zastav.
+`29440f8af25792e42b4c764f8334ec9be239439b`. Inak sa zastav.
 
-Záznam vydania nie je v repozitári; je v tomto skille (`release/0.1.0.json`).
-Skopíruj ho na server bez zmeny, napríklad ako `~/lawoss-0.1.0.json`
+Záznam vydania nie je v repozitári; je v tomto skille (`release/0.2.0.json`).
+Skopíruj ho na server bez zmeny, napríklad ako `~/lawoss-0.2.0.json`
 (`scp` z počítača, na ktorom beží agent), a over jeho odtlačok:
 
 ```sh
-sha256sum ~/lawoss-0.1.0.json
+sha256sum ~/lawoss-0.2.0.json
 ```
 
-Výsledok musí byť `6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde`.
+Výsledok musí byť `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3`.
 Ukáž človeku poznámku k vydaniu (pole `note` v zázname; neobsahuje
 tajomstvá). Potom nainštaluj súbory vydania do `/opt/lawoss`:
 
 ```sh
 cd ~/lawoss-selfhost
-sudo sh deploy/install-host-files.sh ~/lawoss-0.1.0.json 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde .
+sudo sh deploy/install-host-files.sh ~/lawoss-0.2.0.json 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3 .
 ```
 
 Skript overí odtlačok záznamu, stiahne obraz auth podľa odtlačku (digestu),
@@ -329,7 +326,7 @@ certifikačnej autority a e-mail), lebo `init` e-mail vyžaduje a `.env` už
 nikdy neprepíše.
 
 ```sh
-sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --record ~/lawoss-0.1.0.json --record-sha256 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde
+sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --record ~/lawoss-0.2.0.json --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
 ```
 
 Doménu, služby a e-mail nahraď voľbami človeka. `init` vypíše iba názvy
@@ -342,12 +339,12 @@ a adresu, ktoré človek potvrdil v kroku 3 (`<HOST_ADDR>` nahraď touto
 adresou):
 
 ```sh
-sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --http-port 18080 --https-port 18443 --proxy-bind <HOST_ADDR> --record ~/lawoss-0.1.0.json --record-sha256 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde
+sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --http-port 18080 --https-port 18443 --proxy-bind <HOST_ADDR> --record ~/lawoss-0.2.0.json --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
 ```
 
 `init` ich zapíše do `.env` ako `LAWOSS_HTTP_PORT`, `LAWOSS_HTTPS_PORT`
-a `LAWOSS_PROXY_BIND`. Ak voľby odmietne, pripnuté vydanie ich nepozná:
-zastav sa (časť „Pripnuté vydanie“).
+a `LAWOSS_PROXY_BIND`. Ak `init` voľby odmietne, zastav sa a povedz to
+človeku.
 
 **Tajomstvá:** `.env` nikdy nečítaj, nevypisuj ani nekopíruj; ak sa niečo
 z neho objaví vo výstupe, zastav sa a postupuj podľa „Nikdy nespúšťaj“.
