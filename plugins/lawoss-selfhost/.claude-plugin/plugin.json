@@ -1,0 +1,10 @@
+{
+  "name": "lawoss-selfhost",
+  "version": "0.1.0",
+  "description": "Vlastný server LAWOSS: skill, ktorý agenta prevedie nasadením lawoss-selfhost 0.1.0 s potvrdeniami človeka.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}
