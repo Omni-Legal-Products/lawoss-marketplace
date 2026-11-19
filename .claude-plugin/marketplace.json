@@ -246,6 +246,16 @@
         "jurisdiction:sk",
         "jurisdiction:eu"
       ]
+    },
+    {
+      "name": "lawoss-selfhost",
+      "source": "./plugins/lawoss-selfhost",
+      "description": "Vlastný server LAWOSS: skill, ktorý agenta prevedie nasadením lawoss-selfhost 0.1.0 s potvrdeniami človeka.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:general"
+      ]
     }
   ]
 }

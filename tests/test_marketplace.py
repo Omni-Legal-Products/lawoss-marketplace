@@ -12,6 +12,35 @@ ROOT = Path(__file__).resolve().parents[1]
 CODEX_CATALOG = ROOT / ".agents" / "plugins" / "marketplace.json"
 CLAUDE_CATALOG = ROOT / ".claude-plugin" / "marketplace.json"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+SELFHOST = ROOT / "plugins" / "lawoss-selfhost"
+SELFHOST_SKILL_DIR = SELFHOST / "skills" / "lawoss-selfhost"
+# The 15 steps of design section 5.6, in Slovak and in order.
+SELFHOST_STEPS = (
+    "Čo sa nainštaluje, čo to stojí a čo nerobí",
+    "Server, doména, služby a značka",
+    "Pripojenie na server",
+    "Firewall",
+    "DNS",
+    "Stiahnutie pripnutého vydania",
+    "Generovanie tajomstiev",
+    "Značka",
+    "Certifikáty",
+    "Spustenie",
+    "Prvý účet",
+    "Pripojenie aplikácie",
+    "Overenie",
+    "Zálohy",
+    "Odovzdanie",
+)
+# Commands that print secrets. The skill lists them as never to be run and runs none of them itself.
+SECRET_COMMANDS = ("cat .env", "docker compose config", "env", "printenv", "docker inspect", "set -x")
+SECRET_COMMAND_LINE = re.compile(
+    r"^(?:sudo\s+)?(?:env|printenv)(?:\s|$)"
+    r"|docker compose config|docker inspect|set -x|bash -x"
+    r"|\b(?:cat|less|more|head|tail|grep|sed|awk)\b[^\n]*(?:\.env\b|/keys/|/snapshots/)"
+)
+# Agent commands are `sh` blocks; commands the human types in their own terminal are `text` blocks.
+FENCED_BLOCK = re.compile(r"^```([a-z]*)\n(.*?)^```", re.M | re.S)
 
 
 class MarketplaceValidationTest(unittest.TestCase):
@@ -301,6 +330,110 @@ class MarketplaceValidationTest(unittest.TestCase):
                 (ROOT / name).read_text(encoding="utf-8"),
                 msg=name,
             )
+
+    def _selfhost_record(self, ledger: dict) -> dict:
+        return next(record for record in ledger["releases"] if record["name"] == "lawoss-selfhost")
+
+    def _selfhost_skill_texts(self) -> dict:
+        return {path.relative_to(SELFHOST_SKILL_DIR).as_posix(): path.read_text(encoding="utf-8") for path in sorted(SELFHOST_SKILL_DIR.rglob("*.md"))}
+
+    def test_selfhost_is_skill_only(self) -> None:
+        """The self-hosting skill deploys a server elsewhere; it ships no MCP, runtime or scripts itself."""
+        manifest = json.loads((SELFHOST / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["skills"], "./skills/")
+        self.assertNotIn("mcpServers", manifest)
+        for name in (".mcp.json", "runtime", "scripts"):
+            self.assertFalse((SELFHOST / name).exists(), msg=name)
+        record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
+        self.assertEqual(record["distribution"], "selfhost-skill")
+        self.assertEqual(record["repository"], "Omni-Legal-Products/lawoss-selfhost")
+        self.assertIn(record["commit"], (SELFHOST / "README.md").read_text(encoding="utf-8"))
+
+        for mutation in (
+            lambda root: (root / "plugins/lawoss-selfhost/.mcp.json").write_text('{"mcpServers": {}}'),
+            lambda root: (root / "plugins/lawoss-selfhost/runtime").mkdir(),
+            lambda root: (root / "plugins/lawoss-selfhost/scripts").mkdir(),
+        ):
+            with tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                mutation(copied_root)
+                result = self._run_validator(copied_root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("selfhost wrapper must be skill-only", result.stderr)
+
+    def test_selfhost_skill_lists_all_fifteen_gates(self) -> None:
+        """Every step of design 5.6 is a numbered heading with what the agent may do and what the human confirms."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(skill.startswith("---\nname: lawoss-selfhost\n"))
+        headings = re.findall(r"^## (\d+)\. (.+)$", skill, re.M)
+        self.assertEqual(headings, [(str(number), title) for number, title in enumerate(SELFHOST_STEPS, 1)])
+        sections = re.split(r"^## \d+\. .+$", skill, flags=re.M)[1:]
+        for number, section in enumerate(sections, 1):
+            section = section.split("\n## ", 1)[0]
+            self.assertIn("**Agent smie sám:**", section, msg=f"step {number}")
+            self.assertIn("**Potvrdí človek:**", section, msg=f"step {number}")
+        record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
+        for pin in (record["commit"], record["recordSha256"], f"release/{record['version']}.json"):
+            self.assertIn(pin, skill)
+        # The standing rules of design 5.6 are stated once, before the steps.
+        for rule in ("rotáci", "nedokazuje", "update", "doctor"):
+            self.assertIn(rule, skill.split("## 1. ", 1)[0].lower())
+
+    def test_selfhost_skill_forbids_secret_commands(self) -> None:
+        """The never-run list names the secret-printing commands, and no command block in the skill runs one."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        never = skill.split("## Nikdy nespúšťaj\n", 1)[1].split("\n## ", 1)[0]
+        for command in SECRET_COMMANDS:
+            self.assertIn(f"`{command}`", never)
+        for path in ("/opt/lawoss/.env", ".env.previous", "keys/", "handoff/", "snapshots/"):
+            self.assertIn(path, never)
+        self.assertIn("rotate", never)
+        for name, text in self._selfhost_skill_texts().items():
+            for language, block in FENCED_BLOCK.findall(text):
+                self.assertIn(language, {"sh", "text", "json", "css", "svg", "cron"}, msg=f"{name}: untagged or unknown block")
+                for line in block.splitlines():
+                    if language == "sh":
+                        self.assertIsNone(SECRET_COMMAND_LINE.search(line.strip()), msg=f"{name}: {line}")
+                    # A provider key is typed at the hidden prompt, never piped or passed as an argument.
+                    if "set-key" in line:
+                        self.assertNotRegex(line, r"[|<]|set-key\s+\S+\s+\S", msg=f"{name}: {line}")
+
+    def test_selfhost_release_pin_refusals(self) -> None:
+        """The bundled release record must be exactly the one the ledger pins: bytes, commit and images."""
+        def ledger_mutation(change):
+            def mutate(root: Path) -> None:
+                path = root / "releases.json"
+                ledger = json.loads(path.read_text(encoding="utf-8"))
+                change(self._selfhost_record(ledger))
+                path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
+            return mutate
+
+        def record_bytes(root: Path) -> None:
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.1.0.json"
+            path.write_bytes(path.read_bytes() + b" ")
+
+        def skill_pin(root: Path) -> None:
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/SKILL.md"
+            text = path.read_text(encoding="utf-8")
+            path.write_text(text.replace("6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde", "0" * 64), encoding="utf-8")
+
+        other_digest = "sha256:" + "0" * 64
+        cases = (
+            ("another repository", ledger_mutation(lambda r: r.update(repository="Omni-Legal-Products/mcp-selfhost")), "must pin a lawoss-selfhost release"),
+            ("skill text names another record", skill_pin, "must name its pinned commit and record SHA-256"),
+            ("wrong hash in the ledger", ledger_mutation(lambda r: r.update(recordSha256="0" * 64)), "does not match its pinned SHA-256"),
+            ("changed record bytes", record_bytes, "does not match its pinned SHA-256"),
+            ("commit mismatch", ledger_mutation(lambda r: r.update(commit="1" * 40)), "names a different commit"),
+            ("auth image mismatch", ledger_mutation(lambda r: r["images"].update(auth=r["images"]["auth"].split("@")[0] + "@" + other_digest)), "names different images"),
+            ("hub image mismatch", ledger_mutation(lambda r: r["images"].update(hub=r["images"]["hub"].split("@")[0] + "@" + other_digest)), "names different images"),
+        )
+        for name, mutate, message in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                mutate(copied_root)
+                result = self._run_validator(copied_root)
+                self.assertNotEqual(result.returncode, 0, msg=name)
+                self.assertIn(message, result.stderr)
 
     def test_repository_validator_accepts_its_own_public_safe_rules(self) -> None:
         """Catch a sanitization rule that rejects its own validator source."""

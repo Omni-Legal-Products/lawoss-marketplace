@@ -106,6 +106,19 @@
       "commit": "d0138206b55338fcc82e63b31b658430751ef55f",
       "branch": "codex/rollout-fix-uvo",
       "distribution": "local-mcp-skill-cli"
+    },
+    {
+      "name": "lawoss-selfhost",
+      "repository": "Omni-Legal-Products/lawoss-selfhost",
+      "commit": "d041ee6fb116a65dde7201fb4c7d15bbb0b51256",
+      "distribution": "selfhost-skill",
+      "version": "0.1.0",
+      "recordSha256": "6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde",
+      "images": {
+        "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:93e84a8a52d3286b07cc1fd231dc4d679db5e15ecf27daf8dc510876390bc1ea",
+        "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:c86179af9093b1b26405da51aedcd343e66b33bf90a61018a21e12e08e667ea7"
+      },
+      "reviewDate": "2026-11-19"
     }
   ],
   "inRepoSkills": [

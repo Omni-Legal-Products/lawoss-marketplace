@@ -22,6 +22,11 @@ file as publishable even when the repository currently has no remote.
   `releases.json` under `inRepoSkills`) may be `AVAILABLE` after the repository
   checks pass (unit tests, `scripts/validate.py`, `claude plugin validate --strict`)
   and a maintainer review of its skill text.
+- The same applies to the `lawoss-selfhost` skill-only plugin, whose skill is
+  authored here and pins a `lawoss-selfhost` release (listed in `releases.json`
+  with `distribution: "selfhost-skill"`): it ships no runtime or MCP server, and
+  its bundled release record must match the recorded commit, record SHA-256 and
+  image digests.
 
 ## Required mirrors and checks
 
