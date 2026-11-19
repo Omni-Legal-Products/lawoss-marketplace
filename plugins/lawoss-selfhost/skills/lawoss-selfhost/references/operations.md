@@ -259,6 +259,7 @@ sudo tee /opt/lawoss/PREVADZKA.md > /dev/null <<'NOTE'
 - Kontrola: sudo /opt/lawoss/bin/lawoss-selfhost doctor
 - Zálohy: denne o 2.30 do /opt/lawoss/backups (cron /etc/cron.d/lawoss-backup)
 - Súkromný kľúč záloh: mimo servera, <opis miesta>
+- Za existujúcou proxy (iba ak platí): porty <HTTP>/<HTTPS> na <HOST_ADDR>, súbor presmerovania: <kde ho človek uložil>; pri odstránení nasadenia ho odstrániť
 - Aktualizácia: iba s novým commitom katalógu LAWOSS; poznámka, potvrdenie, install-host-files.sh, update, doctor
 - Pri úniku tajomstva: zastaviť, rotate podľa skillu lawoss-selfhost, nové kľúče poskytovateľov
 - Nikdy nečítať ani nevypisovať: .env, .env.previous, keys/, handoff/, snapshots/, backup-private.pem, logy kontajnerov

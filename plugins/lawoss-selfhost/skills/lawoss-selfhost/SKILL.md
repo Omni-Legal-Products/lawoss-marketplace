@@ -419,10 +419,10 @@ potrebuje kľúč poskytovateľa (napríklad `fs`), zadá ho človek.
 **Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** pred prvým
 spustením napíš presnú dynamickú konfiguráciu Traefiku (poskytovateľ `file`)
 pre zvolenú základnú doménu, `<HOST_ADDR>` a porty podľa vzoru
-v `references/existing-proxy.md`: smerovač TCP s `HostSNIRegexp`
-a `tls.passthrough: true` na port HTTPS a smerovač HTTP pre port 80 (v Dokploy
+v `references/existing-proxy.md`: router TCP s `HostSNIRegexp`
+a `tls.passthrough: true` na port HTTPS a router HTTP pre port 80 (v Dokploy
 vstupný bod `web`) na port HTTP. Regulárny
-výraz má bodky oddelené `\.`, začína `^`, končí `$` a zachytí `auth.` aj
+výraz má bodky zapísané ako `\.`, začína `^`, končí `$` a zachytí `auth.` aj
 každú zvolenú službu. Súbor ukáž človeku; nainštaluje ho sám (v Dokploy ako
 nový súbor v editore súborov Traefiku, inde do priečinka dynamickej
 konfigurácie Traefiku). Existujúcu konfiguráciu proxy nemeň, nepresúvaj ani
@@ -531,7 +531,8 @@ commit, doména, služby, plán záloh a kde je súkromný kľúč (opis miesta,
 kľúč), postup aktualizácie a rotácie. Žiadne tajomstvá, heslá ani odkazy.
 
 **Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** do poznámky
-patria aj porty, `<HOST_ADDR>` a miesto, kde človek uložil súbor presmerovania.
+patria aj porty, `<HOST_ADDR>` a miesto, kde človek uložil súbor presmerovania
+(riadok „Za existujúcou proxy“ vo vzore v `references/operations.md`).
 Povedz človeku, že pri odstránení nasadenia musí tento súbor odstrániť aj
 z konfigurácie existujúcej proxy (`references/existing-proxy.md`).
 

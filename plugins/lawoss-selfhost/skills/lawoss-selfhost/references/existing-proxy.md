@@ -63,8 +63,9 @@ sieti:
 - sieť `host` (proxy beží priamo v sieti servera): `<HOST_ADDR>` je
   `127.0.0.1`;
 - prázdna adresa pri prekryvnej sieti Docker Swarm (tú používa napríklad
-  Dokploy): kontajner vtedy dosiahne server cez sieť `docker_gwbridge`. Jej
-  adresu prečítaš takto a človeku ju navrhneš ako `<HOST_ADDR>`:
+  Dokploy): kontajner vtedy server zvyčajne dosiahne cez sieť
+  `docker_gwbridge`. Jej adresu prečítaš takto a človeku ju navrhneš ako
+  `<HOST_ADDR>`:
 
   ```sh
   sudo docker network inspect docker_gwbridge --format '{{range .IPAM.Config}}{{.Gateway}}{{println}}{{end}}'
@@ -136,8 +137,8 @@ http:
 
 Pri zápise:
 
-- `lawoss.example.com` nahraď základnou doménou, bodky v nej oddeľ spätnou
-  lomkou (`\.`) a ponechaj `^` na začiatku a `$` na konci. Pravidlo potom
+- `lawoss.example.com` nahraď základnou doménou, pred každú bodku v nej napíš
+  spätnú lomku (`\.`) a ponechaj `^` na začiatku a `$` na konci. Pravidlo potom
   zachytí `auth.` aj každú službu priamo pod základnou doménou, preto sa súbor
   pri `services add` ani `services remove` nemení.
 - `<HOST_ADDR>` nahraď adresou z kroku 3 a porty tými, ktoré potvrdil človek.
@@ -171,7 +172,9 @@ presmerovania chýba alebo je zlý. Skôr než čokoľvek iné nech človek over
 je nainštalovaný a sedí v ňom základná doména, názvy vstupných bodov,
 `<HOST_ADDR>` aj porty a že zápis zodpovedá verzii Traefiku. Až potom počkaj
 minútu na certifikáty a skontroluj DNS podľa `references/dns-and-tls.md`.
-Konfiguráciu proxy agent ani pri chybe nemení.
+Ak je súbor správny a kontrola zlyháva ďalej, spojenie z proxy na server môže
+blokovať firewall servera; povedz to človeku a nič nemeň. Konfiguráciu proxy
+ani firewall agent ani pri chybe nemení.
 
 ## Zmeny a odstránenie
 
