@@ -96,6 +96,12 @@ sudo /opt/lawoss/bin/lawoss-selfhost services remove ruz
 a znova vytvorí všetky kontajnery. Prístupy používateľov k novej službe pridáš cez
 `grant`.
 
+Na serveri s existujúcou reverznou proxy sa súbor presmerovania pri pridaní
+ani odobratí služby nemení: jeho pravidlo zachytí každú službu priamo pod
+základnou doménou. Ak sa nasadenie odstraňuje, človek odstráni z konfigurácie
+existujúcej proxy aj súbor presmerovania; agent ho nemaže
+(`existing-proxy.md`).
+
 ## Zálohy
 
 Prvá záloha a kontrola (krok 14 v `SKILL.md`):

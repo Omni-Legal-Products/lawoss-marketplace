@@ -22,6 +22,26 @@ zmeny.
 | 14 | Zálohy | kľúč záloh, prvá záloha, kontrola, plán po schválení | skopírovať súkromný kľúč mimo servera; schváliť plán |
 | 15 | Odovzdanie | zapísať prevádzkovú poznámku bez tajomstiev | nič |
 
+## Server s existujúcou reverznou proxy
+
+Ak porty 80 a 443 už drží Traefik (Dokploy, Coolify alebo vlastný), platí
+postup v `existing-proxy.md`. Brány sa v týchto krokoch líšia:
+
+| # | Agent smie sám | Potvrdí alebo urobí človek |
+|---|---|---|
+| 2 | po pripojení prečítať dostupnú pamäť (`free -h`) a povedať, že hub môže použiť až 6 GB | zoznam služieb podľa dostupnej pamäte |
+| 3 | iba čítať, kto drží porty 80 a 443, adresu servera pre proxy (`docker inspect` len s `--format` na siete) a voľné porty | dva porty a adresu `--proxy-bind` |
+| 4 | nič; firewall sa nemení, žiadny príkaz `ufw` | nič |
+| 5 | vypísať rovnaké záznamy na verejnú IP adresu existujúcej proxy | záznamy vytvorí sám |
+| 7 | `init` navyše s `--http-port`, `--https-port`, `--proxy-bind` | nič navyše |
+| 10 | napísať a ukázať súbor presmerovania pre Traefik; spustiť až po jeho inštalácii | nainštalovať súbor presmerovania |
+| 13 | pri zlyhaní TLS alebo HTTP najprv nechať skontrolovať súbor presmerovania | skontrolovať súbor presmerovania |
+| 15 | zapísať do poznámky porty, adresu a miesto súboru presmerovania | pri odstránení nasadenia odstrániť aj súbor presmerovania |
+
+Konfiguráciu existujúcej proxy agent nikdy nemení, nepresúva ani nemaže,
+Traefik, Dokploy ani Coolify nereštartuje a ich úložisko certifikátov
+(`acme.json`) nečíta.
+
 ## Poradie, ktoré určuje nástroj
 
 - `init` vyžaduje `--acme-email` a `.env` nikdy neprepíše. Doména, služby,

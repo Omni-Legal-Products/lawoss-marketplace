@@ -17,6 +17,14 @@ and says to stop and rotate when a secret appears in any output. A passing
 `doctor` proves that the deployment works technically, not that the data
 sources are complete.
 
+When a reverse proxy (Traefik on Dokploy, Coolify or a hand-made one) already
+owns ports 80 and 443, the skill runs the deployment behind it
+(`skills/lawoss-selfhost/references/existing-proxy.md`): the agent changes
+neither the firewall nor the existing proxy, binds the deployment's ports to
+the address the proxy reaches the host on, and writes a TLS-passthrough
+forwarding file that the human installs. That branch needs a lawoss-selfhost
+release whose `init` accepts `--http-port`, `--https-port` and `--proxy-bind`.
+
 ## Pinned release
 
 | Field | Value |
