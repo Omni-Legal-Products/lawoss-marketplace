@@ -15,7 +15,7 @@
     "category": "Productivity",
     "capabilities": [
       "Read",
-      "Write"
+      "Configure"
     ],
     "defaultPrompt": [
       "Prever môj server a prever ma nasadením vlastného servera LAWOSS; pri každom kroku povedz, čo urobíš sám a čo musím potvrdiť ja."

@@ -13,13 +13,17 @@ sudo /opt/lawoss/bin/lawoss-selfhost doctor
 sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env ps
 ```
 
+Logy kontajnerov (`docker compose logs`, `docker logs`) agent nečíta; ak ich
+treba, číta ich človek vo vlastnom termináli.
+
 `doctor` kontroluje DNS, TLS, metadáta prihlásenia a služieb, cestu hubu
 k auth, či obraz hubu nesie `services.json` servera, a nástroje každej služby.
 Prechod dokazuje technickú funkčnosť, nie úplnosť alebo aktuálnosť zdrojov.
 
 ## Kľúče poskytovateľov
 
-Zadáva ich človek sám vo svojom termináli; hodnota sa číta zo skrytého vstupu
+Zadáva ich človek sám vo svojom vlastnom termináli (samostatné okno alebo SSH
+spojenie, nie príkazové pole agenta ani predpona `!`); hodnota sa číta zo skrytého vstupu
 a hub sa potom reštartuje. Agent hodnotu nikdy nevidí ani neposiela.
 
 | Služba | Názov | Na čo |
@@ -49,7 +53,37 @@ sudo /opt/lawoss/bin/lawoss-selfhost disable jnovak
 `invite` vypíše iba cestu `/opt/lawoss/handoff/<účet>.link`; súbor otvorí
 človek sám a po aktivácii ho zmaže. Kým súbor existuje, novú pozvánku pre to
 isté meno nástroj odmietne. `disable` zruší prístupy, tokeny, relácie aj
-nepoužitú pozvánku.
+nepoužitú pozvánku; väzby účtu na služby a jeho údaje zostanú.
+
+### Nové heslo alebo uniknutý aktivačný odkaz
+
+Samoobslužná zmena hesla neexistuje. Ten istý účet sa obnoví novou pozvánkou;
+nový účet netreba a údaje sa nestratia:
+
+1. Agent po potvrdení zablokuje účet; prihlásenia, tokeny, relácie aj
+   nepoužitá pozvánka prestanú okamžite platiť:
+
+   ```sh
+   sudo /opt/lawoss/bin/lawoss-selfhost disable jnovak
+   ```
+
+2. Človek vo vlastnom termináli zmaže starý súbor s odkazom, ak ešte existuje:
+
+   ```text
+   sudo rm -f /opt/lawoss/handoff/jnovak.link
+   ```
+
+3. Agent pošle novú pozvánku pre ten istý účet a jeho služby (`list` ich
+   ukáže). Nástroj použije existujúce väzby účtu a nový odkaz platí 1 hodinu:
+
+   ```sh
+   sudo /opt/lawoss/bin/lawoss-selfhost invite jnovak slovlex,orsr
+   ```
+
+4. Človek otvorí nový súbor vo vlastnom termináli a odovzdá odkaz
+   používateľovi. Ten si nastaví nové heslo (aspoň 15 znakov). Aktiváciou sa
+   účet znova zapne a staré tokeny a relácie zostanú zrušené. Súbor potom
+   človek zmaže.
 
 ## Služby
 
@@ -76,19 +110,27 @@ sudo /opt/lawoss/bin/lawoss-selfhost restore --dry-run
 databázu auth, dáta hubu, `.env`, Caddyfile, značku a záznamy vydaní,
 zašifrované verejným kľúčom. Certifikáty v nej nie sú.
 
-Súkromný kľúč skopíruje človek mimo servera sám, vo svojom termináli; agent
-ho nečíta ani nekopíruje. Napríklad na serveri:
+Súkromný kľúč skopíruje človek na svoj počítač sám, vo svojom vlastnom
+termináli (samostatné okno alebo SSH spojenie, nie príkazové pole agenta ani
+predpona `!`). Agent ho nečíta, nekopíruje ani nepresúva. Kľúč sa nikdy
+neodkladá do domovského priečinka SSH účtu na serveri, ktorý používa agent.
+
+- Ak `sudo` na serveri nepýta heslo, človek na svojom počítači spustí:
+
+  ```text
+  ssh USER@SERVER "sudo cat /opt/lawoss/keys/backup-private.pem" > backup-private.pem
+  ```
+
+- Inak sa prihlási na server vo vlastnom termináli, spustí
+  `sudo cat /opt/lawoss/keys/backup-private.pem` a zobrazený text vloží ako
+  zabezpečenú poznámku do správcu hesiel.
+
+Kópiu uloží na bezpečné miesto (napríklad do správcu hesiel). Zhodu overí
+porovnaním odtlačkov (`sudo sha256sum /opt/lawoss/keys/backup-private.pem` na
+serveri a `shasum -a 256 backup-private.pem` u seba) a až potom kľúč zo
+servera zmaže:
 
 ```text
-sudo install -m 600 -o "$USER" /opt/lawoss/keys/backup-private.pem ~/backup-private.pem
-```
-
-na svojom počítači `scp USER@SERVER:backup-private.pem .`, uloží ho na
-bezpečné miesto (napríklad do správcu hesiel) a potom na serveri zmaže obe
-kópie:
-
-```text
-rm ~/backup-private.pem
 sudo rm /opt/lawoss/keys/backup-private.pem
 ```
 
@@ -128,9 +170,14 @@ serveri `init` nespúšťaj; `.env` vytvorí obnova.
 Nové vydanie prichádza iba s novým preskúmaným commitom katalógu LAWOSS, ktorý
 pripne nový commit, záznam vydania a obrazy. Platia rovnaké brány:
 
-1. Ukáž poznámku k vydaniu (pole `note` nového záznamu) a zmenu obrazov.
-2. Počkaj na potvrdenie človeka.
-3. Prepni repozitár na nový commit, over ho a nainštaluj súbory vydania:
+1. Nový záznam vydania vezmi z aktualizovaného katalógu: súbor
+   `release/<verzia>.json` v priečinku tohto skillu. Nový commit
+   a odtlačok (`recordSha256`) sú v tabuľke „Pripnuté vydanie“ aktualizovaného
+   `SKILL.md`. Inde ich nehľadaj.
+2. Ukáž poznámku k vydaniu (pole `note` nového záznamu) a zmenu obrazov.
+3. Počkaj na potvrdenie človeka.
+4. Skopíruj záznam na server bez zmeny (ako `~/lawoss-<verzia>.json`),
+   prepni repozitár na nový commit a over oboje ako v kroku 6:
 
    ```sh
    cd ~/lawoss-selfhost
@@ -138,10 +185,18 @@ pripne nový commit, záznam vydania a obrazy. Platia rovnaké brány:
    git checkout --detach <nový commit>
    git rev-parse HEAD
    sha256sum ~/lawoss-<verzia>.json
+   ```
+
+   `git rev-parse HEAD` musí vypísať presne nový pripnutý commit
+   a `sha256sum` presne nový `recordSha256` z katalógu. Ak sa niečo líši,
+   zastav sa a nič neinštaluj.
+5. Nainštaluj súbory vydania:
+
+   ```sh
    sudo sh deploy/install-host-files.sh ~/lawoss-<verzia>.json <nový odtlačok> .
    ```
 
-4. Spusti aktualizáciu a potom kontrolu:
+6. Spusti aktualizáciu a potom kontrolu:
 
    ```sh
    sudo /opt/lawoss/bin/lawoss-selfhost update --to <verzia> --record ~/lawoss-<verzia>.json --record-sha256 <nový odtlačok>
@@ -200,6 +255,6 @@ sudo tee /opt/lawoss/PREVADZKA.md > /dev/null <<'NOTE'
 - Súkromný kľúč záloh: mimo servera, <opis miesta>
 - Aktualizácia: iba s novým commitom katalógu LAWOSS; poznámka, potvrdenie, install-host-files.sh, update, doctor
 - Pri úniku tajomstva: zastaviť, rotate podľa skillu lawoss-selfhost, nové kľúče poskytovateľov
-- Nikdy nečítať ani nevypisovať: .env, .env.previous, keys/, handoff/, snapshots/
+- Nikdy nečítať ani nevypisovať: .env, .env.previous, keys/, handoff/, snapshots/, backup-private.pem, logy kontajnerov
 NOTE
 ```

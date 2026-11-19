@@ -33,14 +33,23 @@ SELFHOST_STEPS = (
     "Odovzdanie",
 )
 # Commands that print secrets. The skill lists them as never to be run and runs none of them itself.
-SECRET_COMMANDS = ("cat .env", "docker compose config", "env", "printenv", "docker inspect", "set -x")
+SECRET_COMMANDS = ("cat .env", "docker compose config", "env", "printenv", "docker inspect", "set -x", "docker compose logs", "docker logs")
 SECRET_COMMAND_LINE = re.compile(
     r"^(?:sudo\s+)?(?:env|printenv)(?:\s|$)"
-    r"|docker compose config|docker inspect|set -x|bash -x"
-    r"|\b(?:cat|less|more|head|tail|grep|sed|awk)\b[^\n]*(?:\.env\b|/keys/|/snapshots/)"
+    r"|\bdocker compose\b[^\n]*\b(?:config|logs)\b|\bdocker (?:inspect|logs)\b|set -x|bash -x"
+    r"|\b(?:cat|less|more|head|tail|grep|sed|awk|cp|scp|install)\b[^\n]*(?:\.env\b|/keys/|/snapshots/|/handoff/|backup-private\.pem)"
 )
 # Agent commands are `sh` blocks; commands the human types in their own terminal are `text` blocks.
-FENCED_BLOCK = re.compile(r"^```([a-z]*)\n(.*?)^```", re.M | re.S)
+# Fences may be indented (inside list items).
+FENCED_BLOCK = re.compile(r"^[ \t]*```([a-z]*)\n(.*?)^[ \t]*```", re.M | re.S)
+# Steps that handle secrets repeat the secret rule.
+SELFHOST_SECRET_STEPS = (7, 10, 11, 14)
+
+
+def secret_command_lines(text: str) -> list[str]:
+    """Agent (`sh`) lines that would print or copy a secret."""
+    return [line.strip() for language, block in FENCED_BLOCK.findall(text) if language == "sh"
+            for line in block.splitlines() if SECRET_COMMAND_LINE.search(line.strip())]
 
 
 class MarketplaceValidationTest(unittest.TestCase):
@@ -372,6 +381,8 @@ class MarketplaceValidationTest(unittest.TestCase):
             section = section.split("\n## ", 1)[0]
             self.assertIn("**Agent smie sám:**", section, msg=f"step {number}")
             self.assertIn("**Potvrdí človek:**", section, msg=f"step {number}")
+            if number in SELFHOST_SECRET_STEPS:
+                self.assertIn("**Tajomstvá:**", section, msg=f"step {number}")
         record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
         for pin in (record["commit"], record["recordSha256"], f"release/{record['version']}.json"):
             self.assertIn(pin, skill)
@@ -385,15 +396,17 @@ class MarketplaceValidationTest(unittest.TestCase):
         never = skill.split("## Nikdy nespúšťaj\n", 1)[1].split("\n## ", 1)[0]
         for command in SECRET_COMMANDS:
             self.assertIn(f"`{command}`", never)
-        for path in ("/opt/lawoss/.env", ".env.previous", "keys/", "handoff/", "snapshots/"):
+        for path in ("/opt/lawoss/.env", ".env.previous", "keys/", "handoff/", "snapshots/", "backup-private.pem"):
             self.assertIn(path, never)
         self.assertIn("rotate", never)
+        # The scan itself catches indented fences and the long compose form.
+        probe = "1. Krok:\n\n   ```sh\n   sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env config\n   sudo docker compose -f /opt/lawoss/compose.yaml logs auth\n   sudo cat /opt/lawoss/handoff/jnovak.link\n   ```\n"
+        self.assertEqual(len(secret_command_lines(probe)), 3)
         for name, text in self._selfhost_skill_texts().items():
+            self.assertEqual(secret_command_lines(text), [], msg=name)
             for language, block in FENCED_BLOCK.findall(text):
                 self.assertIn(language, {"sh", "text", "json", "css", "svg", "cron"}, msg=f"{name}: untagged or unknown block")
                 for line in block.splitlines():
-                    if language == "sh":
-                        self.assertIsNone(SECRET_COMMAND_LINE.search(line.strip()), msg=f"{name}: {line}")
                     # A provider key is typed at the hidden prompt, never piped or passed as an argument.
                     if "set-key" in line:
                         self.assertNotRegex(line, r"[|<]|set-key\s+\S+\s+\S", msg=f"{name}: {line}")

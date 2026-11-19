@@ -286,7 +286,7 @@ def validate_catalogs(root: Path) -> int:
     claude = load_json(root / ".claude-plugin/marketplace.json", root)
     ledger = load_json(root / "releases.json", root)
     records = ledger.get("releases", [])
-    require(isinstance(records, list), "15 reviewed organization records required")
+    require(isinstance(records, list), "releases must be an array")
     # The self-hosting skill is a regular release record of lawoss-selfhost; the rest carry runtimes.
     runtimes = [r for r in records if r.get("distribution") != "selfhost-skill"]
     require(len(runtimes) == 15, "15 reviewed organization records required")

@@ -13,7 +13,10 @@ používateľov a dodržiavanie podmienok verejných zdrojov zodpovedá ten, kto
 server prevádzkuje.
 
 Bloky `sh` spúšťa agent na serveri (cez SSH). Bloky `text` píše človek sám vo
-svojom termináli; ich výstup do konverzácie nevkladá. Slovo „potvrdenie“
+svojom vlastnom termináli; ich výstup do konverzácie nevkladá. **Vlastný
+terminál** je samostatné okno terminálu alebo samostatné SSH spojenie človeka,
+nikdy nie príkazové pole agenta ani priechod do shellu cez agenta (napríklad
+predpona `!`), lebo tam by výstup videl agent. Slovo „potvrdenie“
 znamená výslovné áno človeka v konverzácii k tomu konkrétnemu kroku. Súhlas
 s jedným krokom neplatí pre ďalší.
 
@@ -66,6 +69,10 @@ vloženie výstupu do konverzácie:
   a hub, ani čítanie `/proc/*/environ`;
 - `docker inspect` kontajnerov auth a hub (obsahuje ich prostredie);
 - `set -x`, `bash -x`, `sh -x` a iné sledovanie shellu;
+- `docker compose logs` a `docker logs`; ak treba logy, číta ich človek vo
+  vlastnom termináli;
+- čokoľvek, čo číta súbor `backup-private.pem` (súkromný kľúč záloh), na
+  serveri aj inde;
 - kľúč poskytovateľa nikdy nezadávaj ako argument ani cez rúru (`echo … |`);
   `set-key` ho číta iba zo skrytého vstupu v termináli človeka.
 
@@ -79,7 +86,7 @@ urob rotáciu (príkazy: `sudo /opt/lawoss/bin/lawoss-selfhost …`):
 | podpisový kľúč | `rotate signing`, po 60 minútach znova |
 | celý `.env` | všetky tri rotácie vyššie a nové kľúče poskytovateľov |
 | kľúč poskytovateľa (napr. `FS_API_KEY`) | človek si u poskytovateľa vydá nový, starý zruší a nový zadá cez `set-key` |
-| aktivačný odkaz alebo heslo | `disable <účet>` (zruší prístupy, tokeny, relácie aj nepoužitú pozvánku), potom nová pozvánka pod novým menom účtu; to isté meno nástroj znova pozvať spoľahlivo nevie a nový účet začína bez údajov starého |
+| aktivačný odkaz alebo heslo | 1. `disable <účet>` (okamžite zruší prihlásenia, tokeny, relácie aj nepoužitú pozvánku); 2. človek zmaže starý súbor `/opt/lawoss/handoff/<účet>.link`, ak ešte existuje; 3. `invite <ten istý účet> <jeho služby>`; 4. človek účet aktivuje s novým heslom. Účet aj jeho údaje zostanú (postup je v `references/operations.md`, „Účty“) |
 | súkromný kľúč záloh | nástroj nemá príkaz na jeho výmenu (`backup init-key` existujúci kľúč nenahradí); povedz to úprimne, zálohy zapečatené týmto kľúčom ber ako čitateľné a ďalší postup nechaj na človeku |
 
 ## 1. Čo sa nainštaluje, čo to stojí a čo nerobí
@@ -145,7 +152,7 @@ df -h /
 docker --version
 docker compose version
 git --version
-command -v gh
+sudo sh -c 'command -v gh'
 ss -ltn
 ls -ld /opt/lawoss
 ```
@@ -251,11 +258,15 @@ Atestácie povedz úprimne:
   katalóg. Neoverí sa však atestácia, že obrazy postavila CI organizácie.
 - Ak `gh` nainštalovaný je, musí byť prihlásený ako root, inak skript (a neskôr
   `init` aj `update`) vydanie odmietne. Neobchádzaj to odinštalovaním `gh`;
-  opýtaj sa človeka.
+  opýtaj sa človeka. Stav prihlásenia roota zistíš bez výpisu podrobností:
+
+  ```sh
+  sudo gh auth status > /dev/null 2>&1 && echo prihlaseny || echo neprihlaseny
+  ```
 - Obraz proxy (Caddy) atestáciu nemá; platí preň iba odtlačok.
 
 **Potvrdí človek:** nič, ak `gh` nie je nainštalovaný. Ak je a človek chce
-atestácie overiť, prihlási ho sám vo svojom termináli (token sa do
+atestácie overiť, prihlási ho sám vo svojom vlastnom termináli (token sa do
 konverzácie nedostane):
 
 ```text
@@ -279,6 +290,9 @@ hostiteľov; porovnaj ich so záznamami DNS z kroku 5. Služby neskôr pridáš
 alebo odoberieš cez `services add|remove`. Ak je zle doména alebo e-mail,
 `.env` neupravuj ani nečítaj; zastav sa a rozhodnutie nechaj na človeku.
 
+**Tajomstvá:** `.env` nikdy nečítaj, nevypisuj ani nekopíruj; ak sa niečo
+z neho objaví vo výstupe, zastav sa a postupuj podľa „Nikdy nespúšťaj“.
+
 **Potvrdí človek:** nič navyše; doménu, služby a e-mail už potvrdil.
 
 ## 8. Značka
@@ -293,7 +307,7 @@ sudo /opt/lawoss/bin/lawoss-selfhost brand preview "$HOME/kancelaria"
 ```
 
 `brand preview` beží, kým ho nezastaví Ctrl-C. Ak ho tvoje nástroje nevedia
-nechať bežať, nech ho človek spustí sám vo svojom SSH termináli. Človek si
+nechať bežať, nech ho človek spustí sám vo svojom vlastnom SSH termináli. Človek si
 otvorí tunel a náhľad v prehliadači:
 
 ```text
@@ -339,8 +353,12 @@ sudo /opt/lawoss/bin/lawoss-selfhost doctor
 počkaj minútu, kým Caddy získa certifikáty, a spusti ho znova. Ak služba
 potrebuje kľúč poskytovateľa (napríklad `fs`), zadá ho človek.
 
+**Tajomstvá:** kľúč poskytovateľa nikdy nepýtaj do konverzácie a logy
+kontajnerov nečítaj; ak sa tajomstvo objaví vo výstupe, zastav sa a postupuj
+podľa „Nikdy nespúšťaj“.
+
 **Potvrdí človek:** nič. Kľúče poskytovateľov zadáva človek sám vo svojom
-termináli; hodnotu píše do skrytého vstupu:
+vlastnom termináli; hodnotu píše do skrytého vstupu:
 
 ```text
 sudo /opt/lawoss/bin/lawoss-selfhost set-key FS_API_KEY
@@ -349,8 +367,9 @@ sudo /opt/lawoss/bin/lawoss-selfhost set-key FS_API_KEY
 ## 11. Prvý účet
 
 **Agent smie sám:** založiť osobný účet s jednorazovým aktivačným odkazom.
-Meno účtu má 3 až 64 malých písmen, číslic, `-` alebo `_`. Každý človek má
-vlastný účet.
+Meno účtu má 3 až 64 znakov: malé písmená bez diakritiky, číslice, `-` alebo
+`_`, a začína písmenom alebo číslicou. Meno je zároveň označenie údajov
+používateľa, preto ho neskôr nemeň. Každý človek má vlastný účet.
 
 ```sh
 sudo /opt/lawoss/bin/lawoss-selfhost invite jnovak slovlex,orsr,judikaty
@@ -359,8 +378,13 @@ sudo /opt/lawoss/bin/lawoss-selfhost invite jnovak slovlex,orsr,judikaty
 Príkaz vypíše iba cestu `/opt/lawoss/handoff/jnovak.link` (súbor 0600). Povedz
 človeku len túto cestu; súbor nikdy nečítaj.
 
-**Potvrdí človek:** otvorí súbor sám vo svojom termináli, odkaz otvorí
-v prehliadači, aktivuje účet a zvolí si heslo. Potom súbor zmaže:
+**Tajomstvá:** aktivačný odkaz ani heslo nikdy nepýtaj do konverzácie; ak sa
+objavia vo výstupe, zastav sa a postupuj podľa „Nikdy nespúšťaj“. Odkaz platí
+1 hodinu.
+
+**Potvrdí človek:** otvorí súbor sám vo svojom vlastnom termináli (nie cez
+agenta), odkaz otvorí v prehliadači, aktivuje účet a zvolí si heslo (aspoň
+15 znakov). Potom súbor zmaže:
 
 ```text
 sudo cat /opt/lawoss/handoff/jnovak.link
@@ -407,7 +431,11 @@ sudo /opt/lawoss/bin/lawoss-selfhost restore --dry-run
 kľúčom; bez súkromného kľúča sa nedajú obnoviť. Plán (napríklad denne o 2.30)
 nastav až po schválení; postup je v `references/operations.md`.
 
-**Potvrdí človek:** skopíruje súkromný kľúč mimo servera na bezpečné miesto
+**Tajomstvá:** súkromný kľúč záloh (`backup-private.pem`) nikdy nečítaj,
+nekopíruj ani nepresúvaj; ak sa jeho obsah objaví vo výstupe, zastav sa
+a povedz to človeku.
+
+**Potvrdí človek:** skopíruje súkromný kľúč na svoj počítač na bezpečné miesto
 (napríklad do správcu hesiel) a schváli plán záloh. Postup pre človeka je
 v `references/operations.md`; agent kľúč nečíta ani nekopíruje.
 
