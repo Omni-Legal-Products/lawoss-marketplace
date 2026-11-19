@@ -234,6 +234,18 @@
         "lawoss-category:cz",
         "jurisdiction:cz"
       ]
+    },
+    {
+      "name": "lawoss-remote-skills",
+      "source": "./plugins/lawoss-remote-skills",
+      "description": "Skilly LAWOSS pre self-hosted server: vzdialené verzie 14 služieb, bez lokálneho servera.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk",
+        "jurisdiction:eu"
+      ]
     }
   ]
 }

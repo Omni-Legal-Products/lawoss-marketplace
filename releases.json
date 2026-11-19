@@ -150,6 +150,13 @@
       "path": "plugins/katastr-cz",
       "distribution": "skill-only",
       "reviewDate": "2026-10-22"
+    },
+    {
+      "name": "lawoss-remote-skills",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/lawoss-remote-skills",
+      "distribution": "skill-only",
+      "reviewDate": "2026-11-19"
     }
   ]
 }

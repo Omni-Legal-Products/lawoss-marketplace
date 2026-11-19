@@ -12,6 +12,8 @@ A source commit and a plugin version are separate identifiers: packaging, launch
 
 The usage skill comes from the reviewed catalog commit. A skill changed in the source repository must first be adapted and reviewed in the catalog; the builder does not overwrite the local usage instructions with upstream server setup instructions.
 
+After changing a local usage skill, run `python3 scripts/build_remote_skills.py` and commit the regenerated remote edition in `plugins/lawoss-remote-skills` in the same pull request.
+
 ## Why CRZ moved to the generic path
 
 Until 1.4.2 CRZ shipped its own older launcher and no `runtime-config.json`. Clients that recognize a LAWOSS bundled runtime by `runtime-config.json` plus `scripts/run.mjs` (for example the LAWOSS app) therefore did not rewrite the relative launcher path to the plugin root, and the MCP closed its connection on start when the client's working directory was not the plugin root. Version 1.4.3 repackages the same reviewed source commit with the shared launcher, `runtime-config.json` and a provenance that includes the configuration hash.

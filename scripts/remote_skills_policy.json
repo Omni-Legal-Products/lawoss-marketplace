@@ -1,0 +1,233 @@
+{
+  "source": {
+    "repository": "Omni-Legal-Products/lawoss-selfhost",
+    "commit": "a33429b80306c2e3b83b528c0043698270176a13",
+    "path": "hub/services.json",
+    "catalogCommit": "e0681bb4a79c1dd415d7c47944dfc1894e77672b"
+  },
+  "note": "Copied by hand from the source above; refresh it when the hub manifest changes. Only what scripts/build_remote_skills.py needs: per service the plugin, the allowed tools, the deny-remote tools and the allow-without tools with their removed arguments.",
+  "services": {
+    "crz": {
+      "plugin": "crz",
+      "allow": [
+        "crz_extract_clauses",
+        "crz_find_similar_contracts",
+        "crz_get_contract",
+        "crz_list_attachments",
+        "crz_recent",
+        "crz_search",
+        "crz_summarize_contract",
+        "crz_whats_new"
+      ],
+      "denyRemote": [
+        "crz_download_attachment"
+      ],
+      "allowWithout": {
+        "crz_contract_to_markdown": [
+          "save_to_dir"
+        ]
+      }
+    },
+    "disq": {
+      "plugin": "disq",
+      "allow": [
+        "disq_check",
+        "disq_get_detail"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "eurlex": {
+      "plugin": "eurlex-celex",
+      "allow": [
+        "eurlex_celex_parse",
+        "eurlex_celex_validate",
+        "eurlex_citation_check",
+        "eurlex_document_compare",
+        "eurlex_document_find",
+        "eurlex_document_get",
+        "eurlex_document_languages",
+        "eurlex_document_versions",
+        "eurlex_eli_resolve",
+        "eurlex_related_find",
+        "eurlex_search_full_text"
+      ],
+      "denyRemote": [
+        "eurlex_document_export"
+      ],
+      "allowWithout": {}
+    },
+    "fs": {
+      "plugin": "fs-opendata-mcp",
+      "allow": [
+        "fs_corporate_income_tax",
+        "fs_full_due_diligence",
+        "fs_income_tax_registration",
+        "fs_list_metadata",
+        "fs_tax_debtor_check",
+        "fs_tax_reliability_index",
+        "fs_vat_bank_accounts",
+        "fs_vat_status",
+        "fs_vat_tax_admin_account"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "judikaty": {
+      "plugin": "judikaty",
+      "allow": [
+        "autocomplete_decisions",
+        "batch_get_decision_summaries",
+        "find_decisions_by_law",
+        "get_case_chain",
+        "get_decision_by_reference",
+        "get_decision_detail",
+        "get_decision_markdown",
+        "get_decision_markdown_by_reference",
+        "get_decision_text",
+        "get_decision_treatment",
+        "get_nsud_index_stats",
+        "get_provider_health",
+        "get_treatment_index_stats",
+        "related_slovlex_context",
+        "resolve_decision_identity",
+        "search_courts",
+        "search_decision_text",
+        "search_decisions"
+      ],
+      "denyRemote": [
+        "download_decision_document",
+        "export_decision_markdown",
+        "export_decision_markdown_by_reference",
+        "manage_watchlist"
+      ],
+      "allowWithout": {
+        "get_decision_full_text": [
+          "savePath",
+          "saveToDefaultPath"
+        ],
+        "get_decision_full_text_by_reference": [
+          "savePath",
+          "saveToDefaultPath"
+        ]
+      }
+    },
+    "kalkulacky": {
+      "plugin": "kalkulacky",
+      "allow": [
+        "koniec_lehoty",
+        "sadzby_info",
+        "sudny_poplatok",
+        "trovy_exekucie",
+        "trovy_pravneho_zastupenia",
+        "urok_z_omeskania"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "orsr": {
+      "plugin": "orsr",
+      "allow": [
+        "orsr_check_legal_person",
+        "orsr_codelist_get",
+        "orsr_get_company_data",
+        "orsr_get_company_data_by_query",
+        "orsr_get_company_profile",
+        "orsr_get_company_profile_by_query",
+        "orsr_get_documents",
+        "orsr_get_extract",
+        "orsr_get_extract_full",
+        "orsr_get_related",
+        "orsr_lookup_address",
+        "orsr_lookup_legal_person",
+        "orsr_search_entities"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "ov": {
+      "plugin": "ov",
+      "allow": [
+        "ov_get_by_ico",
+        "ov_get_notice",
+        "ov_search"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "rpo": {
+      "plugin": "rpo",
+      "allow": [
+        "rpo_get_entity",
+        "rpo_get_related",
+        "rpo_search"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "rpvs": {
+      "plugin": "rpvs",
+      "allow": [
+        "rpvs_bulk_lookup",
+        "rpvs_get_partner",
+        "rpvs_search"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "ru": {
+      "plugin": "ru",
+      "allow": [
+        "ru_get_by_ico",
+        "ru_get_case",
+        "ru_search"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    },
+    "ruz": {
+      "plugin": "ruz",
+      "allow": [
+        "ruz_financial_profile",
+        "ruz_find_entity",
+        "ruz_get_report",
+        "ruz_get_statement",
+        "ruz_list_annual_reports",
+        "ruz_list_attachments",
+        "ruz_list_statements"
+      ],
+      "denyRemote": [
+        "ruz_download_attachment"
+      ],
+      "allowWithout": {}
+    },
+    "slovlex": {
+      "plugin": "slovlex",
+      "allow": [
+        "get_explanatory_report_text",
+        "get_explanatory_reports",
+        "get_law",
+        "get_paragraph",
+        "get_recent",
+        "get_version",
+        "search"
+      ],
+      "denyRemote": [
+        "read_saved_markdown",
+        "save_explanatory_report_markdown",
+        "save_law_markdown"
+      ],
+      "allowWithout": {}
+    },
+    "uvo": {
+      "plugin": "uvo",
+      "allow": [
+        "uvo_get_contracting_authority",
+        "uvo_get_notice",
+        "uvo_search"
+      ],
+      "denyRemote": [],
+      "allowWithout": {}
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "lawoss-remote-skills",
+  "version": "0.1.0",
+  "description": "Skilly LAWOSS pre self-hosted server: vzdialené verzie 14 služieb, bez lokálneho servera.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "LAWOSS skilly pre self-hosted server",
+    "shortDescription": "14 služieb · skilly · vlastný server",
+    "longDescription": "Vzdialené verzie usage skillov pre služby pripojené na self-hosted server LAWOSS. Každý skill opisuje nástroje, ktoré server ponúka, nástroje vyhradené lokálnemu pluginu a čo použiť namiesto nich. Balík neobsahuje server, endpoint, runtime ani OAuth klienta; pripojenia na server sa nastavujú samostatne.",
+    "developerName": "LAWOSS",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Research"
+    ],
+    "defaultPrompt": [
+      "Over cez pripojený self-hosted server LAWOSS, kto koná za spoločnosť podľa IČO, a uveď zdroj a obmedzenia výsledku."
+    ]
+  }
+}
