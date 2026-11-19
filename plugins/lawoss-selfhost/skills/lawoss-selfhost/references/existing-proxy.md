@@ -18,6 +18,9 @@ vydania `lawoss-selfhost` 0.2.0. Ak ich `init` odmietne, zastav sa a povedz to
 - nereštartuje ani neprekonfiguruje Traefik, Dokploy ani Coolify;
 - nečíta `acme.json` ani iné úložisko certifikátov proxy (sú v ňom súkromné
   kľúče certifikátov);
+- nevypisuje ani nečíta priečinok dynamickej konfigurácie proxy ani jej
+  statickú konfiguráciu (v Dokploy je v tom istom priečinku aj úložisko
+  certifikátov);
 - nespúšťa `docker inspect` kontajnera proxy bez `--format` obmedzeného na
   názvy sietí a ich gateway; úplný výpis obsahuje prostredie kontajnera
   a v ňom často tajomstvá;
@@ -94,7 +97,10 @@ ss -lun
 
 V žiadnom z nich nesmie byť `:18080` ani `:18443`. Inak navrhni iné porty.
 
-**Potvrdí človek:** oba porty a `<HOST_ADDR>`. Po `init` sú zapísané v `.env`;
+**Potvrdí človek:** oba porty, `<HOST_ADDR>` a to, že žiadna iná aplikácia na
+existujúcej proxy nepoužíva niektorý z názvov nasadenia (`auth.<základná
+doména>` a `<služba>.<základná doména>` pre každú zvolenú službu). Po `init`
+sú porty a adresa zapísané v `.env`;
 neskôr ich agent nemení. Ak treba zmenu, zastav sa a rozhodnutie nechaj na
 človeku.
 
@@ -110,15 +116,16 @@ neskôr ich agent nemení. Ak treba zmenu, zastav sa a rozhodnutie nechaj na
 ## Súbor presmerovania (krok 10, pred prvým spustením)
 
 Agent napíše presnú dynamickú konfiguráciu Traefiku (poskytovateľ `file`)
-podľa zvolenej základnej domény, portov a `<HOST_ADDR>` a ukáže ju človeku.
-Pre `lawoss.example.com`, porty 18080 a 18443:
+podľa zvolenej základnej domény, služieb, portov a `<HOST_ADDR>` a ukáže ju
+človeku. Pre `lawoss.example.com`, služby `slovlex,orsr,judikaty`, porty 18080
+a 18443:
 
 ```yaml
 tcp:
   routers:
     lawoss-tls:
       entryPoints: [websecure]
-      rule: HostSNIRegexp(`^[a-z0-9-]+\.lawoss\.example\.com$`)
+      rule: HostSNIRegexp(`^(auth|slovlex|orsr|judikaty)\.lawoss\.example\.com$`)
       tls:
         passthrough: true
       service: lawoss-tls
@@ -131,7 +138,7 @@ http:
   routers:
     lawoss-http:
       entryPoints: [web]
-      rule: HostRegexp(`^[a-z0-9-]+\.lawoss\.example\.com$`)
+      rule: HostRegexp(`^(auth|slovlex|orsr|judikaty)\.lawoss\.example\.com$`)
       service: lawoss-http
   services:
     lawoss-http:
@@ -142,13 +149,20 @@ http:
 
 Pri zápise:
 
-- `lawoss.example.com` nahraď základnou doménou, pred každú bodku v nej napíš
-  spätnú lomku (`\.`) a ponechaj `^` na začiatku a `$` na konci. Pravidlo potom
-  zachytí `auth.` aj každú službu priamo pod základnou doménou, preto sa súbor
-  pri `services add` ani `services remove` nemení.
+- Do zátvorky vymenuj `auth` a presne zvolené služby, oddelené `|`.
+  `lawoss.example.com` nahraď základnou doménou, pred každú bodku v nej napíš
+  spätnú lomku (`\.`) a ponechaj `^` na začiatku a `$` na konci. Oba routery
+  majú rovnaký výraz.
+- Nikdy nepíš pravidlo pre všetkých hostiteľov pod základnou doménou. Na
+  zdieľanej proxy majú routery TCP na vstupnom bode pre port 443 prednosť pred
+  routermi HTTP, takže širšie pravidlo by iným aplikáciám pod tou istou
+  doménou zobralo TLS aj prevádzku na porte 80. Preto sa súbor pri
+  `services add` a `services remove` mení (časť „Zmeny a odstránenie“).
 - `<HOST_ADDR>` nahraď adresou z kroku 3 a porty tými, ktoré potvrdil človek.
-  Adresu IPv6 píš v tomto súbore v hranatých zátvorkách (`[…]:18443`),
-  v `--proxy-bind` bez nich.
+  Adresu IPv6 píš v tomto súbore v hranatých zátvorkách a celú hodnotu
+  v úvodzovkách, inak to nie je platný YAML: `address: "[2001:db8::1]:18443"`
+  a `url: "http://[2001:db8::1]:18080"`. V `--proxy-bind` ju píš bez zátvoriek
+  (`2001:db8::1`).
 - `web` a `websecure` sú názvy vstupných bodov (entrypoints) pre porty 80
   a 443 v Dokploy. Iná inštalácia ich môže volať inak (Coolify napríklad
   `http` a `https`); názvy potvrdí človek podľa svojej proxy.
@@ -159,11 +173,13 @@ Pri zápise:
 - Caddy potom ako adresu klienta vidí adresu existujúcej proxy, nie adresu
   používateľa.
 
-**Potvrdí človek:** súbor nainštaluje sám. V Dokploy ho pridá ako nový súbor
-v editore súborov Traefiku (dynamická konfigurácia), inde ako nový súbor
-v priečinku, ktorý sleduje poskytovateľ `file` jeho Traefiku. Traefik, ktorý
-priečinok sleduje, načíta súbor bez reštartu. Ak ho nesleduje, o ďalšom
-postupe rozhoduje človek; agent Traefik nereštartuje.
+**Potvrdí človek:** súbor nainštaluje sám a v konverzácii potvrdí, že je
+nainštalovaný. V Dokploy ho pridá ako nový súbor v editore súborov Traefiku
+(dynamická konfigurácia), inde ako nový súbor v priečinku, ktorý sleduje
+poskytovateľ `file` jeho Traefiku; tento priečinok si nájde sám. Agent ho
+nehľadá, nevypisuje ani nečíta. Traefik, ktorý priečinok sleduje, načíta súbor
+bez reštartu. Ak ho nesleduje, o ďalšom postupe rozhoduje človek; agent
+Traefik nereštartuje. Či presmerovanie funguje, overí `doctor` (kroky 10 a 13).
 
 ## Kontrola a chyby (kroky 10 a 13)
 
@@ -174,8 +190,8 @@ servera, `doctor` sa k nasadeniu odtiaľ nedostane; povedz to človeku.
 
 Ak na tejto vetve zlyhá kontrola TLS alebo HTTP, najprv to znamená, že súbor
 presmerovania chýba alebo je zlý. Skôr než čokoľvek iné nech človek overí, že
-je nainštalovaný a sedí v ňom základná doména, názvy vstupných bodov,
-`<HOST_ADDR>` aj porty a že zápis zodpovedá verzii Traefiku. Až potom počkaj
+je nainštalovaný a sedí v ňom základná doména, zoznam hostiteľov, názvy
+vstupných bodov, `<HOST_ADDR>` aj porty a že zápis zodpovedá verzii Traefiku. Až potom počkaj
 minútu na certifikáty a skontroluj DNS podľa `references/dns-and-tls.md`.
 Ak je súbor správny a kontrola zlyháva ďalej, spojenie z proxy na server môže
 blokovať firewall servera; povedz to človeku a nič nemeň. Konfiguráciu proxy
@@ -184,8 +200,13 @@ ani firewall agent ani pri chybe nemení.
 ## Zmeny a odstránenie
 
 - `update`, `rollback`, `rotate` a `services` porty ani `<HOST_ADDR>`
-  nemenia; súbor presmerovania zostáva platný.
-- Pri `services add` stačí nový záznam DNS (ak nie je záznam `*`).
+  nemenia.
+- Pred `services add` agent napíše upravený súbor presmerovania s novou
+  službou v zozname, človek potvrdí, že jej názov nepoužíva iná aplikácia na
+  proxy, a súbor nainštaluje. Až potom spusti `services add`, aby Caddy mohol
+  hneď získať certifikát. Človek pridá aj záznam DNS (ak nie je záznam `*`).
+- Po `services remove` agent napíše súbor bez odobratej služby a človek ho
+  nainštaluje.
 - Ak sa nasadenie odstraňuje, človek odstráni z konfigurácie existujúcej
   proxy aj súbor presmerovania. Agent ho nemaže.
 - Do prevádzkovej poznámky (krok 15) patria porty, `<HOST_ADDR>` a to, kde

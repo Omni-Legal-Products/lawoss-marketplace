@@ -30,11 +30,11 @@ postup v `existing-proxy.md`. Brány sa v týchto krokoch líšia:
 | # | Agent smie sám | Potvrdí alebo urobí človek |
 |---|---|---|
 | 2 | po pripojení prečítať dostupnú pamäť (`free -h`) a povedať, že hub môže použiť až 6 GB | zoznam služieb podľa dostupnej pamäte |
-| 3 | iba čítať, kto drží porty 80 a 443, adresu servera pre proxy (`docker inspect` len s `--format` na siete) a voľné porty | dva porty a adresu `--proxy-bind` |
+| 3 | iba čítať, kto drží porty 80 a 443, adresu servera pre proxy (`docker inspect` len s `--format` na siete) a voľné porty | dva porty, adresu `--proxy-bind` a to, že názvy nasadenia nepoužíva iná aplikácia na proxy |
 | 4 | nič; firewall sa nemení, žiadny príkaz `ufw` | nič |
 | 5 | vypísať rovnaké záznamy na verejnú IP adresu existujúcej proxy | záznamy vytvorí sám |
 | 7 | `init` navyše s `--http-port`, `--https-port`, `--proxy-bind` | nič navyše |
-| 10 | napísať a ukázať súbor presmerovania pre Traefik; spustiť až po jeho inštalácii | nainštalovať súbor presmerovania |
+| 10 | napísať a ukázať súbor presmerovania pre Traefik s presnými názvami hostiteľov; spustiť až po jeho inštalácii | nainštalovať súbor presmerovania a potvrdiť to v konverzácii |
 | 13 | pri zlyhaní TLS alebo HTTP najprv nechať skontrolovať súbor presmerovania | skontrolovať súbor presmerovania |
 | 15 | zapísať do poznámky porty, adresu a miesto súboru presmerovania | pri odstránení nasadenia odstrániť aj súbor presmerovania |
 
@@ -61,7 +61,7 @@ Rovnaké brány platia aj po odovzdaní:
 |---|---|---|
 | aktualizácia | ukázať poznámku k vydaniu a zmenu obrazov | áno pred `install-host-files.sh` aj `update` |
 | návrat na predchádzajúce vydanie | vysvetliť, čo `rollback` vráti | áno pred `rollback` |
-| pridanie alebo odobratie služby | vypísať nový záznam DNS | áno pred `services add` alebo `services remove`; DNS vytvorí sám |
+| pridanie alebo odobratie služby | vypísať nový záznam DNS; za existujúcou proxy aj upravený súbor presmerovania | áno pred `services add` alebo `services remove`; DNS vytvorí sám; za existujúcou proxy nainštaluje upravený súbor (pred `services add`) |
 | nový účet, prístup, zablokovanie | pripraviť príkaz | áno pred `invite`, `grant`, `revoke`, `disable` |
 | rotácia tajomstiev | navrhnúť správnu rotáciu | áno pred `rotate` (cookies odhlási všetkých) |
 | obnova zo zálohy | `restore --dry-run` | áno pred `restore --apply` a `restore-snapshot`; súkromný kľúč dodá sám |

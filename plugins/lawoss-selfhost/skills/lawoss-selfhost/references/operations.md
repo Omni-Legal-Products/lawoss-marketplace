@@ -96,9 +96,13 @@ sudo /opt/lawoss/bin/lawoss-selfhost services remove ruz
 a znova vytvorí všetky kontajnery. Prístupy používateľov k novej službe pridáš cez
 `grant`.
 
-Na serveri s existujúcou reverznou proxy sa súbor presmerovania pri pridaní
-ani odobratí služby nemení: jeho pravidlo zachytí každú službu priamo pod
-základnou doménou. Ak sa nasadenie odstraňuje, človek odstráni z konfigurácie
+Na serveri s existujúcou reverznou proxy vymenúva súbor presmerovania
+presné názvy hostiteľov, preto ho treba pri každej zmene služieb upraviť. Pred
+`services add` agent napíše upravený súbor s novou službou, človek potvrdí, že
+jej názov nepoužíva iná aplikácia na proxy, a súbor nainštaluje; až potom
+spusti `services add`, aby Caddy mohol hneď získať certifikát. Po
+`services remove` agent napíše súbor bez odobratej služby a človek ho
+nainštaluje. Ak sa nasadenie odstraňuje, človek odstráni z konfigurácie
 existujúcej proxy aj súbor presmerovania; agent ho nemaže
 (`existing-proxy.md`).
 
@@ -166,7 +170,10 @@ sudo /opt/lawoss/bin/lawoss-selfhost restore --apply --record-sha256 425865a7262
 
 `--apply` spusti iba po potvrdení. `--record-sha256` je odtlačok záznamu toho
 vydania, z ktorého záloha pochádza, ako ho pripína katalóg (pre 0.2.0 hodnota
-vyššie). Funguje aj na novom serveri bez `.env`; nástroj tam musí byť
+vyššie). Záloha zo staršieho vydania potrebuje záznam a odtlačok toho
+vydania; zverejnené vydania a odtlačky ich záznamov sú v README repozitára
+`lawoss-selfhost` (časť „Published releases“). Funguje aj na novom serveri bez
+`.env`; nástroj tam musí byť
 nainštalovaný (krok 6). Cesta ku kľúču musí byť absolútna. Súkromný kľúč na
 server dočasne vráti človek a po obnove ho zmaže. Pri obnove na novom
 serveri `init` nespúšťaj; `.env` vytvorí obnova.

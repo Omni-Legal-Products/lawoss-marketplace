@@ -81,8 +81,9 @@ vloženie výstupu do konverzácie:
   `set-key` ho číta iba zo skrytého vstupu v termináli človeka.
 
 Na serveri s existujúcou reverznou proxy navyše nikdy nereštartuj ani
-neprekonfiguruj Traefik, Dokploy ani Coolify a ich konfiguráciu nemeň,
-nepresúvaj ani nemaž. Súbor presmerovania pre LAWOSS iba napíšeš a ukážeš;
+neprekonfiguruj Traefik, Dokploy ani Coolify, ich konfiguráciu nemeň,
+nepresúvaj ani nemaž a priečinok ich dynamickej konfigurácie ani statickú
+konfiguráciu nevypisuj ani nečítaj. Súbor presmerovania pre LAWOSS iba napíšeš a ukážeš;
 nainštaluje ho človek (krok 10).
 
 Ak sa tajomstvo predsa objaví vo výstupe, zastav sa a s potvrdením človeka
@@ -187,11 +188,14 @@ Potom zisti adresu, na ktorej kontajner proxy dosiahne server (`<HOST_ADDR>`),
 iba príkazom `docker inspect` s `--format` obmedzeným na názvy sietí a ich
 gateway, nikdy úplným výpisom. Ak je proxy v predvolenej sieti `bridge`, je to
 gateway tejto siete (adresa `docker0`, overíš ju `ip -4 addr show docker0`);
-prekryvné siete Swarm vynechaj; ak sieť `bridge` chýba a ostane viac možných
-adries, zastav sa a opýtaj sa človeka. Podľa `ss -ltn` a `ss -lun` vyber dva
-voľné porty; navrhni 18080 a 18443. Porty proxy LAWOSS budú počúvať iba na
-`<HOST_ADDR>`, nikdy na všetkých adresách, takže nebudú dostupné zo siete.
-Človek potvrdí oba porty aj `<HOST_ADDR>`.
+v sieti `host` je to `127.0.0.1`; prekryvné siete Swarm vynechaj. Ak sieť
+`bridge` ani `host` nie je a ostane viac možných adries alebo žiadna, zastav sa
+a opýtaj sa človeka. Podľa `ss -ltn` a `ss -lun` vyber dva voľné porty;
+navrhni 18080 a 18443. Porty proxy LAWOSS budú počúvať iba na `<HOST_ADDR>`,
+nikdy na všetkých adresách, takže nebudú dostupné zo siete. Človek potvrdí
+oba porty, `<HOST_ADDR>` a to, že žiadna iná aplikácia na existujúcej proxy
+nepoužíva niektorý z názvov nasadenia (`auth.<základná doména>`
+a `<služba>.<základná doména>`).
 
 **Potvrdí človek:** prístup cez SSH (adresu servera a používateľa; súkromný kľúč
 ani heslo nikdy nevkladá do konverzácie) a každú inštaláciu balíkov. Chýbať
@@ -390,9 +394,12 @@ prejde ešte pred krokom 7. Caddy pri spustení požiada o certifikát pre každ
 adresu, predvolene u Let's Encrypt (pri zlyhaní môže skúsiť ZeroSSL), a tým
 v mene prevádzkovateľa prijme ich podmienky. Kontaktný e-mail (`--acme-email`)
 dostane autorita; nie je tajomstvom ani súčasťou certifikátu. Teraz, pred
-spustením, over, že DNS ukazuje na server a porty 80 a 443 sú otvorené; na
-serveri s existujúcou reverznou proxy namiesto portov to, že človek nainštaloval
-súbor presmerovania (krok 10).
+spustením, over, že DNS ukazuje na server a porty 80 a 443 sú otvorené. Na
+serveri s existujúcou reverznou proxy namiesto portov človek v konverzácii
+potvrdí, že nainštaloval súbor presmerovania (krok 10); skutočnou kontrolou je
+`doctor` (kroky 10 a 13). Priečinok dynamickej konfigurácie ani statickú
+konfiguráciu proxy agent nevypisuje ani nečíta (v Dokploy je v ňom aj
+úložisko certifikátov).
 Opakované neúspešné pokusy môže autorita dočasne obmedziť.
 
 **Potvrdí človek:** prijme podmienky certifikačnej autority a zadá kontaktný
@@ -419,10 +426,13 @@ pre zvolenú základnú doménu, `<HOST_ADDR>` a porty podľa vzoru
 v `references/existing-proxy.md`: router TCP s `HostSNIRegexp`
 a `tls.passthrough: true` na port HTTPS a router HTTP pre port 80 (v Dokploy
 vstupný bod `web`) na port HTTP. Regulárny
-výraz má bodky zapísané ako `\.`, začína `^`, končí `$` a zachytí `auth.` aj
-každú zvolenú službu. Súbor ukáž človeku; nainštaluje ho sám (v Dokploy ako
-nový súbor v editore súborov Traefiku, inde do priečinka dynamickej
-konfigurácie Traefiku). Existujúcu konfiguráciu proxy nemeň, nepresúvaj ani
+výraz vymenuje presne `auth` a zvolené služby, má bodky zapísané ako `\.`,
+začína `^` a končí `$`, napríklad `^(auth|slovlex|orsr|judikaty)\.lawoss\.example\.com$`.
+Nikdy nezachytí všetkých hostiteľov pod základnou doménou, lebo na zdieľanej
+proxy by tým iným aplikáciám zobral TLS. Súbor ukáž človeku; nainštaluje ho
+sám (v Dokploy ako nový súbor v editore súborov Traefiku, inde do priečinka
+dynamickej konfigurácie, ktorý si nájde sám) a v konverzácii potvrdí, že je
+nainštalovaný. Existujúcu konfiguráciu proxy nemeň, nepresúvaj ani
 nemaž, Traefik ani Dokploy nereštartuj a úložisko certifikátov proxy
 (`acme.json`) nečítaj. `doctor` potom overuje TLS cez existujúcu proxy
 a prejde, iba keď presmerovanie funguje.

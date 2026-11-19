@@ -445,8 +445,19 @@ class MarketplaceValidationTest(unittest.TestCase):
         text = reference.read_text(encoding="utf-8")
         yaml_blocks = [block for language, block in FENCED_BLOCK.findall(text) if language == "yaml"]
         self.assertEqual(len(yaml_blocks), 1)
-        for key in ("lawoss-tls:", "lawoss-http:", "entryPoints: [websecure]", "entryPoints: [web]", "HostSNIRegexp(", "passthrough: true", "address: <HOST_ADDR>:18443", "url: http://<HOST_ADDR>:18080"):
+        for key in ("lawoss-tls:", "lawoss-http:", "entryPoints: [websecure]", "entryPoints: [web]", "passthrough: true", "address: <HOST_ADDR>:18443", "url: http://<HOST_ADDR>:18080"):
             self.assertIn(key, yaml_blocks[0])
+        # On a shared proxy the rules name the deployment's exact hosts, never every host under the base.
+        # Python `re` and Traefik's Go RE2 agree on this pattern.
+        rules = dict((kind, pattern) for kind, pattern in re.findall(r"rule: (HostSNIRegexp|HostRegexp)\(`([^`]+)`\)", yaml_blocks[0]))
+        self.assertEqual(set(rules), {"HostSNIRegexp", "HostRegexp"})
+        for kind, pattern in rules.items():
+            for host in ("auth", "slovlex", "orsr", "judikaty"):
+                self.assertRegex(f"{host}.lawoss.example.com", pattern, msg=kind)
+            for host in ("www.lawoss.example.com", "lawoss.example.com", "a.b.lawoss.example.com", "authxlawoss.example.com", "auth.lawoss.example.com.evil.org"):
+                self.assertNotRegex(host, pattern, msg=f"{kind}: {host}")
+        for name, text in self._selfhost_skill_texts().items():
+            self.assertNotIn("[a-z0-9-]+", text, msg=f"{name}: wildcard host rule")
         # The never-run list covers the proxy's certificate store, its container and its configuration.
         never = skill.split("## Nikdy nespúšťaj\n", 1)[1].split("\n## ", 1)[0]
         for item in ("acme.json", "--format", "Traefik"):
