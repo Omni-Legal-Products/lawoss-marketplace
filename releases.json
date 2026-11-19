@@ -117,7 +117,8 @@
       "images": {
         "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:93e84a8a52d3286b07cc1fd231dc4d679db5e15ecf27daf8dc510876390bc1ea",
         "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:c86179af9093b1b26405da51aedcd343e66b33bf90a61018a21e12e08e667ea7"
-      }
+      },
+      "reviewDate": "2026-11-19"
     }
   ],
   "inRepoSkills": [
