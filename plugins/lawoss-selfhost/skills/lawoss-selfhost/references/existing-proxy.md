@@ -173,13 +173,36 @@ Pri zápise:
 - Caddy potom ako adresu klienta vidí adresu existujúcej proxy, nie adresu
   používateľa.
 
-**Potvrdí človek:** súbor nainštaluje sám a v konverzácii potvrdí, že je
-nainštalovaný. V Dokploy ho pridá ako nový súbor v editore súborov Traefiku
-(dynamická konfigurácia), inde ako nový súbor v priečinku, ktorý sleduje
-poskytovateľ `file` jeho Traefiku; tento priečinok si nájde sám. Agent ho
-nehľadá, nevypisuje ani nečíta. Traefik, ktorý priečinok sleduje, načíta súbor
-bez reštartu. Ak ho nesleduje, o ďalšom postupe rozhoduje človek; agent
-Traefik nereštartuje. Či presmerovanie funguje, overí `doctor` (kroky 10 a 13).
+Súbor napíš hneď po potvrdení v kroku 3, aby ho človek nainštaloval, kým
+beží krok 6.
+
+**Potvrdí človek:** súbor nainštaluje sám a v konverzácii samostatne potvrdí,
+že je nainštalovaný (nie spolu so spustením servera). Inde než v Dokploy ho
+pridá ako nový súbor v priečinku, ktorý sleduje poskytovateľ `file` jeho
+Traefiku; tento priečinok si nájde sám. Agent ho nehľadá, nevypisuje ani
+nečíta.
+
+V Dokploy:
+
+1. V ľavom menu **Traefik File System** (nie Settings → Web Server).
+2. Priečinok **`dynamic`**, v ňom nový súbor, napríklad `lawoss-<názov>.yml`.
+   Inde (napríklad vedľa `traefik.yml`) ho Traefik nemusí načítať.
+3. V nastaveniach Web Server → Traefik nestláčať **Reload** ani iné akcie:
+   môžu reštartovať Traefik pre všetky aplikácie. V strome súborov neotvárať
+   `acme.json` ani priečinok `certificates` (súkromné kľúče certifikátov).
+
+Ak rozhranie nový súbor vytvoriť nedovolí, človek ho vytvorí vo vlastnom SSH
+termináli na serveri. `/etc/dokploy/traefik/dynamic` je predvolená cesta
+Dokploy; namiesto `<obsah súboru>` vloží celý súbor vyššie:
+
+```text
+sudo tee /etc/dokploy/traefik/dynamic/lawoss-<názov>.yml > /dev/null <<'EOF'
+<obsah súboru>
+EOF
+```
+
+Traefik, ktorý priečinok sleduje, načíta súbor bez reštartu. Ak ho
+nesleduje, o ďalšom postupe rozhoduje človek; agent Traefik nereštartuje. Či presmerovanie funguje, overí `doctor` (kroky 10 a 13).
 
 ## Kontrola a chyby (kroky 10 a 13)
 
@@ -187,6 +210,10 @@ Traefik nereštartuje. Či presmerovanie funguje, overí `doctor` (kroky 10 a 13
 cez existujúcu proxy, rovnakou cestou ako používatelia. Prejde iba vtedy, keď
 presmerovanie funguje. Ak existujúca proxy nepočúva na `127.0.0.1:443`
 servera, `doctor` sa k nasadeniu odtiaľ nedostane; povedz to človeku.
+
+Pred prvým spustením over trasu na porte 80 (krok 10 v `SKILL.md`): `404`
+znamená, že Traefik súbor nenačítal, a server vtedy nespúšťaj; `502` alebo
+`503` znamená, že trasa existuje; iný kód nič nedokazuje.
 
 Ak na tejto vetve zlyhá kontrola TLS alebo HTTP, najprv to znamená, že súbor
 presmerovania chýba alebo je zlý. Skôr než čokoľvek iné nech človek overí, že
@@ -196,6 +223,34 @@ minútu na certifikáty a skontroluj DNS podľa `references/dns-and-tls.md`.
 Ak je súbor správny a kontrola zlyháva ďalej, spojenie z proxy na server môže
 blokovať firewall servera; povedz to človeku a nič nemeň. Konfiguráciu proxy
 ani firewall agent ani pri chybe nemení.
+
+### Certifikáty, keď súbor prišiel neskoro
+
+Ak server bežal skôr, než súbor presmerovania fungoval, Caddy medzitým
+neúspešne žiadal certifikáty a ďalší pokus môže odložiť aj o desiatky minút.
+Keď trasa na porte 80 už nevracia `404` a `doctor` po niekoľkých minútach
+stále hlási `FAIL tls`:
+
+1. Človek si vo vlastnom termináli pozrie chyby certifikátov a vlastnými
+   slovami povie, čo v nich je (napríklad `rate limit`, `timeout`,
+   `unrecognized name`). Výstup logov do konverzácie nevkladá (časť „Nikdy
+   nespúšťaj“ v `SKILL.md`):
+
+   ```text
+   sudo docker logs lawoss-proxy-1 --since 30m 2>&1 | grep -iE 'error|obtain|challenge|rate' | tail -15
+   ```
+
+   Chyby z času pred inštaláciou súboru (napríklad `tls: unrecognized name`)
+   sú očakávané.
+2. Po potvrdení reštartuj iba kontajner proxy LAWOSS; Caddy hneď skúsi znova:
+
+   ```sh
+   sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env restart proxy
+   ```
+
+Neopakuj reštart viackrát za hodinu: Let's Encrypt povolí najviac päť
+neúspešných overení jednej adresy za hodinu. Traefik ani iné kontajnery sa
+nereštartujú.
 
 ## Zmeny a odstránenie
 

@@ -20,6 +20,22 @@ predpona `!`), lebo tam by výstup videl agent. Slovo „potvrdenie“
 znamená výslovné áno človeka v konverzácii k tomu konkrétnemu kroku. Súhlas
 s jedným krokom neplatí pre ďalší.
 
+**Ak `sudo` pýta heslo** (zistíš to v kroku 3), heslo človek nikdy nepíše do
+konverzácie a agent `sudo` nespúšťa. Každý blok `sh` so `sudo` spustí človek
+vo vlastnom termináli. Daj mu ho ako hotový príkaz v tvare
+`ssh -t USER@SERVER '<príkaz>'` (blok `text`; viac príkazov spoj `&&`), aby ho
+omylom nespustil na vlastnom počítači; holé `sudo …` ani predpona `!` v poli
+agenta tu nefungujú. Výnimkou z pravidla o blokoch `text` je výstup príkazov,
+ktoré podľa tohto skillu tajomstvá nevypisujú: `install-host-files.sh`,
+`init`, `docker compose … up -d` a `ps`, `doctor`, `list`, `invite`,
+`services`, `backup init-key`, `backup` a `restore --dry-run`. Ten smie
+človek vložiť do konverzácie. Výstup `sudo cat` súborov s odkazom alebo
+kľúčom nikdy. To isté platí pre bloky `text` so `sudo` (napríklad
+`sudo cat` súboru s odkazom, `set-key`, `gh auth login`): patria do SSH relácie
+na serveri, preto ich daj tiež v tvare `ssh -t USER@SERVER '<príkaz>'`.
+Príkazy bez `sudo` (čítanie stavu, `git`, `scp` do domovského priečinka)
+spúšťa agent.
+
 ## Pripnuté vydanie
 
 | Údaj | Hodnota |
@@ -170,10 +186,18 @@ df -h /
 docker --version
 docker compose version
 git --version
-sudo sh -c 'command -v gh'
+sudo -n true 2>/dev/null && echo sudo-bez-hesla || echo sudo-pyta-heslo
+id -nG
+command -v gh
+sudo -n sh -c 'command -v gh'
 ss -ltn
 ls -ld /opt/lawoss
 ```
+
+`sudo -n` nič nemení a heslo nepýta; ak vypíše `sudo-pyta-heslo`, platí
+odsek „Ak `sudo` pýta heslo“ na začiatku. Ak je používateľ v skupine `docker`
+(`id -nG`), príkazy `docker ps` a `docker inspect` z tohto kroku spúšťaj bez
+`sudo`; iba čítajú.
 
 Over, že porty 80 a 443 sú voľné, že je dosť pamäte a miesta a že
 `/opt/lawoss` ešte neexistuje. Ak existuje, nejde o prvú inštaláciu: zastav
@@ -184,6 +208,7 @@ alebo 443 obsadené, len čítaním zisti, kto ich drží (`sudo ss -ltnp` alebo
 `sudo docker ps --format '{{.Names}} {{.Image}} {{.Ports}}'`). Ak je to
 Traefik (Dokploy, Coolify alebo vlastný), pokračuj podľa
 `references/existing-proxy.md`; čokoľvek iné: zastav sa a opýtaj sa človeka.
+Bez `sudo` stačí `docker ps --format '{{.Names}} {{.Image}} {{.Ports}}'`.
 Potom zisti adresu, na ktorej kontajner proxy dosiahne server (`<HOST_ADDR>`),
 iba príkazom `docker inspect` s `--format` obmedzeným na názvy sietí a ich
 gateway, nikdy úplným výpisom. Ak je proxy v predvolenej sieti `bridge`, je to
@@ -195,7 +220,9 @@ navrhni 18080 a 18443. Porty proxy LAWOSS budú počúvať iba na `<HOST_ADDR>`,
 nikdy na všetkých adresách, takže nebudú dostupné zo siete. Človek potvrdí
 oba porty, `<HOST_ADDR>` a to, že žiadna iná aplikácia na existujúcej proxy
 nepoužíva niektorý z názvov nasadenia (`auth.<základná doména>`
-a `<služba>.<základná doména>`).
+a `<služba>.<základná doména>`). Hneď po tomto potvrdení napíš súbor
+presmerovania (krok 10) a daj ho človeku, aby ho nainštaloval, kým robíš
+krok 6.
 
 **Potvrdí človek:** prístup cez SSH (adresu servera a používateľa; súkromný kľúč
 ani heslo nikdy nevkladá do konverzácie) a každú inštaláciu balíkov. Chýbať
@@ -255,7 +282,9 @@ sú na nej dostupné. Namiesto jednotlivých záznamov stačí aj jeden záznam
 
 **Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** záznamy sú
 rovnaké. Ukazujú na verejnú IP adresu, na ktorej prijíma prevádzku existujúca
-proxy; ak je server za NAT, je to verejná IP adresa smerovača. Záznam
+proxy; ak je server za NAT, je to verejná IP adresa smerovača. Tú pozná
+človek (rozhranie smerovača alebo poskytovateľa pripojenia) alebo už na ňu
+ukazujú záznamy iných aplikácií na tej istej proxy. Záznam
 `*.lawoss.example.com` stačí aj tu.
 
 Keď človek záznamy vytvorí, over, že sa adresy prekladajú na server
@@ -297,7 +326,9 @@ sudo sh deploy/install-host-files.sh ~/lawoss-0.2.0.json 425865a7262019e6d77c7b8
 ```
 
 Skript overí odtlačok záznamu, stiahne obraz auth podľa odtlačku (digestu),
-skontroluje každý súbor podľa záznamu a až potom ho nainštaluje.
+skontroluje každý súbor podľa záznamu a až potom ho nainštaluje. Končí
+riadkom `installed the host files of release …` a cestou
+`/opt/lawoss/node/bin/node`; aj to je úspech.
 
 Atestácie povedz úprimne:
 
@@ -396,8 +427,8 @@ v mene prevádzkovateľa prijme ich podmienky. Kontaktný e-mail (`--acme-email`
 dostane autorita; nie je tajomstvom ani súčasťou certifikátu. Teraz, pred
 spustením, over, že DNS ukazuje na server a porty 80 a 443 sú otvorené. Na
 serveri s existujúcou reverznou proxy namiesto portov človek v konverzácii
-potvrdí, že nainštaloval súbor presmerovania (krok 10); skutočnou kontrolou je
-`doctor` (kroky 10 a 13). Priečinok dynamickej konfigurácie ani statickú
+potvrdí, že nainštaloval súbor presmerovania (krok 10); pred spustením to
+overí kontrola trasy na porte 80 (krok 10) a potom `doctor` (kroky 10 a 13). Priečinok dynamickej konfigurácie ani statickú
 konfiguráciu proxy agent nevypisuje ani nečíta (v Dokploy je v ňom aj
 úložisko certifikátov).
 Opakované neúspešné pokusy môže autorita dočasne obmedziť.
@@ -430,10 +461,23 @@ výraz vymenuje presne `auth` a zvolené služby, má bodky zapísané ako `\.`,
 začína `^` a končí `$`, napríklad `^(auth|slovlex|orsr|judikaty)\.lawoss\.example\.com$`.
 Nikdy nezachytí všetkých hostiteľov pod základnou doménou, lebo na zdieľanej
 proxy by tým iným aplikáciám zobral TLS. Súbor ukáž človeku; nainštaluje ho
-sám (v Dokploy ako nový súbor v editore súborov Traefiku, inde do priečinka
-dynamickej konfigurácie, ktorý si nájde sám) a v konverzácii potvrdí, že je
-nainštalovaný. Existujúcu konfiguráciu proxy nemeň, nepresúvaj ani
-nemaž, Traefik ani Dokploy nereštartuj a úložisko certifikátov proxy
+sám (v Dokploy v ľavom menu **Traefik File System**, priečinok `dynamic`;
+presný postup, aj keď rozhranie nový súbor vytvoriť nedovolí, je
+v `references/existing-proxy.md`; inde do priečinka dynamickej konfigurácie,
+ktorý si nájde sám). Inštaláciu súboru potvrdí v konverzácii samostatne, nie
+spolu so spustením. Potom over, že Traefik súbor načítal:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: auth.lawoss.example.com' http://127.0.0.1/
+```
+
+`404` znamená, že súbor sa neuplatnil (chýba, je v zlom priečinku alebo má
+chybu). `502` alebo `503` znamená, že trasa existuje a čaká na LAWOSS. Iný
+kód (napríklad presmerovanie `301` alebo `308`, ak proxy presmerúva všetko na
+HTTPS) nič nedokazuje; vtedy inštaláciu potvrdí človek. Kým je výsledok `404`,
+server nespúšťaj: Caddy by hneď žiadal certifikáty
+a neúspešné pokusy autorita obmedzuje. Existujúcu konfiguráciu proxy nemeň,
+nepresúvaj ani nemaž, Traefik ani Dokploy nereštartuj a úložisko certifikátov proxy
 (`acme.json`) nečítaj. `doctor` potom overuje TLS cez existujúcu proxy
 a prejde, iba keď presmerovanie funguje.
 
@@ -461,7 +505,9 @@ sudo /opt/lawoss/bin/lawoss-selfhost invite jnovak slovlex,orsr,judikaty
 ```
 
 Príkaz vypíše iba cestu `/opt/lawoss/handoff/jnovak.link` (súbor 0600). Povedz
-človeku len túto cestu; súbor nikdy nečítaj.
+človeku len túto cestu; súbor nikdy nečítaj. Pri účte sa e-mail nezadáva,
+iba meno. Či účet vznikol a či je aktivovaný, ukáže `list` (meno, stav,
+služby); súbor s odkazom po aktivácii zmizne, lebo ho človek zmaže.
 
 **Tajomstvá:** aktivačný odkaz ani heslo nikdy nepýtaj do konverzácie; ak sa
 objavia vo výstupe, zastav sa a postupuj podľa „Nikdy nespúšťaj“. Odkaz platí
@@ -481,6 +527,25 @@ sudo rm /opt/lawoss/handoff/jnovak.link
 **Agent smie sám:** dať adresy služieb v tvare `https://<služba>.<základná doména>/mcp`,
 napríklad `slovlex.lawoss.example.com/mcp` s `https://`. Pre návod na
 používanie odporuč plugin `lawoss-remote-skills` (vzdialené verzie skillov).
+
+Povedz vopred:
+
+- Adresa `/mcp` sa nezadáva do prehliadača (ukáže prázdnu stránku), ale do
+  aplikácie ako vzdialené pripojenie. Stránka `auth.<základná doména>`
+  je iba informačná; prihlasovací formulár sa otvorí až pri pripájaní služby.
+- Prihlasovací server vydania 0.2.0 prijme registráciu aplikácie iba vtedy,
+  keď sa po prihlásení vracia na adresu na tom istom počítači (loopback) alebo
+  na adresu vopred zaregistrovanú; nastavenie ďalších adries vydanie 0.2.0
+  prevádzkovateľovi neponúka. Claude Code sa pripojí. Konektor v Claude desktop alebo na
+  claude.ai skončí chybou registrácie („Couldn't register…“); neobchádzaj to.
+
+V Claude Code to človek urobí vo vlastnom termináli na svojom počítači a potom
+v Claude Code zadá `/mcp`, vyberie pripojenie a zvolí **Authenticate**
+(`<služba>` a `<základná-doména>` nahraď, napríklad `slovlex`):
+
+```text
+claude mcp add --transport http lawoss-<služba> https://<služba>.<základná-doména>/mcp
+```
 
 **Potvrdí človek:** v aplikácii LAWOSS pridá vzdialené pripojenie, prihlási sa,
 udelí súhlas a potvrdí, že sa zobrazujú nástroje služby.
@@ -503,6 +568,8 @@ nástroje, ktoré ukladajú súbory.
 alebo HTTP v `doctor` znamená najprv, že súbor presmerovania chýba alebo je
 zlý. Skôr než čokoľvek iné nech ho človek skontroluje (základná doména, vstupné
 body, `<HOST_ADDR>`, porty, verzia Traefiku; `references/existing-proxy.md`).
+Ak trasa funguje a TLS zlyháva aj po niekoľkých minútach, postupuj podľa časti
+„Certifikáty, keď súbor prišiel neskoro“ v tej istej referencii.
 Konfiguráciu proxy agent nemení.
 
 **Potvrdí človek:** že výsledky vyzerajú správne.
