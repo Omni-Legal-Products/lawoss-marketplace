@@ -472,7 +472,7 @@ class MarketplaceValidationTest(unittest.TestCase):
         step12 = skill.split("## 12. ", 1)[1].split("\n## ", 1)[0]
         self.assertIn("--no-claude-callbacks", step7)
         self.assertIn("callbacks add claude", step7)
-        for item in ("Settings → Connectors", "443", "do prehliadača", "nebolo overené"):
+        for item in ("Settings → Connectors", "verejný port 443", "Adresa `/mcp` sa nezadáva do prehliadača", "zatiaľ nebolo overené na skutočnom nasadení"):
             self.assertIn(item, step12, msg=item)
         for command in ("callbacks list", "callbacks add claude", "callbacks remove"):
             self.assertIn(command, operations, msg=command)

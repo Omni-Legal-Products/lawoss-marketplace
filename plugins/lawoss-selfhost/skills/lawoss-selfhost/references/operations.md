@@ -250,6 +250,11 @@ pripne nový commit, záznam vydania a obrazy. Platia rovnaké brány:
    sudo /opt/lawoss/bin/lawoss-selfhost doctor
    ```
 
+Po aktualizácii z vydania 0.2.0 je `callbacks list` prázdny, lebo 0.2.0
+callbacky nezapisovalo; Claude desktop a claude.ai sa preto zatiaľ nepripoja.
+Ak ich človek chce povoliť, po jeho potvrdení spusti `callbacks add claude`
+(časť „Callbacky aplikácií“).
+
 `update` si pred zmenou urobí snímku (`/opt/lawoss/snapshots/<čas>`), prepne
 obrazy, spustí server a `doctor`. Ak zlyhá, vráti `.env`, Caddyfile aj súbory
 vydania a spustí staré vydanie. Návrat po úspešnej aktualizácii, len po
@@ -268,11 +273,6 @@ sudo /opt/lawoss/bin/lawoss-selfhost restore-snapshot /opt/lawoss/snapshots/<ča
 ```
 
 Snímky obsahujú `.env` nešifrovane; ich obsah nikdy nečítaj.
-
-Po aktualizácii z vydania 0.2.0 je `callbacks list` prázdny, lebo 0.2.0
-callbacky nezapisovalo; Claude desktop a claude.ai sa preto zatiaľ nepripoja.
-Ak ich človek chce povoliť, po jeho potvrdení spusti `callbacks add claude`
-(časť „Callbacky aplikácií“).
 
 ## Rotácia tajomstiev
 
