@@ -2,7 +2,7 @@
 
 Skill-only plugin that walks an AI agent, together with the person who owns
 the server, through deploying
-[lawoss-selfhost](https://github.com/Omni-Legal-Products/lawoss-selfhost/tree/29440f8af25792e42b4c764f8334ec9be239439b)
+[lawoss-selfhost](https://github.com/Omni-Legal-Products/lawoss-selfhost/tree/60ff58dfdd6a70f3534f9fe0ff05f3344563cca6)
 on infrastructure that person controls. LAWOSS hosts nothing: the operator is
 responsible for the server, its users and respecting the terms of the public
 sources.
@@ -30,13 +30,13 @@ lawoss-selfhost 0.2.0.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.0 |
+| Version | 0.3.0 |
 | Repository | `Omni-Legal-Products/lawoss-selfhost` (AGPL-3.0) |
-| Commit | `29440f8af25792e42b4c764f8334ec9be239439b` |
-| Release record | `skills/lawoss-selfhost/release/0.2.0.json` |
-| Record SHA-256 | `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3` |
-| Auth image | `ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7` |
-| Hub image | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714` |
+| Commit | `60ff58dfdd6a70f3534f9fe0ff05f3344563cca6` |
+| Release record | `skills/lawoss-selfhost/release/0.3.0.json` |
+| Record SHA-256 | `329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d` |
+| Auth image | `ghcr.io/omni-legal-products/lawoss-auth@sha256:2f7bbca3b4052d754b1bcccf0920e8a25795f5b63df8d1c908f27bcbc3feeb08` |
+| Hub image | `ghcr.io/omni-legal-products/lawoss-hub@sha256:9aa863847415cf4a3fb48b6b133d249c0cce2a96b64679f2632c4536a28ebab2` |
 
 The release record is the release workflow's artifact, copied byte for byte.
 `releases.json` records it as a regular release with
@@ -45,14 +45,23 @@ the bundled record does not hash to the pinned value or names another commit
 or other images, or when the plugin ships an MCP configuration, a runtime or
 scripts. A new lawoss-selfhost release needs a new reviewed catalog commit.
 
-Known limitation of lawoss-selfhost 0.2.0, found in the behind-a-proxy
-acceptance test: its sign-in server accepts dynamic client registration only
-for loopback or pre-registered redirect URIs. Claude Code connects; a custom
-connector in Claude desktop or on claude.ai fails to register. The skill says
-so in step 12. The same test added guidance for servers where `sudo` asks for
-a password, the Dokploy file editor, a check that Traefik loaded the
-forwarding file before the first start, and certificates that were requested
-before the forwarding file worked.
+Claude connectors: the behind-a-proxy acceptance test of lawoss-selfhost 0.2.0
+found that its sign-in server accepted dynamic client registration only for
+loopback redirect URIs, so a custom connector in Claude desktop or on
+claude.ai failed to register. Since 0.3.0, `init` allows the callback of
+Claude's hosted apps (`claude.ai/api/mcp/auth_callback` over `https://`) by
+default and prints it on stderr; `init --no-claude-callbacks` allows none, and
+the `callbacks list|add|remove` command changes the list later (an update from
+0.2.0 starts with an empty list; `callbacks add claude` adds the callback).
+Claude desktop and claude.ai connect through Settings → Connectors → custom
+connector with `https://<service>.<base>/mcp`, over public port 443; Claude
+Code connects through loopback as before. The skill covers this in steps 7 and
+12 and in `references/operations.md`. The claude.ai sign-in has not yet been
+verified on a live deployment; release 0.3.0 is what makes it available. The
+same acceptance test added guidance for servers where `sudo` asks for a
+password, the Dokploy file editor, a check that Traefik loaded the forwarding
+file before the first start, and certificates that were requested before the
+forwarding file worked.
 
 This package ships no MCP configuration, server, runtime, endpoint, OAuth
 client or credentials. Usage guidance for people who connect to a finished

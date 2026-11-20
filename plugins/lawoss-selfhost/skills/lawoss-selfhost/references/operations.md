@@ -18,8 +18,9 @@ sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env ps
 Logy kontajnerov (`docker compose logs`, `docker logs`) agent nečíta; ak ich
 treba, číta ich človek vo vlastnom termináli.
 
-`doctor` kontroluje DNS, TLS, metadáta prihlásenia a služieb, cestu hubu
-k auth, či obraz hubu nesie `services.json` servera, a nástroje každej služby.
+`doctor` kontroluje DNS, TLS, metadáta prihlásenia a služieb, tvar zoznamu
+povolených callbackov (riadok `PASS callbacks`), cestu hubu k auth, či obraz
+hubu nesie `services.json` servera, a nástroje každej služby.
 Prechod dokazuje technickú funkčnosť, nie úplnosť alebo aktuálnosť zdrojov.
 
 ## Kľúče poskytovateľov
@@ -108,6 +109,30 @@ nainštaluje. Ak sa nasadenie odstraňuje, človek odstráni z konfigurácie
 existujúcej proxy aj súbor presmerovania; agent ho nemaže
 (`existing-proxy.md`).
 
+## Callbacky aplikácií
+
+Callback je webová adresa, na ktorú sa aplikácia vráti po prihlásení. Auth
+pri registrácii aplikácie prijme návrat na ten istý počítač (Claude Code) a iba
+callbacky z tohto zoznamu. `init` doň predvolene zapíše callback aplikácií
+Claude `claude.ai/api/mcp/auth_callback` (s `https://`), ktorý používajú
+Claude desktop a claude.ai (krok 7 v `SKILL.md`).
+
+```sh
+sudo /opt/lawoss/bin/lawoss-selfhost callbacks list
+sudo /opt/lawoss/bin/lawoss-selfhost callbacks add claude
+sudo /opt/lawoss/bin/lawoss-selfhost callbacks remove <presná adresa z callbacks list>
+```
+
+`callbacks list` (aj samotné `callbacks`) iba vypíše povolené callbacky;
+agent ho smie spustiť sám. `callbacks add claude` pridá callback aplikácií
+Claude; `callbacks add <adresa>` pridá iný presný callback. Každý callback je
+jedna presná adresa `https` bez zástupných znakov; zoznam má najviac 20
+položiek po najviac 2048 znakov. `callbacks remove` berie presnú adresu tak,
+ako ju vypíše `callbacks list` (skratka `claude` tu neplatí). Odobratie
+odpojí aj konektory, ktoré sa s týmto callbackom už zaregistrovali: ich
+ďalšie prihlásenie zlyhá, kým sa callback znova nepridá. Každú zmenu (`add`
+aj `remove`) potvrdí človek; zmena reštartuje iba kontajner auth.
+
 ## Zálohy
 
 Prvá záloha a kontrola (krok 14 v `SKILL.md`):
@@ -167,15 +192,22 @@ staré mazať.
 
 ```sh
 sudo /opt/lawoss/bin/lawoss-selfhost restore --dry-run --private-key <cesta ku kľúču> /opt/lawoss/backups/<čas>
-sudo /opt/lawoss/bin/lawoss-selfhost restore --apply --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3 --private-key <cesta ku kľúču> /opt/lawoss/backups/<čas>
+sudo /opt/lawoss/bin/lawoss-selfhost restore --apply --record-sha256 <odtlačok záznamu vydania zálohy> --private-key <cesta ku kľúču> /opt/lawoss/backups/<čas>
 ```
 
 `--apply` spusti iba po potvrdení. `--record-sha256` je odtlačok záznamu toho
-vydania, z ktorého záloha pochádza, ako ho pripína katalóg (pre 0.2.0 hodnota
-vyššie). Záloha zo staršieho vydania potrebuje záznam a odtlačok toho
+vydania, z ktorého záloha pochádza, ako ho pripína katalóg:
+
+| Vydanie zálohy | Commit | Odtlačok záznamu (`--record-sha256`) |
+|---|---|---|
+| 0.3.0 (pripnuté teraz) | `60ff58dfdd6a70f3534f9fe0ff05f3344563cca6` | `329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d` |
+| 0.2.0 (predchádzajúce) | `29440f8af25792e42b4c764f8334ec9be239439b` | `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3` |
+
+Záloha zo staršieho vydania potrebuje záznam a odtlačok toho
 vydania; zverejnené vydania a odtlačky ich záznamov sú v README repozitára
-`lawoss-selfhost` (časť „Published releases“). Funguje aj na novom serveri bez
-`.env`; nástroj tam musí byť
+`lawoss-selfhost` (časť „Published releases“). Obnova (aj `--dry-run`)
+odmietne zálohu, ktorej `.env` má neplatný zoznam callbackov. Funguje aj na
+novom serveri bez `.env`; nástroj tam musí byť
 nainštalovaný (krok 6). Cesta ku kľúču musí byť absolútna. Súkromný kľúč na
 server dočasne vráti človek a po obnove ho zmaže. Pri obnove na novom
 serveri `init` nespúšťaj; `.env` vytvorí obnova.
@@ -237,6 +269,11 @@ sudo /opt/lawoss/bin/lawoss-selfhost restore-snapshot /opt/lawoss/snapshots/<ča
 
 Snímky obsahujú `.env` nešifrovane; ich obsah nikdy nečítaj.
 
+Po aktualizácii z vydania 0.2.0 je `callbacks list` prázdny, lebo 0.2.0
+callbacky nezapisovalo; Claude desktop a claude.ai sa preto zatiaľ nepripoja.
+Ak ich človek chce povoliť, po jeho potvrdení spusti `callbacks add claude`
+(časť „Callbacky aplikácií“).
+
 ## Rotácia tajomstiev
 
 ```sh
@@ -260,12 +297,13 @@ odkazy ani zoznam používateľov.
 sudo tee /opt/lawoss/PREVADZKA.md > /dev/null <<'NOTE'
 # Vlastný server LAWOSS: prevádzka
 
-- Vydanie: lawoss-selfhost 0.2.0, commit 29440f8af25792e42b4c764f8334ec9be239439b
-- Odtlačok záznamu vydania: 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
+- Vydanie: lawoss-selfhost 0.3.0, commit 60ff58dfdd6a70f3534f9fe0ff05f3344563cca6
+- Odtlačok záznamu vydania: 329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d
 - Základná doména: lawoss.example.com
 - Služby: slovlex, orsr, judikaty
 - Nasadené: <dátum>, správca: <meno alebo rola>
 - Kontrola: sudo /opt/lawoss/bin/lawoss-selfhost doctor
+- Callbacky aplikácií: <povolené konektory Claude áno/nie>; zmena iba po potvrdení cez callbacks
 - Zálohy: denne o 2.30 do /opt/lawoss/backups (cron /etc/cron.d/lawoss-backup)
 - Súkromný kľúč záloh: mimo servera, <opis miesta>
 - Za existujúcou proxy (iba ak platí): porty <HTTP>/<HTTPS> na <HOST_ADDR>, súbor presmerovania: <kde ho človek uložil>; pri odstránení nasadenia ho odstrániť

@@ -463,6 +463,30 @@ class MarketplaceValidationTest(unittest.TestCase):
         for item in ("acme.json", "--format", "Traefik"):
             self.assertIn(item, never)
 
+    def test_selfhost_skill_covers_claude_connectors(self) -> None:
+        """Since lawoss-selfhost 0.3.0 Claude desktop and claude.ai connect; the skill no longer says they cannot."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        texts = self._selfhost_skill_texts()
+        operations = texts["references/operations.md"]
+        step7 = skill.split("## 7. ", 1)[1].split("\n## ", 1)[0]
+        step12 = skill.split("## 12. ", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("--no-claude-callbacks", step7)
+        self.assertIn("callbacks add claude", step7)
+        for item in ("Settings → Connectors", "443", "do prehliadača", "nebolo overené"):
+            self.assertIn(item, step12, msg=item)
+        for command in ("callbacks list", "callbacks add claude", "callbacks remove"):
+            self.assertIn(command, operations, msg=command)
+        self.assertIn("PASS callbacks", operations)
+        # The 0.2.0 loopback-only limitation is gone from the skill, the references and the README.
+        readme = (SELFHOST / "README.md").read_text(encoding="utf-8")
+        for name, text in {**texts, "README.md": readme}.items():
+            for stale in ("Couldn't register", "nie konektor Claude desktop", "prevádzkovateľovi neponúka", "fails to register. The skill says"):
+                self.assertNotIn(stale, text, msg=f"{name}: {stale}")
+        # 0.2.0 backups stay restorable: its record SHA-256 stays next to the pinned one.
+        record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
+        self.assertIn(record["recordSha256"], operations)
+        self.assertIn("425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3", operations)
+
     def test_selfhost_release_pin_refusals(self) -> None:
         """The bundled release record must be exactly the one the ledger pins: bytes, commit and images."""
         def ledger_mutation(change):
@@ -474,13 +498,13 @@ class MarketplaceValidationTest(unittest.TestCase):
             return mutate
 
         def record_bytes(root: Path) -> None:
-            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.2.0.json"
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.3.0.json"
             path.write_bytes(path.read_bytes() + b" ")
 
         def skill_pin(root: Path) -> None:
             path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/SKILL.md"
             text = path.read_text(encoding="utf-8")
-            path.write_text(text.replace("425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3", "0" * 64), encoding="utf-8")
+            path.write_text(text.replace("329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d", "0" * 64), encoding="utf-8")
 
         other_digest = "sha256:" + "0" * 64
         cases = (

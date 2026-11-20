@@ -1,6 +1,6 @@
 ---
 name: lawoss-selfhost
-description: Nasadenie vlastného servera LAWOSS (lawoss-selfhost 0.2.0) na server používateľa v 15 krokoch s potvrdeniami človeka. Použi, keď chce používateľ prevádzkovať služby LAWOSS na vlastnom serveri za vlastným prihlásením, aktualizovať ho alebo spravovať. Use for self-hosting LAWOSS MCP services with lawoss-selfhost, its updates, backups and operation.
+description: Nasadenie vlastného servera LAWOSS (lawoss-selfhost 0.3.0) na server používateľa v 15 krokoch s potvrdeniami človeka. Použi, keď chce používateľ prevádzkovať služby LAWOSS na vlastnom serveri za vlastným prihlásením, aktualizovať ho alebo spravovať. Use for self-hosting LAWOSS MCP services with lawoss-selfhost, its updates, backups and operation.
 ---
 
 # Vlastný server LAWOSS
@@ -28,7 +28,7 @@ omylom nespustil na vlastnom počítači; holé `sudo …` ani predpona `!` v po
 agenta tu nefungujú. Výnimkou z pravidla o blokoch `text` je výstup príkazov,
 ktoré podľa tohto skillu tajomstvá nevypisujú: `install-host-files.sh`,
 `init`, `docker compose … up -d` a `ps`, `doctor`, `list`, `invite`,
-`services`, `backup init-key`, `backup` a `restore --dry-run`. Ten smie
+`services`, `callbacks`, `backup init-key`, `backup` a `restore --dry-run`. Ten smie
 človek vložiť do konverzácie. Výstup `sudo cat` súborov s odkazom alebo
 kľúčom nikdy. To isté platí pre bloky `text` so `sudo` (napríklad
 `sudo cat` súboru s odkazom, `set-key`, `gh auth login`): patria do SSH relácie
@@ -40,13 +40,13 @@ spúšťa agent.
 
 | Údaj | Hodnota |
 |---|---|
-| Verzia | `0.2.0` |
+| Verzia | `0.3.0` |
 | Repozitár | `Omni-Legal-Products/lawoss-selfhost` (verejný, AGPL-3.0) |
-| Commit | `29440f8af25792e42b4c764f8334ec9be239439b` |
-| Záznam vydania | `release/0.2.0.json` v priečinku tohto skillu |
-| SHA-256 záznamu | `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3` |
-| Obraz auth | `ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7` |
-| Obraz hub | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714` |
+| Commit | `60ff58dfdd6a70f3534f9fe0ff05f3344563cca6` |
+| Záznam vydania | `release/0.3.0.json` v priečinku tohto skillu |
+| SHA-256 záznamu | `329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d` |
+| Obraz auth | `ghcr.io/omni-legal-products/lawoss-auth@sha256:2f7bbca3b4052d754b1bcccf0920e8a25795f5b63df8d1c908f27bcbc3feeb08` |
+| Obraz hub | `ghcr.io/omni-legal-products/lawoss-hub@sha256:9aa863847415cf4a3fb48b6b133d249c0cce2a96b64679f2632c4536a28ebab2` |
 
 Tieto hodnoty sú dôveryhodné preto, že sú zapísané v preskúmanom commite
 katalógu LAWOSS. Nikdy ich nemeň, neodvodzuj z internetu ani neprepisuj podľa
@@ -301,28 +301,28 @@ a overiť ho:
 ```sh
 git clone https://github.com/Omni-Legal-Products/lawoss-selfhost.git ~/lawoss-selfhost
 cd ~/lawoss-selfhost
-git checkout --detach 29440f8af25792e42b4c764f8334ec9be239439b
+git checkout --detach 60ff58dfdd6a70f3534f9fe0ff05f3344563cca6
 git rev-parse HEAD
 ```
 
 `git rev-parse HEAD` musí vypísať presne
-`29440f8af25792e42b4c764f8334ec9be239439b`. Inak sa zastav.
+`60ff58dfdd6a70f3534f9fe0ff05f3344563cca6`. Inak sa zastav.
 
-Záznam vydania nie je v repozitári; je v tomto skille (`release/0.2.0.json`).
-Skopíruj ho na server bez zmeny, napríklad ako `~/lawoss-0.2.0.json`
+Záznam vydania nie je v repozitári; je v tomto skille (`release/0.3.0.json`).
+Skopíruj ho na server bez zmeny, napríklad ako `~/lawoss-0.3.0.json`
 (`scp` z počítača, na ktorom beží agent), a over jeho odtlačok:
 
 ```sh
-sha256sum ~/lawoss-0.2.0.json
+sha256sum ~/lawoss-0.3.0.json
 ```
 
-Výsledok musí byť `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3`.
+Výsledok musí byť `329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d`.
 Ukáž človeku poznámku k vydaniu (pole `note` v zázname; neobsahuje
 tajomstvá). Potom nainštaluj súbory vydania do `/opt/lawoss`:
 
 ```sh
 cd ~/lawoss-selfhost
-sudo sh deploy/install-host-files.sh ~/lawoss-0.2.0.json 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3 .
+sudo sh deploy/install-host-files.sh ~/lawoss-0.3.0.json 329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d .
 ```
 
 Skript overí odtlačok záznamu, stiahne obraz auth podľa odtlačku (digestu),
@@ -361,20 +361,33 @@ certifikačnej autority a e-mail), lebo `init` e-mail vyžaduje a `.env` už
 nikdy neprepíše.
 
 ```sh
-sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --record ~/lawoss-0.2.0.json --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
+sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --record ~/lawoss-0.3.0.json --record-sha256 329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d
 ```
 
-Doménu, služby a e-mail nahraď voľbami človeka. `init` vypíše iba názvy
-hostiteľov; porovnaj ich so záznamami DNS z kroku 5. Služby neskôr pridáš
-alebo odoberieš cez `services add|remove`. Ak je zle doména alebo e-mail,
-`.env` neupravuj ani nečítaj; zastav sa a rozhodnutie nechaj na človeku.
+Doménu, služby a e-mail nahraď voľbami človeka. `init` vypíše na štandardný
+výstup iba názvy hostiteľov; porovnaj ich so záznamami DNS z kroku 5. Na
+chybový výstup (stderr) pridá jeden riadok s povolenými callbackmi: webovými
+adresami, na ktoré sa aplikácia smie vrátiť po prihlásení. Návrat na ten istý
+počítač (Claude Code) nepotrebuje žiadny záznam a funguje vždy. Predvolene je to
+callback aplikácií Claude `claude.ai/api/mcp/auth_callback` (s `https://`),
+takže Claude desktop a claude.ai sa pripoja bez ďalšieho nastavovania; to je
+cieľ produktu. Callback nie je tajomstvo. Služby neskôr pridáš alebo odoberieš
+cez `services add|remove`, callbacky cez `callbacks`
+(`references/operations.md`). Ak je zle doména alebo e-mail, `.env` neupravuj
+ani nečítaj; zastav sa a rozhodnutie nechaj na človeku.
+
+Pred `init` sa opýtaj človeka, či chce pripájať konektory Claude desktop
+a claude.ai. Rozhoduje človek. Voľbu `--no-claude-callbacks` pridaj na koniec
+príkazu `init` (aj vo variante nižšie) iba vtedy, keď ich človek nechce. `init`
+potom nepovolí žiadny callback a na stderr vypíše, že ho možno pridať neskôr
+príkazom `callbacks add claude`.
 
 **Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** pridaj porty
 a adresu, ktoré človek potvrdil v kroku 3 (`<HOST_ADDR>` nahraď touto
 adresou):
 
 ```sh
-sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --http-port 18080 --https-port 18443 --proxy-bind <HOST_ADDR> --record ~/lawoss-0.2.0.json --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
+sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --http-port 18080 --https-port 18443 --proxy-bind <HOST_ADDR> --record ~/lawoss-0.3.0.json --record-sha256 329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d
 ```
 
 `init` ich zapíše do `.env` ako `LAWOSS_HTTP_PORT`, `LAWOSS_HTTPS_PORT`
@@ -384,7 +397,9 @@ a `LAWOSS_PROXY_BIND`. Ak `init` voľby odmietne, zastav sa a povedz to
 **Tajomstvá:** `.env` nikdy nečítaj, nevypisuj ani nekopíruj; ak sa niečo
 z neho objaví vo výstupe, zastav sa a postupuj podľa „Nikdy nespúšťaj“.
 
-**Potvrdí človek:** nič navyše; doménu, služby a e-mail už potvrdil.
+**Potvrdí človek:** či chce konektory Claude desktop a claude.ai (predvolene
+áno; ak nie, `init` dostane `--no-claude-callbacks`). Doménu, služby a e-mail
+už potvrdil.
 
 ## 8. Značka
 
@@ -533,15 +548,23 @@ Povedz vopred:
 - Adresa `/mcp` sa nezadáva do prehliadača (ukáže prázdnu stránku), ale do
   aplikácie ako vzdialené pripojenie. Stránka `auth.<základná doména>`
   je iba informačná; prihlasovací formulár sa otvorí až pri pripájaní služby.
-- Prihlasovací server vydania 0.2.0 prijme registráciu aplikácie iba vtedy,
-  keď sa po prihlásení vracia na adresu na tom istom počítači (loopback) alebo
-  na adresu vopred zaregistrovanú; nastavenie ďalších adries vydanie 0.2.0
-  prevádzkovateľovi neponúka. Claude Code sa pripojí. Konektor v Claude desktop alebo na
-  claude.ai skončí chybou registrácie („Couldn't register…“); neobchádzaj to.
+- Claude desktop a claude.ai: človek pridá v **Settings → Connectors** vlastný
+  konektor (custom connector) s adresou `https://<služba>.<základná-doména>/mcp`,
+  pre každú službu jeden. Funguje to, ak `init` povolil callback aplikácií
+  Claude (krok 7) a `callbacks list` ho vypíše (`references/operations.md`).
+  Ak ho človek v kroku 7 odmietol, konektor skončí chybou registrácie;
+  neobchádzaj to, callback pridá až `callbacks add claude` po potvrdení
+  človeka.
+  Aplikácie Claude sa na server pripájajú z internetu cez verejný port 443; za
+  existujúcou reverznou proxy ho drží tá proxy a posiela spojenia ďalej.
+- Prihlásenie cez claude.ai zatiaľ nebolo overené na skutočnom nasadení;
+  sprístupňuje ho až vydanie 0.3.0. Ak zlyhá, povedz to človeku úprimne
+  a nastavenia servera kvôli tomu nemeň.
 
-V Claude Code to človek urobí vo vlastnom termináli na svojom počítači a potom
-v Claude Code zadá `/mcp`, vyberie pripojenie a zvolí **Authenticate**
-(`<služba>` a `<základná-doména>` nahraď, napríklad `slovlex`):
+V Claude Code (návrat na ten istý počítač, bez callbacku) to človek urobí ako
+doteraz vo vlastnom termináli na svojom počítači a potom v Claude Code zadá
+`/mcp`, vyberie pripojenie a zvolí **Authenticate** (`<služba>`
+a `<základná-doména>` nahraď, napríklad `slovlex`):
 
 ```text
 claude mcp add --transport http lawoss-<služba> https://<služba>.<základná-doména>/mcp

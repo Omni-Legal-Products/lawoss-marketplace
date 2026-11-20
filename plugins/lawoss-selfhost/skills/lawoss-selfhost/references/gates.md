@@ -12,12 +12,12 @@ zmeny.
 | 4 | Firewall | ukázať plánované pravidlá | otvorenie portov 80 a 443; firewall poskytovateľa |
 | 5 | DNS | vypísať presné záznamy | záznamy vytvorí sám |
 | 6 | Stiahnutie pripnutého vydania | stiahnuť, overiť commit, odtlačok záznamu a obrazy, ukázať poznámku | nič (prihlásenie `sudo gh auth login` iba vo vlastnom termináli, ak chce atestácie) |
-| 7 | Generovanie tajomstiev | spustiť `init`; `.env` nečítať ani nevypisovať | nič navyše (e-mail a podmienky z kroku 9 už predtým) |
+| 7 | Generovanie tajomstiev | spustiť `init`; `.env` nečítať ani nevypisovať; ukázať povolené callbacky zo stderr | či chce konektory Claude desktop a claude.ai (predvolene áno, inak `--no-claude-callbacks`); e-mail a podmienky z kroku 9 už predtým |
 | 8 | Značka | pripraviť balík, `brand check`, náhľad | schváliť náhľad; potvrdiť právo použiť logo |
 | 9 | Certifikáty | vysvetliť podmienky autority a pole e-mailu | prijať podmienky, zadať e-mail (pred krokom 7) |
 | 10 | Spustenie | `docker compose … up -d`, potom `doctor` | nič; kľúče poskytovateľov zadá sám cez `set-key` |
 | 11 | Prvý účet | `invite` do súboru 0600; povedať iba cestu | otvoriť súbor sám, aktivovať účet, zvoliť heslo |
-| 12 | Pripojenie aplikácie | dať adresy služieb; povedať, že 0.2.0 pripojí iba aplikácie s návratom na loopback (napríklad Claude Code), nie konektor Claude desktop ani claude.ai | prihlásiť sa a udeliť súhlas v aplikácii; potvrdiť, že vidí nástroje |
+| 12 | Pripojenie aplikácie | dať adresy služieb; povedať, že `/mcp` sa neotvára v prehliadači; Claude desktop a claude.ai cez Settings → Connectors → vlastný konektor (callback z kroku 7, verejný port 443), Claude Code ako doteraz; povedať, že prihlásenie cez claude.ai ešte nebolo overené na skutočnom nasadení | prihlásiť sa a udeliť súhlas v aplikácii; potvrdiť, že vidí nástroje |
 | 13 | Overenie | znova `doctor`; porovnať skutočné dotazy s lokálnym pluginom | potvrdiť, že výsledky vyzerajú správne |
 | 14 | Zálohy | kľúč záloh, prvá záloha, kontrola, plán po schválení | skopírovať súkromný kľúč mimo servera; schváliť plán |
 | 15 | Odovzdanie | zapísať prevádzkovú poznámku bez tajomstiev | nič |
@@ -61,6 +61,7 @@ Rovnaké brány platia aj po odovzdaní:
 |---|---|---|
 | aktualizácia | ukázať poznámku k vydaniu a zmenu obrazov | áno pred `install-host-files.sh` aj `update` |
 | návrat na predchádzajúce vydanie | vysvetliť, čo `rollback` vráti | áno pred `rollback` |
+| callbacky aplikácií | `callbacks list`; vysvetliť, že `callbacks remove` odpojí už pripojené konektory s tým callbackom pri ich ďalšom prihlásení | áno pred `callbacks add` alebo `callbacks remove` |
 | pridanie alebo odobratie služby | vypísať nový záznam DNS; za existujúcou proxy aj upravený súbor presmerovania | áno pred `services add` alebo `services remove`; DNS vytvorí sám; za existujúcou proxy nainštaluje upravený súbor (pred `services add`) |
 | nový účet, prístup, zablokovanie | pripraviť príkaz | áno pred `invite`, `grant`, `revoke`, `disable` |
 | rotácia tajomstiev | navrhnúť správnu rotáciu | áno pred `rotate` (cookies odhlási všetkých) |
