@@ -79,7 +79,7 @@ pomer strán loga.
    domovského priečinka používateľa (napríklad `scp -r`).
 2. Skontroluj ho a ukáž náhľad (krok 8 v `SKILL.md`):
    `brand check "$HOME/kancelaria"` a `brand preview "$HOME/kancelaria"`.
-   Pred `init` vyžadujú aj `--record ~/lawoss-0.2.0.json --record-sha256 …`;
+   Pred `init` vyžadujú aj `--record ~/lawoss-0.3.0.json --record-sha256 …`;
    po `init` použijú obraz auth nasadenia.
 3. Náhľad beží na serveri na `127.0.0.1:4317`. Človek si otvorí tunel
    `ssh -N -L 4317:127.0.0.1:4317 USER@SERVER` a v prehliadači

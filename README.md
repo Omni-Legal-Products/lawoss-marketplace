@@ -178,7 +178,7 @@ s prihlásením so svojou značkou:
   prevedie nasadením v 15 krokoch. Pri každom kroku povie, čo urobí sám a čo potvrdí človek.
   Tajomstvá nevstupujú do konverzácie.
 - Samotný server je verejný repozitár
-  [lawoss-selfhost](https://github.com/Omni-Legal-Products/lawoss-selfhost/tree/9efec09a95c513ab88d9a1116bee96e1c6de40c1)
+  [lawoss-selfhost](https://github.com/Omni-Legal-Products/lawoss-selfhost/tree/60ff58dfdd6a70f3534f9fe0ff05f3344563cca6)
   (AGPL-3.0): proxy Caddy, prihlasovací server a hub so službami.
 - Ľudia, ktorí sa na hotový server pripájajú, si nainštalujú
   [`lawoss-remote-skills`](plugins/lawoss-remote-skills/README.md), vzdialené verzie skillov

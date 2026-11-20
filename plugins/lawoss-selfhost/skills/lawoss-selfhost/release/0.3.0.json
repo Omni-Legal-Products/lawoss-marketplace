@@ -1,32 +1,33 @@
 {
-  "version": "0.2.0",
-  "commit": "29440f8af25792e42b4c764f8334ec9be239439b",
+  "version": "0.3.0",
+  "commit": "60ff58dfdd6a70f3534f9fe0ff05f3344563cca6",
   "images": {
-    "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7",
-    "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714",
+    "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:2f7bbca3b4052d754b1bcccf0920e8a25795f5b63df8d1c908f27bcbc3feeb08",
+    "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:9aa863847415cf4a3fb48b6b133d249c0cce2a96b64679f2632c4536a28ebab2",
     "proxy": "caddy:2.11.9@sha256:4851e54a46b206517c574821bb5cc67f170d2156041e9fbc4c9193b45e84a75b"
   },
   "files": {
     "bin/commands/admin.mjs": "dcd9a361211044238bd7df7d4af6dd8c10bd2a4fecc52f119a15725318f3ce96",
     "bin/commands/backup.mjs": "99bfef39b5389453adbce97bf53d49bad12f010a13d7cab75f12c3151ab8365c",
     "bin/commands/brand.mjs": "e676c7fec6027a09a818fbde02230d17c06510342f062ed3ec961a8c11200681",
-    "bin/commands/doctor.mjs": "613a67a40ffd32488ab691a88aeaa113d9455406445fcda1fe6814a9e5e12b30",
-    "bin/commands/init.mjs": "4d53bf85f07bfa6638fbe253591d82e181db2c3507a5646d58ed8dde92503d54",
+    "bin/commands/callbacks.mjs": "9cd948e500a3baa223eebb58f65f798220c14dc3e6b5a5ee5426cef83fbdcfee",
+    "bin/commands/doctor.mjs": "f328d412e377c480d2be0475b08d494470ea702689ce9c30647d53bb18d14f68",
+    "bin/commands/init.mjs": "4d540aab6de3c5df64a1380e11bf808a07d534fd8cd3335f9ab10f8734d441eb",
     "bin/commands/invite.mjs": "759fcb358afef0c71eab28128dcea6ffce25228014a235e71c136d17532acdca",
     "bin/commands/keys.mjs": "5069c494f723b38436c9e55f115a4e21a1cc7d55ab5e987ba35c43d7bccb42c1",
     "bin/commands/restore-snapshot.mjs": "e97e9714d73feee779d00a1f676206c086e7f6175d8151666dd633051b63a5b3",
-    "bin/commands/restore.mjs": "c734bec885fb5a2ee9f75a54745a04a186e78d080212b3c80fccffc54dbdfea6",
+    "bin/commands/restore.mjs": "0ca2eb134ab3ed016fff40f7c100bda66f526cf6a58de8726fd80a91078dcea5",
     "bin/commands/rotate.mjs": "458096742bdcd71d8fc61dc4e4d5a0907cc8ba89161c929e3542abf56ab3a4d3",
     "bin/commands/services.mjs": "b7298d41636019368d0c5b7c90606a17c9179eca4a69be7b4ee5dbfeed56336a",
     "bin/commands/update.mjs": "4d35a768aeb46ca1dc540ce4f1fa9b083755f3ca72062224262a4747ac1d71d8",
     "bin/host.mjs": "48a65350d08d09111095359395f2bd964cd5de8764b67cbc19c9d5b70077bf3e",
     "bin/lawoss-selfhost": "809209413f8bfed963ef9e56cfb4ee71d9fc6f825fab133451e343d1738f1838",
-    "bin/lawoss-selfhost.mjs": "60a03a1adaccc58e7db4e286c3949367f8c6088075ae72acb6aedc9b3ddfeb0b",
-    "bin/lib.mjs": "0d7fe41c8cc3f68ffa3995f74e2853b48038371146242545f0bda6406375faef",
+    "bin/lawoss-selfhost.mjs": "54d04ce6dfc465761723b8ad341d5fd7010ef0dd9824d887c6f59c1815542508",
+    "bin/lib.mjs": "35684f36f989b7ad150e1d3259f247f07f7e9f7937a08570ce76aded4bdef8e8",
     "bin/package.json": "f33cf1940bee1d6bf4a17abd309435595922f03db52ab335d8767a03e4834fed",
     "Caddyfile.template": "2e6cdad46230ae61b44b1b810bee952619a10fe83fc000cae3288af7c7a99bb6",
     "compose.yaml": "c20997a865889738588e3eeae3e32599a1ec1f270692b330f294005c39b45c05",
     "services.json": "eccf027639c959933702b193fed3489c80a98905d14541e25990f3c04b5ebd45"
   },
-  "note": "lawoss-selfhost 0.2.0"
+  "note": "lawoss-selfhost 0.3.0"
 }
