@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="hero-dark-title hero-dark-desc">
+  <title id="hero-dark-title">lawoss-marketplace: katalóg právnych MCP pluginov LAWOSS</title>
+  <desc id="hero-dark-desc">Katalóg pluginov LAWOSS: agent nainštaluje plugin s runtime, skillom a CLI a lokálne cez stdio číta verejné registre, súdy a predpisy. LAWOSS nič neprevádzkuje.</desc>
+  <defs>
+    <linearGradient id="hero-dark-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0d1b2a"/><stop offset="1" stop-color="#132538"/></linearGradient>
+    <pattern id="hero-dark-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#f6f7f9" stroke-opacity=".05"/></pattern>
+    <marker id="hero-dark-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4 0 8Z" fill="#9aa6b8"/></marker>
+    <marker id="hero-dark-arrow-gold" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4 0 8Z" fill="#e4c979"/></marker>
+  </defs>
+  <rect width="1200" height="360" rx="20" fill="url(#hero-dark-bg)"/>
+  <rect width="1200" height="360" rx="20" fill="url(#hero-dark-grid)"/>
+  <path d="M40 300C250 120 380 310 600 190S900 90 1160 250" fill="none" stroke="#e4c979" stroke-opacity=".07" stroke-width="48"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+    <text x="64" y="88" fill="#e4c979" font-size="16" letter-spacing="3">LAWOSS · KATALÓG PLUGINOV</text>
+    <text x="64" y="156" fill="#f6f7f9" font-size="48" font-weight="700">lawoss-marketplace</text>
+    <text x="67" y="196" fill="#b7c2d0" font-size="19">Právne MCP služby a skilly pre AI agentov.</text>
+    <text x="67" y="224" fill="#b7c2d0" font-size="19">Pre Slovensko, Česko a právo EÚ.</text>
+    <rect x="68" y="254" width="168" height="40" rx="20" fill="#2a2c25" stroke="#e4c979"/>
+    <text x="152" y="279" fill="#e4c979" font-size="14" text-anchor="middle">23 PLUGINOV</text>
+    <rect x="252" y="254" width="160" height="40" rx="20" fill="#16304a" stroke="#6a9fd8"/>
+    <text x="332" y="279" fill="#6a9fd8" font-size="14" text-anchor="middle">SK · CZ · EÚ</text>
+    <g transform="translate(660 64)">
+      <rect x="0" y="0" width="196" height="82" rx="12" fill="#2a2c25" stroke="#e4c979" stroke-width="2"/>
+      <text x="20" y="32" fill="#f6f7f9" font-size="15" font-weight="700">MARKETPLACE</text>
+      <text x="20" y="58" fill="#9aa6b8" font-size="12">runtime · skill · CLI</text>
+      <path d="M200 41H258" stroke="#e4c979" stroke-width="2" marker-end="url(#hero-dark-arrow-gold)"/>
+      <rect x="264" y="0" width="236" height="82" rx="12" fill="#132538" stroke="#9aa6b8" stroke-width="1.5"/>
+      <text x="284" y="32" fill="#f6f7f9" font-size="15" font-weight="700">VÁŠ AGENT</text>
+      <text x="284" y="58" fill="#9aa6b8" font-size="12">lokálne MCP cez stdio</text>
+      <path d="M382 86V128Q382 136 374 136H252Q244 136 244 144V152" fill="none" stroke="#9aa6b8" stroke-width="2" marker-end="url(#hero-dark-arrow)"/>
+      <rect x="104" y="158" width="280" height="82" rx="12" fill="#132538" stroke="#6a9fd8" stroke-width="1.5"/>
+      <text x="124" y="190" fill="#f6f7f9" font-size="15" font-weight="700">VEREJNÉ ZDROJE</text>
+      <text x="124" y="216" fill="#9aa6b8" font-size="12">registre · súdy · predpisy</text>
+      <circle cx="110" cy="272" r="5" fill="#6cc391"/>
+      <text x="122" y="277" fill="#6cc391" font-size="13">LAWOSS nič neprevádzkuje</text>
+    </g>
+  </g>
+</svg>
