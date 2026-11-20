@@ -17,7 +17,7 @@ zmeny.
 | 9 | Certifikáty | vysvetliť podmienky autority a pole e-mailu | prijať podmienky, zadať e-mail (pred krokom 7) |
 | 10 | Spustenie | `docker compose … up -d`, potom `doctor` | nič; kľúče poskytovateľov zadá sám cez `set-key` |
 | 11 | Prvý účet | `invite` do súboru 0600; povedať iba cestu | otvoriť súbor sám, aktivovať účet, zvoliť heslo |
-| 12 | Pripojenie aplikácie | dať adresy služieb | prihlásiť sa a udeliť súhlas v aplikácii LAWOSS; potvrdiť, že vidí nástroje |
+| 12 | Pripojenie aplikácie | dať adresy služieb; povedať, že 0.2.0 pripojí iba aplikácie s návratom na loopback (napríklad Claude Code), nie konektor Claude desktop ani claude.ai | prihlásiť sa a udeliť súhlas v aplikácii; potvrdiť, že vidí nástroje |
 | 13 | Overenie | znova `doctor`; porovnať skutočné dotazy s lokálnym pluginom | potvrdiť, že výsledky vyzerajú správne |
 | 14 | Zálohy | kľúč záloh, prvá záloha, kontrola, plán po schválení | skopírovať súkromný kľúč mimo servera; schváliť plán |
 | 15 | Odovzdanie | zapísať prevádzkovú poznámku bez tajomstiev | nič |
@@ -34,8 +34,8 @@ postup v `existing-proxy.md`. Brány sa v týchto krokoch líšia:
 | 4 | nič; firewall sa nemení, žiadny príkaz `ufw` | nič |
 | 5 | vypísať rovnaké záznamy na verejnú IP adresu existujúcej proxy | záznamy vytvorí sám |
 | 7 | `init` navyše s `--http-port`, `--https-port`, `--proxy-bind` | nič navyše |
-| 10 | napísať a ukázať súbor presmerovania pre Traefik s presnými názvami hostiteľov; spustiť až po jeho inštalácii | nainštalovať súbor presmerovania a potvrdiť to v konverzácii |
-| 13 | pri zlyhaní TLS alebo HTTP najprv nechať skontrolovať súbor presmerovania | skontrolovať súbor presmerovania |
+| 10 | napísať a ukázať súbor presmerovania pre Traefik s presnými názvami hostiteľov (hneď po kroku 3); overiť trasu na porte 80 a spustiť až keď nevracia `404` | nainštalovať súbor presmerovania a potvrdiť to v konverzácii samostatne |
+| 13 | pri zlyhaní TLS alebo HTTP najprv nechať skontrolovať súbor presmerovania; ak trasa funguje, po potvrdení reštartovať iba kontajner proxy LAWOSS | skontrolovať súbor presmerovania; prečítať chyby certifikátov vo vlastnom termináli |
 | 15 | zapísať do poznámky porty, adresu a miesto súboru presmerovania | pri odstránení nasadenia odstrániť aj súbor presmerovania |
 
 Konfiguráciu existujúcej proxy agent nikdy nemení, nepresúva ani nemaže,

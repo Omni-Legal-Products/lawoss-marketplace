@@ -5,6 +5,8 @@ Všetky príkazy sa spúšťajú na serveri ako
 tajomstvá: iba názvy hostiteľov, riadky `PASS` a `FAIL` a cesty k súborom
 0600. Pravidlá a zoznam „Nikdy nespúšťaj“ zo `SKILL.md` platia aj tu.
 `lawoss-selfhost` bez argumentov vypíše všetky príkazy.
+Ak `sudo` na serveri pýta heslo, spúšťa ich človek podľa odseku „Ak `sudo`
+pýta heslo“ na začiatku `SKILL.md`.
 
 ## Kontrola
 

@@ -45,6 +45,15 @@ the bundled record does not hash to the pinned value or names another commit
 or other images, or when the plugin ships an MCP configuration, a runtime or
 scripts. A new lawoss-selfhost release needs a new reviewed catalog commit.
 
+Known limitation of lawoss-selfhost 0.2.0, found in the behind-a-proxy
+acceptance test: its sign-in server accepts dynamic client registration only
+for loopback or pre-registered redirect URIs. Claude Code connects; a custom
+connector in Claude desktop or on claude.ai fails to register. The skill says
+so in step 12. The same test added guidance for servers where `sudo` asks for
+a password, the Dokploy file editor, a check that Traefik loaded the
+forwarding file before the first start, and certificates that were requested
+before the forwarding file worked.
+
 This package ships no MCP configuration, server, runtime, endpoint, OAuth
 client or credentials. Usage guidance for people who connect to a finished
 server is in the separate `lawoss-remote-skills` plugin.
