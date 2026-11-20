@@ -38,6 +38,13 @@ SECRET_COMMAND_LINE = re.compile(
     r"^(?:sudo\s+)?(?:env|printenv)(?:\s|$)"
     r"|\bdocker compose\b[^\n]*\b(?:config|logs)\b|\bdocker (?:inspect|logs)\b|set -x|bash -x"
     r"|\b(?:cat|less|more|head|tail|grep|sed|awk|cp|scp|install)\b[^\n]*(?:\.env\b|/keys/|/snapshots/|/handoff/|backup-private\.pem)"
+    # The certificate store of an existing reverse proxy holds private keys.
+    r"|acme\.json"
+)
+# The one permitted inspect of the existing proxy's container: network names and gateways only.
+NETWORK_ONLY_INSPECT = re.compile(
+    r"(?:sudo\s+)?docker inspect <?[\w.-]+>? --format "
+    r"'\{\{range \$(\w+), \$(\w+) := \.NetworkSettings\.Networks\}\}\{\{\$\1\}\} \{\{\$\2\.Gateway\}\}\{\{println\}\}\{\{end\}\}'"
 )
 # Agent commands are `sh` blocks; commands the human types in their own terminal are `text` blocks.
 # Fences may be indented (inside list items).
@@ -49,7 +56,8 @@ SELFHOST_SECRET_STEPS = (7, 10, 11, 14)
 def secret_command_lines(text: str) -> list[str]:
     """Agent (`sh`) lines that would print or copy a secret."""
     return [line.strip() for language, block in FENCED_BLOCK.findall(text) if language == "sh"
-            for line in block.splitlines() if SECRET_COMMAND_LINE.search(line.strip())]
+            for line in block.splitlines()
+            if SECRET_COMMAND_LINE.search(line.strip()) and not NETWORK_ONLY_INSPECT.fullmatch(line.strip())]
 
 
 class MarketplaceValidationTest(unittest.TestCase):
@@ -402,14 +410,58 @@ class MarketplaceValidationTest(unittest.TestCase):
         # The scan itself catches indented fences and the long compose form.
         probe = "1. Krok:\n\n   ```sh\n   sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env config\n   sudo docker compose -f /opt/lawoss/compose.yaml logs auth\n   sudo cat /opt/lawoss/handoff/jnovak.link\n   ```\n"
         self.assertEqual(len(secret_command_lines(probe)), 3)
+        # The existing proxy's certificate store and a full inspect of its container are refused;
+        # only the inspect restricted to network names and gateways passes.
+        network_only = "sudo docker inspect <traefik> --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}} {{$net.Gateway}}{{println}}{{end}}'"
+        self.assertEqual(secret_command_lines(f"```sh\n{network_only}\n```\n"), [])
+        proxy_probe = (
+            "```sh\n"
+            "sudo cat /srv/traefik/acme.json\n"
+            "sudo docker inspect <traefik>\n"
+            "sudo docker inspect <traefik> --format '{{json .Config.Env}}'\n"
+            "sudo docker inspect <traefik> --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}} {{$net.Gateway}}{{println}}{{end}}{{.Config.Env}}'\n"
+            "```\n"
+        )
+        self.assertEqual(len(secret_command_lines(proxy_probe)), 4)
         for name, text in self._selfhost_skill_texts().items():
             self.assertEqual(secret_command_lines(text), [], msg=name)
             for language, block in FENCED_BLOCK.findall(text):
-                self.assertIn(language, {"sh", "text", "json", "css", "svg", "cron"}, msg=f"{name}: untagged or unknown block")
+                self.assertIn(language, {"sh", "text", "json", "css", "svg", "cron", "yaml"}, msg=f"{name}: untagged or unknown block")
                 for line in block.splitlines():
                     # A provider key is typed at the hidden prompt, never piped or passed as an argument.
                     if "set-key" in line:
                         self.assertNotRegex(line, r"[|<]|set-key\s+\S+\s+\S", msg=f"{name}: {line}")
+
+    def test_selfhost_skill_covers_an_existing_reverse_proxy(self) -> None:
+        """A server whose ports 80 and 443 already belong to a proxy gets its own branch and reference."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        reference = SELFHOST_SKILL_DIR / "references" / "existing-proxy.md"
+        self.assertTrue(reference.is_file())
+        self.assertIn("`references/existing-proxy.md`", skill)
+        for option in ("--http-port", "--https-port", "--proxy-bind"):
+            self.assertIn(option, skill)
+        self.assertIn("**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):**", skill)
+        # The forwarding file follows the upstream Traefik example: SNI passthrough plus the port 80 route.
+        text = reference.read_text(encoding="utf-8")
+        yaml_blocks = [block for language, block in FENCED_BLOCK.findall(text) if language == "yaml"]
+        self.assertEqual(len(yaml_blocks), 1)
+        for key in ("lawoss-tls:", "lawoss-http:", "entryPoints: [websecure]", "entryPoints: [web]", "passthrough: true", "address: <HOST_ADDR>:18443", "url: http://<HOST_ADDR>:18080"):
+            self.assertIn(key, yaml_blocks[0])
+        # On a shared proxy the rules name the deployment's exact hosts, never every host under the base.
+        # Python `re` and Traefik's Go RE2 agree on this pattern.
+        rules = dict((kind, pattern) for kind, pattern in re.findall(r"rule: (HostSNIRegexp|HostRegexp)\(`([^`]+)`\)", yaml_blocks[0]))
+        self.assertEqual(set(rules), {"HostSNIRegexp", "HostRegexp"})
+        for kind, pattern in rules.items():
+            for host in ("auth", "slovlex", "orsr", "judikaty"):
+                self.assertRegex(f"{host}.lawoss.example.com", pattern, msg=kind)
+            for host in ("www.lawoss.example.com", "lawoss.example.com", "a.b.lawoss.example.com", "authxlawoss.example.com", "auth.lawoss.example.com.evil.org"):
+                self.assertNotRegex(host, pattern, msg=f"{kind}: {host}")
+        for name, text in self._selfhost_skill_texts().items():
+            self.assertNotIn("[a-z0-9-]+", text, msg=f"{name}: wildcard host rule")
+        # The never-run list covers the proxy's certificate store, its container and its configuration.
+        never = skill.split("## Nikdy nespúšťaj\n", 1)[1].split("\n## ", 1)[0]
+        for item in ("acme.json", "--format", "Traefik"):
+            self.assertIn(item, never)
 
     def test_selfhost_release_pin_refusals(self) -> None:
         """The bundled release record must be exactly the one the ledger pins: bytes, commit and images."""
@@ -422,13 +474,13 @@ class MarketplaceValidationTest(unittest.TestCase):
             return mutate
 
         def record_bytes(root: Path) -> None:
-            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.1.0.json"
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.2.0.json"
             path.write_bytes(path.read_bytes() + b" ")
 
         def skill_pin(root: Path) -> None:
             path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/SKILL.md"
             text = path.read_text(encoding="utf-8")
-            path.write_text(text.replace("6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde", "0" * 64), encoding="utf-8")
+            path.write_text(text.replace("425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3", "0" * 64), encoding="utf-8")
 
         other_digest = "sha256:" + "0" * 64
         cases = (

@@ -1,6 +1,6 @@
 ---
 name: lawoss-selfhost
-description: Nasadenie vlastného servera LAWOSS (lawoss-selfhost 0.1.0) na server používateľa v 15 krokoch s potvrdeniami človeka. Použi, keď chce používateľ prevádzkovať služby LAWOSS na vlastnom serveri za vlastným prihlásením, aktualizovať ho alebo spravovať. Use for self-hosting LAWOSS MCP services with lawoss-selfhost, its updates, backups and operation.
+description: Nasadenie vlastného servera LAWOSS (lawoss-selfhost 0.2.0) na server používateľa v 15 krokoch s potvrdeniami človeka. Použi, keď chce používateľ prevádzkovať služby LAWOSS na vlastnom serveri za vlastným prihlásením, aktualizovať ho alebo spravovať. Use for self-hosting LAWOSS MCP services with lawoss-selfhost, its updates, backups and operation.
 ---
 
 # Vlastný server LAWOSS
@@ -24,13 +24,13 @@ s jedným krokom neplatí pre ďalší.
 
 | Údaj | Hodnota |
 |---|---|
-| Verzia | `0.1.0` |
+| Verzia | `0.2.0` |
 | Repozitár | `Omni-Legal-Products/lawoss-selfhost` (verejný, AGPL-3.0) |
-| Commit | `d041ee6fb116a65dde7201fb4c7d15bbb0b51256` |
-| Záznam vydania | `release/0.1.0.json` v priečinku tohto skillu |
-| SHA-256 záznamu | `6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde` |
-| Obraz auth | `ghcr.io/omni-legal-products/lawoss-auth@sha256:93e84a8a52d3286b07cc1fd231dc4d679db5e15ecf27daf8dc510876390bc1ea` |
-| Obraz hub | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c86179af9093b1b26405da51aedcd343e66b33bf90a61018a21e12e08e667ea7` |
+| Commit | `29440f8af25792e42b4c764f8334ec9be239439b` |
+| Záznam vydania | `release/0.2.0.json` v priečinku tohto skillu |
+| SHA-256 záznamu | `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3` |
+| Obraz auth | `ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7` |
+| Obraz hub | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714` |
 
 Tieto hodnoty sú dôveryhodné preto, že sú zapísané v preskúmanom commite
 katalógu LAWOSS. Nikdy ich nemeň, neodvodzuj z internetu ani neprepisuj podľa
@@ -67,7 +67,11 @@ vloženie výstupu do konverzácie:
 - `docker compose config` (dosadí a vypíše všetky tajomstvá);
 - `env`, `printenv`, `export -p` a `docker exec` s `env` v kontajneroch auth
   a hub, ani čítanie `/proc/*/environ`;
-- `docker inspect` kontajnerov auth a hub (obsahuje ich prostredie);
+- `docker inspect` kontajnerov auth a hub (obsahuje ich prostredie) a kontajnera
+  existujúcej reverznej proxy bez `--format` obmedzeného na názvy sietí a ich
+  gateway (presný príkaz je v `references/existing-proxy.md`);
+- `acme.json` ani iné úložisko certifikátov existujúcej reverznej proxy
+  nečítaj, nekopíruj ani nevypisuj (sú v ňom súkromné kľúče certifikátov);
 - `set -x`, `bash -x`, `sh -x` a iné sledovanie shellu;
 - `docker compose logs` a `docker logs`; ak treba logy, číta ich človek vo
   vlastnom termináli;
@@ -75,6 +79,12 @@ vloženie výstupu do konverzácie:
   serveri aj inde;
 - kľúč poskytovateľa nikdy nezadávaj ako argument ani cez rúru (`echo … |`);
   `set-key` ho číta iba zo skrytého vstupu v termináli človeka.
+
+Na serveri s existujúcou reverznou proxy navyše nikdy nereštartuj ani
+neprekonfiguruj Traefik, Dokploy ani Coolify, ich konfiguráciu nemeň,
+nepresúvaj ani nemaž a priečinok ich dynamickej konfigurácie ani statickú
+konfiguráciu nevypisuj ani nečítaj. Súbor presmerovania pre LAWOSS iba napíšeš a ukážeš;
+nainštaluje ho človek (krok 10).
 
 Ak sa tajomstvo predsa objaví vo výstupe, zastav sa a s potvrdením človeka
 urob rotáciu (príkazy: `sudo /opt/lawoss/bin/lawoss-selfhost …`):
@@ -98,7 +108,8 @@ urob rotáciu (príkazy: `sudo /opt/lawoss/bin/lawoss-selfhost …`):
   `auth` so značkou prevádzkovateľa (prihlásenie, aktivácia účtu, udelenie
   súhlasu) a `hub`, ktorý pre prihlásených používateľov spúšťa tie isté preskúmané
   služby LAWOSS ako lokálne pluginy. K tomu nástroj `lawoss-selfhost`
-  v `/opt/lawoss`.
+  v `/opt/lawoss`. Ak server už má reverznú proxy, ktorá drží porty 80 a 443,
+  Caddy beží za ňou (krok 3).
 - Zdroje: pre 1 až 20 používateľov server so 4 vCPU a 8 GB RAM. Limity sú
   6 GB pre hub, 512 MB pre auth a 256 MB pre proxy. Na disku pribúdajú obrazy,
   dáta a zálohy; nástroj staré zálohy sám nemaže.
@@ -136,6 +147,13 @@ urob rotáciu (príkazy: `sudo /opt/lawoss/bin/lawoss-selfhost …`):
 - kontaktný e-mail pre certifikačnú autoritu (krok 9), najlepšie spoločnú
   adresu prevádzky, nie osobnú.
 
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** taký server je zdieľaný
+s inými aplikáciami. Po pripojení (krok 3) prečítaj dostupnú pamäť (`free -h`,
+stĺpec `available` a riadok `Swap`) a povedz jasne, že hub môže použiť až
+6 GB. Ak je dostupnej pamäte málo alebo je swap výrazne využitý, odporuč
+menej služieb. Rozhoduje prevádzkovateľ; zoznam služieb potvrdí až po tomto
+zistení.
+
 **Potvrdí človek:** server, základnú doménu, zoznam služieb a značku. Server aj
 doménu vlastní a spravuje človek. Ich zmena po spustení je pracná.
 
@@ -160,6 +178,24 @@ ls -ld /opt/lawoss
 Over, že porty 80 a 443 sú voľné, že je dosť pamäte a miesta a že
 `/opt/lawoss` ešte neexistuje. Ak existuje, nejde o prvú inštaláciu: zastav
 sa a opýtaj sa človeka.
+
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** ak sú porty 80
+alebo 443 obsadené, len čítaním zisti, kto ich drží (`sudo ss -ltnp` alebo
+`sudo docker ps --format '{{.Names}} {{.Image}} {{.Ports}}'`). Ak je to
+Traefik (Dokploy, Coolify alebo vlastný), pokračuj podľa
+`references/existing-proxy.md`; čokoľvek iné: zastav sa a opýtaj sa človeka.
+Potom zisti adresu, na ktorej kontajner proxy dosiahne server (`<HOST_ADDR>`),
+iba príkazom `docker inspect` s `--format` obmedzeným na názvy sietí a ich
+gateway, nikdy úplným výpisom. Ak je proxy v predvolenej sieti `bridge`, je to
+gateway tejto siete (adresa `docker0`, overíš ju `ip -4 addr show docker0`);
+v sieti `host` je to `127.0.0.1`; prekryvné siete Swarm vynechaj. Ak sieť
+`bridge` ani `host` nie je a ostane viac možných adries alebo žiadna, zastav sa
+a opýtaj sa človeka. Podľa `ss -ltn` a `ss -lun` vyber dva voľné porty;
+navrhni 18080 a 18443. Porty proxy LAWOSS budú počúvať iba na `<HOST_ADDR>`,
+nikdy na všetkých adresách, takže nebudú dostupné zo siete. Človek potvrdí
+oba porty, `<HOST_ADDR>` a to, že žiadna iná aplikácia na existujúcej proxy
+nepoužíva niektorý z názvov nasadenia (`auth.<základná doména>`
+a `<služba>.<základná doména>`).
 
 **Potvrdí človek:** prístup cez SSH (adresu servera a používateľa; súkromný kľúč
 ani heslo nikdy nevkladá do konverzácie) a každú inštaláciu balíkov. Chýbať
@@ -191,8 +227,15 @@ zverejňuje porty 80 a 443 aj mimo pravidiel `ufw`; zverejňuje ich iba proxy.
 Ak má poskytovateľ servera vlastný firewall, porty 80 a 443 musí otvoriť aj
 tam. Podrobnosti sú v `references/dns-and-tls.md`.
 
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** firewall sa
+nemení vôbec. Porty 80 a 443 už patria existujúcej proxy a server je zdieľaný;
+zapnutie `ufw` by mohlo odrezať iné aplikácie aj samotné SSH. Nespúšťaj preto
+žiadny príkaz `ufw` (ani iného firewallu) a človeku to povedz. Porty z kroku 3
+sa nikde neotvárajú.
+
 **Potvrdí človek:** otvorenie portov 80 a 443 (a 443/udp) a zapnutie
-firewallu. Pravidlá vo firewalle poskytovateľa nastavuje človek.
+firewallu. Pravidlá vo firewalle poskytovateľa nastavuje človek. Na serveri
+s existujúcou reverznou proxy nič.
 
 ## 5. DNS
 
@@ -210,6 +253,11 @@ sú na nej dostupné. Namiesto jednotlivých záznamov stačí aj jeden záznam
 `*.lawoss.example.com`. Čo s CAA a čakaním na šírenie DNS:
 `references/dns-and-tls.md`.
 
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** záznamy sú
+rovnaké. Ukazujú na verejnú IP adresu, na ktorej prijíma prevádzku existujúca
+proxy; ak je server za NAT, je to verejná IP adresa smerovača. Záznam
+`*.lawoss.example.com` stačí aj tu.
+
 Keď človek záznamy vytvorí, over, že sa adresy prekladajú na server
 (`getent hosts auth.lawoss.example.com`).
 
@@ -224,28 +272,28 @@ a overiť ho:
 ```sh
 git clone https://github.com/Omni-Legal-Products/lawoss-selfhost.git ~/lawoss-selfhost
 cd ~/lawoss-selfhost
-git checkout --detach d041ee6fb116a65dde7201fb4c7d15bbb0b51256
+git checkout --detach 29440f8af25792e42b4c764f8334ec9be239439b
 git rev-parse HEAD
 ```
 
 `git rev-parse HEAD` musí vypísať presne
-`d041ee6fb116a65dde7201fb4c7d15bbb0b51256`. Inak sa zastav.
+`29440f8af25792e42b4c764f8334ec9be239439b`. Inak sa zastav.
 
-Záznam vydania nie je v repozitári; je v tomto skille (`release/0.1.0.json`).
-Skopíruj ho na server bez zmeny, napríklad ako `~/lawoss-0.1.0.json`
+Záznam vydania nie je v repozitári; je v tomto skille (`release/0.2.0.json`).
+Skopíruj ho na server bez zmeny, napríklad ako `~/lawoss-0.2.0.json`
 (`scp` z počítača, na ktorom beží agent), a over jeho odtlačok:
 
 ```sh
-sha256sum ~/lawoss-0.1.0.json
+sha256sum ~/lawoss-0.2.0.json
 ```
 
-Výsledok musí byť `6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde`.
+Výsledok musí byť `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3`.
 Ukáž človeku poznámku k vydaniu (pole `note` v zázname; neobsahuje
 tajomstvá). Potom nainštaluj súbory vydania do `/opt/lawoss`:
 
 ```sh
 cd ~/lawoss-selfhost
-sudo sh deploy/install-host-files.sh ~/lawoss-0.1.0.json 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde .
+sudo sh deploy/install-host-files.sh ~/lawoss-0.2.0.json 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3 .
 ```
 
 Skript overí odtlačok záznamu, stiahne obraz auth podľa odtlačku (digestu),
@@ -282,13 +330,25 @@ certifikačnej autority a e-mail), lebo `init` e-mail vyžaduje a `.env` už
 nikdy neprepíše.
 
 ```sh
-sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --record ~/lawoss-0.1.0.json --record-sha256 6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde
+sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --record ~/lawoss-0.2.0.json --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
 ```
 
 Doménu, služby a e-mail nahraď voľbami človeka. `init` vypíše iba názvy
 hostiteľov; porovnaj ich so záznamami DNS z kroku 5. Služby neskôr pridáš
 alebo odoberieš cez `services add|remove`. Ak je zle doména alebo e-mail,
 `.env` neupravuj ani nečítaj; zastav sa a rozhodnutie nechaj na človeku.
+
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** pridaj porty
+a adresu, ktoré človek potvrdil v kroku 3 (`<HOST_ADDR>` nahraď touto
+adresou):
+
+```sh
+sudo /opt/lawoss/bin/lawoss-selfhost init --base lawoss.example.com --services slovlex,orsr,judikaty --acme-email ops@example.com --http-port 18080 --https-port 18443 --proxy-bind <HOST_ADDR> --record ~/lawoss-0.2.0.json --record-sha256 425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3
+```
+
+`init` ich zapíše do `.env` ako `LAWOSS_HTTP_PORT`, `LAWOSS_HTTPS_PORT`
+a `LAWOSS_PROXY_BIND`. Ak `init` voľby odmietne, zastav sa a povedz to
+človeku.
 
 **Tajomstvá:** `.env` nikdy nečítaj, nevypisuj ani nekopíruj; ak sa niečo
 z neho objaví vo výstupe, zastav sa a postupuj podľa „Nikdy nespúšťaj“.
@@ -334,7 +394,12 @@ prejde ešte pred krokom 7. Caddy pri spustení požiada o certifikát pre každ
 adresu, predvolene u Let's Encrypt (pri zlyhaní môže skúsiť ZeroSSL), a tým
 v mene prevádzkovateľa prijme ich podmienky. Kontaktný e-mail (`--acme-email`)
 dostane autorita; nie je tajomstvom ani súčasťou certifikátu. Teraz, pred
-spustením, over, že DNS ukazuje na server a porty 80 a 443 sú otvorené.
+spustením, over, že DNS ukazuje na server a porty 80 a 443 sú otvorené. Na
+serveri s existujúcou reverznou proxy namiesto portov človek v konverzácii
+potvrdí, že nainštaloval súbor presmerovania (krok 10); skutočnou kontrolou je
+`doctor` (kroky 10 a 13). Priečinok dynamickej konfigurácie ani statickú
+konfiguráciu proxy agent nevypisuje ani nečíta (v Dokploy je v ňom aj
+úložisko certifikátov).
 Opakované neúspešné pokusy môže autorita dočasne obmedziť.
 
 **Potvrdí človek:** prijme podmienky certifikačnej autority a zadá kontaktný
@@ -342,7 +407,9 @@ e-mail.
 
 ## 10. Spustenie
 
-**Agent smie sám:** spustiť server a skontrolovať ho:
+**Agent smie sám:** spustiť server a skontrolovať ho. Na serveri
+s existujúcou reverznou proxy až potom, keď človek nainštaloval súbor
+presmerovania (nižšie):
 
 ```sh
 sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env up -d
@@ -353,12 +420,30 @@ sudo /opt/lawoss/bin/lawoss-selfhost doctor
 počkaj minútu, kým Caddy získa certifikáty, a spusti ho znova. Ak služba
 potrebuje kľúč poskytovateľa (napríklad `fs`), zadá ho človek.
 
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** pred prvým
+spustením napíš presnú dynamickú konfiguráciu Traefiku (poskytovateľ `file`)
+pre zvolenú základnú doménu, `<HOST_ADDR>` a porty podľa vzoru
+v `references/existing-proxy.md`: router TCP s `HostSNIRegexp`
+a `tls.passthrough: true` na port HTTPS a router HTTP pre port 80 (v Dokploy
+vstupný bod `web`) na port HTTP. Regulárny
+výraz vymenuje presne `auth` a zvolené služby, má bodky zapísané ako `\.`,
+začína `^` a končí `$`, napríklad `^(auth|slovlex|orsr|judikaty)\.lawoss\.example\.com$`.
+Nikdy nezachytí všetkých hostiteľov pod základnou doménou, lebo na zdieľanej
+proxy by tým iným aplikáciám zobral TLS. Súbor ukáž človeku; nainštaluje ho
+sám (v Dokploy ako nový súbor v editore súborov Traefiku, inde do priečinka
+dynamickej konfigurácie, ktorý si nájde sám) a v konverzácii potvrdí, že je
+nainštalovaný. Existujúcu konfiguráciu proxy nemeň, nepresúvaj ani
+nemaž, Traefik ani Dokploy nereštartuj a úložisko certifikátov proxy
+(`acme.json`) nečítaj. `doctor` potom overuje TLS cez existujúcu proxy
+a prejde, iba keď presmerovanie funguje.
+
 **Tajomstvá:** kľúč poskytovateľa nikdy nepýtaj do konverzácie a logy
 kontajnerov nečítaj; ak sa tajomstvo objaví vo výstupe, zastav sa a postupuj
 podľa „Nikdy nespúšťaj“.
 
-**Potvrdí človek:** nič. Kľúče poskytovateľov zadáva človek sám vo svojom
-vlastnom termináli; hodnotu píše do skrytého vstupu:
+**Potvrdí človek:** nič; na serveri s existujúcou reverznou proxy inštaláciu
+súboru presmerovania, ktorú urobí sám. Kľúče poskytovateľov zadáva človek sám
+vo svojom vlastnom termináli; hodnotu píše do skrytého vstupu:
 
 ```text
 sudo /opt/lawoss/bin/lawoss-selfhost set-key FS_API_KEY
@@ -414,6 +499,12 @@ Pripomeň, že prechod `doctor` dokazuje technickú funkčnosť, nie úplnosť
 alebo aktuálnosť zdrojov. Rozdiel vo výsledku hlás presne; na diaľku chýbajú
 nástroje, ktoré ukladajú súbory.
 
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** zlyhanie TLS
+alebo HTTP v `doctor` znamená najprv, že súbor presmerovania chýba alebo je
+zlý. Skôr než čokoľvek iné nech ho človek skontroluje (základná doména, vstupné
+body, `<HOST_ADDR>`, porty, verzia Traefiku; `references/existing-proxy.md`).
+Konfiguráciu proxy agent nemení.
+
 **Potvrdí človek:** že výsledky vyzerajú správne.
 
 ## 14. Zálohy
@@ -445,5 +536,11 @@ v `references/operations.md`; agent kľúč nečíta ani nekopíruje.
 `/opt/lawoss/PREVADZKA.md` podľa vzoru v `references/operations.md`: verzia,
 commit, doména, služby, plán záloh a kde je súkromný kľúč (opis miesta, nie
 kľúč), postup aktualizácie a rotácie. Žiadne tajomstvá, heslá ani odkazy.
+
+**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):** do poznámky
+patria aj porty, `<HOST_ADDR>` a miesto, kde človek uložil súbor presmerovania
+(riadok „Za existujúcou proxy“ vo vzore v `references/operations.md`).
+Povedz človeku, že pri odstránení nasadenia musí tento súbor odstrániť aj
+z konfigurácie existujúcej proxy (`references/existing-proxy.md`).
 
 **Potvrdí človek:** nič; odporuč mu poznámku si prečítať.

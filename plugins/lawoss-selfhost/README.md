@@ -2,7 +2,7 @@
 
 Skill-only plugin that walks an AI agent, together with the person who owns
 the server, through deploying
-[lawoss-selfhost](https://github.com/Omni-Legal-Products/lawoss-selfhost/tree/d041ee6fb116a65dde7201fb4c7d15bbb0b51256)
+[lawoss-selfhost](https://github.com/Omni-Legal-Products/lawoss-selfhost/tree/29440f8af25792e42b4c764f8334ec9be239439b)
 on infrastructure that person controls. LAWOSS hosts nothing: the operator is
 responsible for the server, its users and respecting the terms of the public
 sources.
@@ -17,17 +17,26 @@ and says to stop and rotate when a secret appears in any output. A passing
 `doctor` proves that the deployment works technically, not that the data
 sources are complete.
 
+When a reverse proxy (Traefik on Dokploy, Coolify or a hand-made one) already
+owns ports 80 and 443, the skill runs the deployment behind it
+(`skills/lawoss-selfhost/references/existing-proxy.md`): the agent changes
+neither the firewall nor the existing proxy, binds the deployment's ports to
+the address the proxy reaches the host on, and writes a TLS-passthrough
+forwarding file that the human installs. It uses the `init` options
+`--http-port`, `--https-port` and `--proxy-bind`, available since
+lawoss-selfhost 0.2.0.
+
 ## Pinned release
 
 | Field | Value |
 |---|---|
-| Version | 0.1.0 |
+| Version | 0.2.0 |
 | Repository | `Omni-Legal-Products/lawoss-selfhost` (AGPL-3.0) |
-| Commit | `d041ee6fb116a65dde7201fb4c7d15bbb0b51256` |
-| Release record | `skills/lawoss-selfhost/release/0.1.0.json` |
-| Record SHA-256 | `6f96cd390968ecfee44c34057b5d61705391ffa91953791cb463d286edfcedde` |
-| Auth image | `ghcr.io/omni-legal-products/lawoss-auth@sha256:93e84a8a52d3286b07cc1fd231dc4d679db5e15ecf27daf8dc510876390bc1ea` |
-| Hub image | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c86179af9093b1b26405da51aedcd343e66b33bf90a61018a21e12e08e667ea7` |
+| Commit | `29440f8af25792e42b4c764f8334ec9be239439b` |
+| Release record | `skills/lawoss-selfhost/release/0.2.0.json` |
+| Record SHA-256 | `425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3` |
+| Auth image | `ghcr.io/omni-legal-products/lawoss-auth@sha256:014b41f319cc634bea50aee8a14380bbf6623ee56a3041d7912396f3e636dde7` |
+| Hub image | `ghcr.io/omni-legal-products/lawoss-hub@sha256:c9bd106d579e842109052b73e0f2e179bdbe440cb7936c41dd62d23bc12f7714` |
 
 The release record is the release workflow's artifact, copied byte for byte.
 `releases.json` records it as a regular release with

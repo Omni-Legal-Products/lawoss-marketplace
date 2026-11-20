@@ -55,6 +55,9 @@ nastavuje človek v jeho rozhraní. Ak server používa iný firewall než `ufw`
 (napríklad `firewalld`), ukáž zodpovedajúce pravidlá pre ten nástroj
 a spusti ich až po potvrdení.
 
+Ak porty 80 a 443 už drží existujúca reverzná proxy, firewall sa nemení
+vôbec a agent nespúšťa žiadny príkaz `ufw` (`existing-proxy.md`).
+
 ## Certifikáty
 
 - Caddy získava certifikát pre každú adresu sám pri prvom spustení
@@ -70,4 +73,6 @@ a spusti ich až po potvrdení.
 - `doctor` overuje TLS cez `127.0.0.1:443` s každou verejnou adresou, takže
   nepotrebuje hairpin NAT. Ak TLS zlyhá hneď po spustení, počkaj minútu
   a spusti `doctor` znova. Ak zlyháva ďalej, skontroluj DNS a porty 80 a 443;
-  firewall ani DNS nemeň bez potvrdenia.
+  firewall ani DNS nemeň bez potvrdenia. Za existujúcou reverznou proxy ide
+  táto kontrola cez ňu; pri zlyhaní najprv nech človek skontroluje súbor
+  presmerovania (`existing-proxy.md`).
