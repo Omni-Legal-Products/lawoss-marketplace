@@ -2,8 +2,10 @@
 
 Skill-only plugin with two skills: `cz-lhuty` computes Czech procedural and
 substantive deadlines deterministically (deemed delivery, end-of-period
-shifting, the different tax-code arithmetic) and ships control cases the agent
-must pass before use; `cz-kalkulacky` guides court fees, the attorney tariff
+shifting, the different tax-code arithmetic) with plain JavaScript that runs
+unchanged in the LAWOSS `execute` sandbox or Node.js, and ships control cases
+the agent must pass before use; `tests/test_cz_lhuty.py` runs that code against
+every control case; `cz-kalkulacky` guides court fees, the attorney tariff
 and statutory late payment interest, always reading current rates from the
 law in force instead of hard-coding them.
 

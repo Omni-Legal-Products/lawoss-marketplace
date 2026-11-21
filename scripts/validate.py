@@ -249,17 +249,55 @@ def claude_tags(meta: dict, name: str) -> list[str]:
     return [f"lawoss-category:{plugin['category']}"] + [f"jurisdiction:{code.lower()}" for code in plugin["jurisdictions"]]
 
 
+SELFHOST_REPOSITORY = "Omni-Legal-Products/lawoss-selfhost"
+PINNED_IMAGE = re.compile(r"[a-z0-9][a-z0-9._/:-]{0,254}@sha256:[0-9a-f]{64}")
+
+
+def validate_selfhost_record(root: Path, record: dict) -> None:
+    """A skill that deploys lawoss-selfhost: skill-only, with the pinned release record bundled byte for byte."""
+    name, version, images = record.get("name", ""), record.get("version", ""), record.get("images")
+    require(bool(re.fullmatch(r"[a-z][a-z0-9-]*", name)), "selfhost skill name required")
+    require(record.get("repository") == SELFHOST_REPOSITORY, "selfhost skill must pin a lawoss-selfhost release")
+    require(bool(re.fullmatch(r"[0-9a-f]{40}", record.get("commit", ""))), "recorded organization commit required")
+    require(isinstance(version, str) and bool(SEMVER.fullmatch(version)), "selfhost release version must be strict semver")
+    require(bool(re.fullmatch(r"[0-9a-f]{64}", record.get("recordSha256", ""))), "selfhost release record SHA-256 required")
+    require(isinstance(images, dict) and set(images) == {"auth", "hub"}
+            and all(isinstance(ref, str) and PINNED_IMAGE.fullmatch(ref) for ref in images.values()), "selfhost images must be pinned by digest")
+    plugin_root = resolve_plugin_root(root, f"plugins/{name}")
+    manifest = load_json(plugin_root / ".codex-plugin" / "plugin.json", root)
+    require("mcpServers" not in manifest and not any((plugin_root / path).exists() for path in (".mcp.json", "runtime", "scripts")),
+            "selfhost wrapper must be skill-only")
+    skill_dir = plugin_root / "skills" / name
+    path = skill_dir / "release" / f"{version}.json"
+    require(path.is_file(), "selfhost release record is missing")
+    data = path.read_bytes()
+    require(hashlib.sha256(data).hexdigest() == record["recordSha256"], "selfhost release record does not match its pinned SHA-256")
+    pinned = load_json(path, root)
+    require(pinned.get("commit") == record["commit"] and pinned.get("version") == version, "selfhost release record names a different commit or version")
+    pinned_images = pinned.get("images") if isinstance(pinned.get("images"), dict) else {}
+    require({key: pinned_images.get(key) for key in images} == images, "selfhost release record names different images")
+    require((skill_dir / "SKILL.md").is_file(), "usage skill is missing")
+    skill = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+    require(record["commit"] in skill and record["recordSha256"] in skill, "selfhost skill must name its pinned commit and record SHA-256")
+
+
 def validate_catalogs(root: Path) -> int:
     codex = load_json(root / ".agents/plugins/marketplace.json", root)
     claude = load_json(root / ".claude-plugin/marketplace.json", root)
     ledger = load_json(root / "releases.json", root)
     records = ledger.get("releases", [])
-    require(isinstance(records, list) and len(records) == 15, "15 reviewed organization records required")
+    require(isinstance(records, list), "releases must be an array")
+    # The self-hosting skill is a regular release record of lawoss-selfhost; the rest carry runtimes.
+    runtimes = [r for r in records if r.get("distribution") != "selfhost-skill"]
+    require(len(runtimes) == 15, "15 reviewed organization records required")
     by_name = {r["name"]: r for r in records}
-    require(len(by_name) == 15, "duplicate release names")
-    for record in records:
+    require(len(by_name) == len(records), "duplicate release names")
+    for record in runtimes:
         require(bool(re.fullmatch(r"Omni-Legal-Products/mcp-[a-z-]+", record.get("repository", ""))), "organization source required")
         require(bool(re.fullmatch(r"[0-9a-f]{40}", record.get("commit", ""))), "recorded organization commit required")
+    for record in records:
+        if record.get("distribution") == "selfhost-skill":
+            validate_selfhost_record(root, record)
     # Skill-only wrappers authored in this repository: no organization source, runtime or MCP.
     in_repo = ledger.get("inRepoSkills", [])
     require(isinstance(in_repo, list), "inRepoSkills must be an array")

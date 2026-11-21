@@ -14,7 +14,10 @@ Tento plugin nepřipojuje MCP, neobsahuje runtime ani přihlašovací údaje.
    rozhodný (den podání návrhu, den úkonu, první den pololetí prodlení).
    Sazebníky se mění novelami.
 2. **Počítej kódem**, ne odhadem. Mezivýsledky a použité sazby vypiš, aby
-   výpočet šel zkontrolovat.
+   výpočet šel zkontrolovat. V LAWOSS piš kód v JavaScriptu a spusť ho
+   nástrojem `execute` s výsledkem v `return`. Python ani shell tam nejsou
+   k dispozici. Když kód spustit nelze, částku nepočítej z hlavy a řekni to
+   uživateli.
 3. Ke každé částce uveď ustanovení, ze kterého vychází, a datum znění.
 4. Výstup označ jako návrh k ověření advokátem. Osvobození od poplatku,
    snížení odměny a zvláštní sazby posuzuje člověk.

@@ -255,6 +255,30 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "lawoss-remote-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lawoss-remote-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lawoss-selfhost",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lawoss-selfhost"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }

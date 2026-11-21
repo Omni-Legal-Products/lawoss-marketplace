@@ -1,0 +1,10 @@
+{
+  "name": "lawoss-remote-skills",
+  "version": "0.1.0",
+  "description": "Skilly LAWOSS pre self-hosted server: vzdialené verzie 14 služieb, bez lokálneho servera.",
+  "author": {
+    "name": "LAWOSS"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

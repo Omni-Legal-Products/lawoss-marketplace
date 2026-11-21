@@ -106,6 +106,19 @@
       "commit": "d0138206b55338fcc82e63b31b658430751ef55f",
       "branch": "codex/rollout-fix-uvo",
       "distribution": "local-mcp-skill-cli"
+    },
+    {
+      "name": "lawoss-selfhost",
+      "repository": "Omni-Legal-Products/lawoss-selfhost",
+      "commit": "60ff58dfdd6a70f3534f9fe0ff05f3344563cca6",
+      "distribution": "selfhost-skill",
+      "version": "0.3.0",
+      "recordSha256": "329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d",
+      "images": {
+        "auth": "ghcr.io/omni-legal-products/lawoss-auth@sha256:2f7bbca3b4052d754b1bcccf0920e8a25795f5b63df8d1c908f27bcbc3feeb08",
+        "hub": "ghcr.io/omni-legal-products/lawoss-hub@sha256:9aa863847415cf4a3fb48b6b133d249c0cce2a96b64679f2632c4536a28ebab2"
+      },
+      "reviewDate": "2026-11-20"
     }
   ],
   "inRepoSkills": [
@@ -150,6 +163,13 @@
       "path": "plugins/katastr-cz",
       "distribution": "skill-only",
       "reviewDate": "2026-10-22"
+    },
+    {
+      "name": "lawoss-remote-skills",
+      "repository": "Omni-Legal-Products/lawoss-marketplace",
+      "path": "plugins/lawoss-remote-skills",
+      "distribution": "skill-only",
+      "reviewDate": "2026-11-19"
     }
   ]
 }

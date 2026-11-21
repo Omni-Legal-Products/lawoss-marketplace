@@ -217,7 +217,7 @@
       "name": "lhuty-kalkulacky-cz",
       "source": "./plugins/lhuty-kalkulacky-cz",
       "description": "Lhůty a kalkulačky ČR: skilly pro deterministický výpočet lhůt, soudních poplatků, advokátního tarifu a úroku z prodlení, bez MCP.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "Productivity",
       "tags": [
         "lawoss-category:cz",
@@ -233,6 +233,28 @@
       "tags": [
         "lawoss-category:cz",
         "jurisdiction:cz"
+      ]
+    },
+    {
+      "name": "lawoss-remote-skills",
+      "source": "./plugins/lawoss-remote-skills",
+      "description": "Skilly LAWOSS pre self-hosted server: vzdialené verzie 14 služieb, bez lokálneho servera.",
+      "version": "0.1.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:sk",
+        "jurisdiction:sk",
+        "jurisdiction:eu"
+      ]
+    },
+    {
+      "name": "lawoss-selfhost",
+      "source": "./plugins/lawoss-selfhost",
+      "description": "Vlastný server LAWOSS: skill, ktorý agenta prevedie nasadením lawoss-selfhost 0.3.0 s potvrdeniami človeka.",
+      "version": "0.3.0",
+      "category": "Productivity",
+      "tags": [
+        "lawoss-category:general"
       ]
     }
   ]

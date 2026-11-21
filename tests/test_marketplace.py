@@ -12,6 +12,52 @@ ROOT = Path(__file__).resolve().parents[1]
 CODEX_CATALOG = ROOT / ".agents" / "plugins" / "marketplace.json"
 CLAUDE_CATALOG = ROOT / ".claude-plugin" / "marketplace.json"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+SELFHOST = ROOT / "plugins" / "lawoss-selfhost"
+SELFHOST_SKILL_DIR = SELFHOST / "skills" / "lawoss-selfhost"
+# The 15 steps of design section 5.6, in Slovak and in order.
+SELFHOST_STEPS = (
+    "Čo sa nainštaluje, čo to stojí a čo nerobí",
+    "Server, doména, služby a značka",
+    "Pripojenie na server",
+    "Firewall",
+    "DNS",
+    "Stiahnutie pripnutého vydania",
+    "Generovanie tajomstiev",
+    "Značka",
+    "Certifikáty",
+    "Spustenie",
+    "Prvý účet",
+    "Pripojenie aplikácie",
+    "Overenie",
+    "Zálohy",
+    "Odovzdanie",
+)
+# Commands that print secrets. The skill lists them as never to be run and runs none of them itself.
+SECRET_COMMANDS = ("cat .env", "docker compose config", "env", "printenv", "docker inspect", "set -x", "docker compose logs", "docker logs")
+SECRET_COMMAND_LINE = re.compile(
+    r"^(?:sudo\s+)?(?:env|printenv)(?:\s|$)"
+    r"|\bdocker compose\b[^\n]*\b(?:config|logs)\b|\bdocker (?:inspect|logs)\b|set -x|bash -x"
+    r"|\b(?:cat|less|more|head|tail|grep|sed|awk|cp|scp|install)\b[^\n]*(?:\.env\b|/keys/|/snapshots/|/handoff/|backup-private\.pem)"
+    # The certificate store of an existing reverse proxy holds private keys.
+    r"|acme\.json"
+)
+# The one permitted inspect of the existing proxy's container: network names and gateways only.
+NETWORK_ONLY_INSPECT = re.compile(
+    r"(?:sudo\s+)?docker inspect <?[\w.-]+>? --format "
+    r"'\{\{range \$(\w+), \$(\w+) := \.NetworkSettings\.Networks\}\}\{\{\$\1\}\} \{\{\$\2\.Gateway\}\}\{\{println\}\}\{\{end\}\}'"
+)
+# Agent commands are `sh` blocks; commands the human types in their own terminal are `text` blocks.
+# Fences may be indented (inside list items).
+FENCED_BLOCK = re.compile(r"^[ \t]*```([a-z]*)\n(.*?)^[ \t]*```", re.M | re.S)
+# Steps that handle secrets repeat the secret rule.
+SELFHOST_SECRET_STEPS = (7, 10, 11, 14)
+
+
+def secret_command_lines(text: str) -> list[str]:
+    """Agent (`sh`) lines that would print or copy a secret."""
+    return [line.strip() for language, block in FENCED_BLOCK.findall(text) if language == "sh"
+            for line in block.splitlines()
+            if SECRET_COMMAND_LINE.search(line.strip()) and not NETWORK_ONLY_INSPECT.fullmatch(line.strip())]
 
 
 class MarketplaceValidationTest(unittest.TestCase):
@@ -46,7 +92,7 @@ class MarketplaceValidationTest(unittest.TestCase):
         self.assertEqual(codex["name"], "lawoss")
         self.assertEqual(codex["interface"], {"displayName": "LAWOSS Marketplace"})
         ledger = json.loads((ROOT / "releases.json").read_text())
-        self.assertEqual(len(codex["plugins"]), 21)
+        self.assertEqual(len(codex["plugins"]), 23)
         self.assertEqual(
             set(plugin["name"] for plugin in codex["plugins"]),
             set(record["name"] for record in ledger["releases"]) | set(record["name"] for record in ledger["inRepoSkills"]),
@@ -279,6 +325,204 @@ class MarketplaceValidationTest(unittest.TestCase):
                 stream.write('\nconst leakedHost = "' + '.'.join(('10','23','45','67')) + '";\n')
             with self.assertRaisesRegex(module.ValidationFailure, 'private network address'):
                 module.validate_public_tree(copied)
+
+    def test_policy_names_selfhost_and_no_lawoss_hosting(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("LAWOSS does not host or operate", readme)
+        self.assertIn("lawoss-selfhost", readme)
+        runtime_doc = (ROOT / "docs" / "local-runtime.md").read_text(encoding="utf-8")
+        self.assertIn("lawoss-selfhost", runtime_doc)
+        model = (ROOT / "docs" / "distribution-model.html").read_text(encoding="utf-8")
+        self.assertIn("lawoss-selfhost", model)
+        for path in (ROOT / "docs").rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".html"}:
+                self.assertNotIn(
+                    "No hosted transport is permitted",
+                    path.read_text(encoding="utf-8"),
+                    msg=str(path),
+                )
+        for name in ("README.md", "AGENTS.md", "CLAUDE.md"):
+            self.assertNotIn(
+                "No hosted transport is permitted",
+                (ROOT / name).read_text(encoding="utf-8"),
+                msg=name,
+            )
+
+    def _selfhost_record(self, ledger: dict) -> dict:
+        return next(record for record in ledger["releases"] if record["name"] == "lawoss-selfhost")
+
+    def _selfhost_skill_texts(self) -> dict:
+        return {path.relative_to(SELFHOST_SKILL_DIR).as_posix(): path.read_text(encoding="utf-8") for path in sorted(SELFHOST_SKILL_DIR.rglob("*.md"))}
+
+    def test_selfhost_is_skill_only(self) -> None:
+        """The self-hosting skill deploys a server elsewhere; it ships no MCP, runtime or scripts itself."""
+        manifest = json.loads((SELFHOST / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["skills"], "./skills/")
+        self.assertNotIn("mcpServers", manifest)
+        for name in (".mcp.json", "runtime", "scripts"):
+            self.assertFalse((SELFHOST / name).exists(), msg=name)
+        record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
+        self.assertEqual(record["distribution"], "selfhost-skill")
+        self.assertEqual(record["repository"], "Omni-Legal-Products/lawoss-selfhost")
+        self.assertIn(record["commit"], (SELFHOST / "README.md").read_text(encoding="utf-8"))
+
+        for mutation in (
+            lambda root: (root / "plugins/lawoss-selfhost/.mcp.json").write_text('{"mcpServers": {}}'),
+            lambda root: (root / "plugins/lawoss-selfhost/runtime").mkdir(),
+            lambda root: (root / "plugins/lawoss-selfhost/scripts").mkdir(),
+        ):
+            with tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                mutation(copied_root)
+                result = self._run_validator(copied_root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("selfhost wrapper must be skill-only", result.stderr)
+
+    def test_selfhost_skill_lists_all_fifteen_gates(self) -> None:
+        """Every step of design 5.6 is a numbered heading with what the agent may do and what the human confirms."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(skill.startswith("---\nname: lawoss-selfhost\n"))
+        headings = re.findall(r"^## (\d+)\. (.+)$", skill, re.M)
+        self.assertEqual(headings, [(str(number), title) for number, title in enumerate(SELFHOST_STEPS, 1)])
+        sections = re.split(r"^## \d+\. .+$", skill, flags=re.M)[1:]
+        for number, section in enumerate(sections, 1):
+            section = section.split("\n## ", 1)[0]
+            self.assertIn("**Agent smie sám:**", section, msg=f"step {number}")
+            self.assertIn("**Potvrdí človek:**", section, msg=f"step {number}")
+            if number in SELFHOST_SECRET_STEPS:
+                self.assertIn("**Tajomstvá:**", section, msg=f"step {number}")
+        record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
+        for pin in (record["commit"], record["recordSha256"], f"release/{record['version']}.json"):
+            self.assertIn(pin, skill)
+        # The standing rules of design 5.6 are stated once, before the steps.
+        for rule in ("rotáci", "nedokazuje", "update", "doctor"):
+            self.assertIn(rule, skill.split("## 1. ", 1)[0].lower())
+
+    def test_selfhost_skill_forbids_secret_commands(self) -> None:
+        """The never-run list names the secret-printing commands, and no command block in the skill runs one."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        never = skill.split("## Nikdy nespúšťaj\n", 1)[1].split("\n## ", 1)[0]
+        for command in SECRET_COMMANDS:
+            self.assertIn(f"`{command}`", never)
+        for path in ("/opt/lawoss/.env", ".env.previous", "keys/", "handoff/", "snapshots/", "backup-private.pem"):
+            self.assertIn(path, never)
+        self.assertIn("rotate", never)
+        # The scan itself catches indented fences and the long compose form.
+        probe = "1. Krok:\n\n   ```sh\n   sudo docker compose -f /opt/lawoss/compose.yaml --env-file /opt/lawoss/.env config\n   sudo docker compose -f /opt/lawoss/compose.yaml logs auth\n   sudo cat /opt/lawoss/handoff/jnovak.link\n   ```\n"
+        self.assertEqual(len(secret_command_lines(probe)), 3)
+        # The existing proxy's certificate store and a full inspect of its container are refused;
+        # only the inspect restricted to network names and gateways passes.
+        network_only = "sudo docker inspect <traefik> --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}} {{$net.Gateway}}{{println}}{{end}}'"
+        self.assertEqual(secret_command_lines(f"```sh\n{network_only}\n```\n"), [])
+        proxy_probe = (
+            "```sh\n"
+            "sudo cat /srv/traefik/acme.json\n"
+            "sudo docker inspect <traefik>\n"
+            "sudo docker inspect <traefik> --format '{{json .Config.Env}}'\n"
+            "sudo docker inspect <traefik> --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}} {{$net.Gateway}}{{println}}{{end}}{{.Config.Env}}'\n"
+            "```\n"
+        )
+        self.assertEqual(len(secret_command_lines(proxy_probe)), 4)
+        for name, text in self._selfhost_skill_texts().items():
+            self.assertEqual(secret_command_lines(text), [], msg=name)
+            for language, block in FENCED_BLOCK.findall(text):
+                self.assertIn(language, {"sh", "text", "json", "css", "svg", "cron", "yaml"}, msg=f"{name}: untagged or unknown block")
+                for line in block.splitlines():
+                    # A provider key is typed at the hidden prompt, never piped or passed as an argument.
+                    if "set-key" in line:
+                        self.assertNotRegex(line, r"[|<]|set-key\s+\S+\s+\S", msg=f"{name}: {line}")
+
+    def test_selfhost_skill_covers_an_existing_reverse_proxy(self) -> None:
+        """A server whose ports 80 and 443 already belong to a proxy gets its own branch and reference."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        reference = SELFHOST_SKILL_DIR / "references" / "existing-proxy.md"
+        self.assertTrue(reference.is_file())
+        self.assertIn("`references/existing-proxy.md`", skill)
+        for option in ("--http-port", "--https-port", "--proxy-bind"):
+            self.assertIn(option, skill)
+        self.assertIn("**Ak server už má reverznú proxy (Traefik, Dokploy, Coolify):**", skill)
+        # The forwarding file follows the upstream Traefik example: SNI passthrough plus the port 80 route.
+        text = reference.read_text(encoding="utf-8")
+        yaml_blocks = [block for language, block in FENCED_BLOCK.findall(text) if language == "yaml"]
+        self.assertEqual(len(yaml_blocks), 1)
+        for key in ("lawoss-tls:", "lawoss-http:", "entryPoints: [websecure]", "entryPoints: [web]", "passthrough: true", "address: <HOST_ADDR>:18443", "url: http://<HOST_ADDR>:18080"):
+            self.assertIn(key, yaml_blocks[0])
+        # On a shared proxy the rules name the deployment's exact hosts, never every host under the base.
+        # Python `re` and Traefik's Go RE2 agree on this pattern.
+        rules = dict((kind, pattern) for kind, pattern in re.findall(r"rule: (HostSNIRegexp|HostRegexp)\(`([^`]+)`\)", yaml_blocks[0]))
+        self.assertEqual(set(rules), {"HostSNIRegexp", "HostRegexp"})
+        for kind, pattern in rules.items():
+            for host in ("auth", "slovlex", "orsr", "judikaty"):
+                self.assertRegex(f"{host}.lawoss.example.com", pattern, msg=kind)
+            for host in ("www.lawoss.example.com", "lawoss.example.com", "a.b.lawoss.example.com", "authxlawoss.example.com", "auth.lawoss.example.com.evil.org"):
+                self.assertNotRegex(host, pattern, msg=f"{kind}: {host}")
+        for name, text in self._selfhost_skill_texts().items():
+            self.assertNotIn("[a-z0-9-]+", text, msg=f"{name}: wildcard host rule")
+        # The never-run list covers the proxy's certificate store, its container and its configuration.
+        never = skill.split("## Nikdy nespúšťaj\n", 1)[1].split("\n## ", 1)[0]
+        for item in ("acme.json", "--format", "Traefik"):
+            self.assertIn(item, never)
+
+    def test_selfhost_skill_covers_claude_connectors(self) -> None:
+        """Since lawoss-selfhost 0.3.0 Claude desktop and claude.ai connect; the skill no longer says they cannot."""
+        skill = (SELFHOST_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        texts = self._selfhost_skill_texts()
+        operations = texts["references/operations.md"]
+        step7 = skill.split("## 7. ", 1)[1].split("\n## ", 1)[0]
+        step12 = skill.split("## 12. ", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("--no-claude-callbacks", step7)
+        self.assertIn("callbacks add claude", step7)
+        for item in ("Settings → Connectors", "verejný port 443", "Adresa `/mcp` sa nezadáva do prehliadača", "zatiaľ nebolo overené na skutočnom nasadení"):
+            self.assertIn(item, step12, msg=item)
+        for command in ("callbacks list", "callbacks add claude", "callbacks remove"):
+            self.assertIn(command, operations, msg=command)
+        self.assertIn("PASS callbacks", operations)
+        # The 0.2.0 loopback-only limitation is gone from the skill, the references and the README.
+        readme = (SELFHOST / "README.md").read_text(encoding="utf-8")
+        for name, text in {**texts, "README.md": readme}.items():
+            for stale in ("Couldn't register", "nie konektor Claude desktop", "prevádzkovateľovi neponúka", "fails to register. The skill says"):
+                self.assertNotIn(stale, text, msg=f"{name}: {stale}")
+        # 0.2.0 backups stay restorable: its record SHA-256 stays next to the pinned one.
+        record = self._selfhost_record(json.loads((ROOT / "releases.json").read_text(encoding="utf-8")))
+        self.assertIn(record["recordSha256"], operations)
+        self.assertIn("425865a7262019e6d77c7b847b9a42cdc8b0c4ae02b9358dd3ed39ccbc5f38b3", operations)
+
+    def test_selfhost_release_pin_refusals(self) -> None:
+        """The bundled release record must be exactly the one the ledger pins: bytes, commit and images."""
+        def ledger_mutation(change):
+            def mutate(root: Path) -> None:
+                path = root / "releases.json"
+                ledger = json.loads(path.read_text(encoding="utf-8"))
+                change(self._selfhost_record(ledger))
+                path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
+            return mutate
+
+        def record_bytes(root: Path) -> None:
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/release/0.3.0.json"
+            path.write_bytes(path.read_bytes() + b" ")
+
+        def skill_pin(root: Path) -> None:
+            path = root / "plugins/lawoss-selfhost/skills/lawoss-selfhost/SKILL.md"
+            text = path.read_text(encoding="utf-8")
+            path.write_text(text.replace("329d5bd454581e2bc16de0bd54d1003fbaf4516c5b251146a4429271881ea22d", "0" * 64), encoding="utf-8")
+
+        other_digest = "sha256:" + "0" * 64
+        cases = (
+            ("another repository", ledger_mutation(lambda r: r.update(repository="Omni-Legal-Products/mcp-selfhost")), "must pin a lawoss-selfhost release"),
+            ("skill text names another record", skill_pin, "must name its pinned commit and record SHA-256"),
+            ("wrong hash in the ledger", ledger_mutation(lambda r: r.update(recordSha256="0" * 64)), "does not match its pinned SHA-256"),
+            ("changed record bytes", record_bytes, "does not match its pinned SHA-256"),
+            ("commit mismatch", ledger_mutation(lambda r: r.update(commit="1" * 40)), "names a different commit"),
+            ("auth image mismatch", ledger_mutation(lambda r: r["images"].update(auth=r["images"]["auth"].split("@")[0] + "@" + other_digest)), "names different images"),
+            ("hub image mismatch", ledger_mutation(lambda r: r["images"].update(hub=r["images"]["hub"].split("@")[0] + "@" + other_digest)), "names different images"),
+        )
+        for name, mutate, message in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                copied_root = self._copy_repository(directory)
+                mutate(copied_root)
+                result = self._run_validator(copied_root)
+                self.assertNotEqual(result.returncode, 0, msg=name)
+                self.assertIn(message, result.stderr)
 
     def test_repository_validator_accepts_its_own_public_safe_rules(self) -> None:
         """Catch a sanitization rule that rejects its own validator source."""
