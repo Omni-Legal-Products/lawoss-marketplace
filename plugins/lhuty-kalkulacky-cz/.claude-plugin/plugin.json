@@ -1,6 +1,6 @@
 {
   "name": "lhuty-kalkulacky-cz",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lhůty a kalkulačky ČR: skilly pro deterministický výpočet lhůt, soudních poplatků, advokátního tarifu a úroku z prodlení, bez MCP.",
   "author": {
     "name": "LAWOSS"
