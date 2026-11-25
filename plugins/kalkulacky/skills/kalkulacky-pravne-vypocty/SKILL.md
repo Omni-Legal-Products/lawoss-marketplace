@@ -81,7 +81,8 @@ over, výpočet ide priamo do žaloby.
   znenie predpisu — zákon interakciu zľavy s minimom nerieši. Zdokumentované v
   README (Známe limity) a golden test presne tento prípad počíta (12,50 € z
   minimálnej sadzby 25 €).
-- **`koniec_lehoty` pri spornom výklade uvádza ako `poslednyDenLehoty` najskorší deň zo všetkých výkladov** (rozhodnutie vlastníka produktu); použitý výklad je v `kroky[]`. Otvorené body: úložná lehota (+15 vs. +16 dní),
+- **`koniec_lehoty` pri spornom výklade uvádza ako `poslednyDenLehoty` najskorší deň zo všetkých výkladov** (rozhodnutie vlastníka produktu); použitý výklad je v `kroky[]`. Pri fikcii je správa doručená až deň po poslednom
+  dni úložnej lehoty (veľký senát NS SR 1VCdo/8/2025), to nie je otvorený bod. Otvorené body:
   doručenie v sobotu alebo v štátny sviatok, ktorý nie je dňom pracovného pokoja (1. 9.,
   28. 10., 17. 11.), či je deň podľa § 32 ods. 9 prvým dňom lehoty a či sa pri mesiacoch koniec
   viaže na deň doručenia — neskoršie výklady sú v `alternativy[]` s `otvoreneBody`. Nepočíta hodiny, hmotnoprávne lehoty, neplynutie lehoty ani Trestný

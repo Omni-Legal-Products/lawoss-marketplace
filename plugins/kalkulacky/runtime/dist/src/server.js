@@ -37572,7 +37572,6 @@ var CITACIE = {
   }
 };
 var PRIMARNE = {
-  ulozna16: false,
   sobotaPosuva: false,
   statnySviatokPosuva: false,
   posunutyDenNezapocitany: false,
@@ -37670,8 +37669,9 @@ function jadro(input2, konanie, tables, v) {
       sposob = "nasledujuciDenPoUlozeni";
       kroky.push(`Nedoru\u010Duje sa do vlastn\xFDch r\xFAk \u2192 spr\xE1va sa pova\u017Euje za doru\u010Den\xFA v de\u0148 bezprostredne nasleduj\xFAci po ulo\u017Een\xED: ${formatDatum(datumDorucenia)} (\xA7 32 ods. 5 p\xEDsm. b) bod 2 z\xE1k. 305/2013 Z. z.).`);
     } else {
-      koniecUloznej = addDays(u, v.ulozna16 ? 16 : 15);
-      kroky.push(v.ulozna16 ? `\xDAlo\u017En\xE1 lehota 15 dn\xED plynie odo d\u0148a nasleduj\xFAceho po ulo\u017Een\xED, ktor\xFD sa nezapo\u010D\xEDtava \u2192 kon\u010D\xED ${formatDatum(koniecUloznej)} (\xA7 32 ods. 2 z\xE1k. 305/2013 Z. z.; v\xFDklad + 16 dn\xED).` : `\xDAlo\u017En\xE1 lehota 15 dn\xED plynie odo d\u0148a nasleduj\xFAceho po ulo\u017Een\xED (ten je 1. d\u0148om) \u2192 kon\u010D\xED ${formatDatum(koniecUloznej)} (\xA7 32 ods. 2 z\xE1k. 305/2013 Z. z.). N\xE1stroj \xFAlo\u017En\xFA lehotu pri sobote \u010Di sviatku nepos\xFAva (v\xFDklad projektu: \xA7 121 ods. 4 CSP sa vz\u0165ahuje na lehoty \u201Epod\u013Ea tohto z\xE1kona\u201C).`);
+      koniecUloznej = addDays(u, 15);
+      const dorucenieFikciou = addDays(koniecUloznej, 1);
+      kroky.push(`\xDAlo\u017En\xE1 lehota 15 dn\xED plynie odo d\u0148a nasleduj\xFAceho po ulo\u017Een\xED (ten je 1. d\u0148om) \u2192 kon\u010D\xED ${formatDatum(koniecUloznej)} (\xA7 32 ods. 2 z\xE1k. 305/2013 Z. z.). N\xE1stroj \xFAlo\u017En\xFA lehotu pri sobote \u010Di sviatku nepos\xFAva (v\xFDklad projektu: \xA7 121 ods. 4 CSP sa vz\u0165ahuje na lehoty \u201Epod\u013Ea tohto z\xE1kona\u201C).`);
       if (input2.prevzate) {
         const p = input2.datumPrevzatia;
         if (p <= koniecUloznej) {
@@ -37679,14 +37679,14 @@ function jadro(input2, konanie, tables, v) {
           sposob = "dorucenka";
           kroky.push(`Adres\xE1t potvrdil elektronick\xFA doru\u010Denku ${formatDatum(p)}, teda pred m\xE1rnym uplynut\xEDm \xFAlo\u017Enej lehoty \u2192 doru\u010Den\xE9 ${formatDatum(p)} (\xA7 32 ods. 5 p\xEDsm. b) bod 1 z\xE1k. 305/2013 Z. z.).`);
         } else {
-          datumDorucenia = koniecUloznej;
+          datumDorucenia = dorucenieFikciou;
           sposob = "fikcia";
-          kroky.push(`Doru\u010Denka (${formatDatum(p)}) je a\u017E po uplynut\xED \xFAlo\u017Enej lehoty \u2192 rozhoduje skor\u0161ia skuto\u010Dnos\u0165, m\xE1rne uplynutie \xFAlo\u017Enej lehoty: doru\u010Den\xE9 ${formatDatum(koniecUloznej)} (\xA7 32 ods. 5 p\xEDsm. b) bod 1 z\xE1k. 305/2013 Z. z.).`);
+          kroky.push(`Doru\u010Denka (${formatDatum(p)}) je a\u017E po uplynut\xED \xFAlo\u017Enej lehoty \u2192 rozhoduje skor\u0161ia skuto\u010Dnos\u0165, m\xE1rne uplynutie \xFAlo\u017Enej lehoty: doru\u010Den\xE9 ${formatDatum(dorucenieFikciou)}, de\u0148 po poslednom dni \xFAlo\u017Enej lehoty (\xA7 32 ods. 5 p\xEDsm. b) bod 1 z\xE1k. 305/2013 Z. z.; ve\u013Ek\xFD sen\xE1t NS SR 1VCdo/8/2025).`);
         }
       } else {
-        datumDorucenia = koniecUloznej;
+        datumDorucenia = dorucenieFikciou;
         sposob = "fikcia";
-        kroky.push(`Doru\u010Denka nebola potvrden\xE1 \u2192 fikcia doru\u010Denia m\xE1rnym uplynut\xEDm \xFAlo\u017Enej lehoty: doru\u010Den\xE9 ${formatDatum(koniecUloznej)}, aj ke\u010F sa adres\xE1t o tom nedozvedel (\xA7 32 ods. 5 p\xEDsm. b) bod 1 z\xE1k. 305/2013 Z. z.).`);
+        kroky.push(`Doru\u010Denka nebola potvrden\xE1 \u2192 fikcia doru\u010Denia m\xE1rnym uplynut\xEDm \xFAlo\u017Enej lehoty: doru\u010Den\xE9 a\u017E ${formatDatum(dorucenieFikciou)}, de\u0148 po poslednom dni \xFAlo\u017Enej lehoty, aj ke\u010F sa adres\xE1t o tom nedozvedel (\xA7 32 ods. 5 p\xEDsm. b) bod 1 z\xE1k. 305/2013 Z. z.; ve\u013Ek\xFD sen\xE1t NS SR 1VCdo/8/2025: nie v posledn\xFD de\u0148 \xFAlo\u017Enej lehoty).`);
       }
     }
     denUdalosti = datumDorucenia;
@@ -37761,11 +37761,6 @@ function jadro(input2, konanie, tables, v) {
   };
 }
 var VYKLADY = {
-  ulozna16: {
-    bod: "+15 vs. +16 dn\xED ukladania (\xA7 32 ods. 2 a 5 z\xE1k. 305/2013 Z. z.)",
-    nie: "\xFAlo\u017En\xE1 lehota kon\u010D\xED 15. d\u0148om po ulo\u017Een\xED (de\u0148 nasleduj\xFAci po ulo\u017Een\xED je 1. d\u0148om)",
-    ano: "\xFAlo\u017En\xE1 lehota kon\u010D\xED 16. d\u0148om po ulo\u017Een\xED (de\u0148 nasleduj\xFAci po ulo\u017Een\xED sa nezapo\u010D\xEDtava)"
-  },
   sobotaPosuva: {
     bod: "doru\u010Denie v sobotu a posun za\u010Diatku (\xA7 32 ods. 9 z\xE1k. 305/2013 Z. z.)",
     nie: "sobota nie je \u0161t\xE1tny sviatok ani de\u0148 pracovn\xE9ho pokoja, za\u010Diatok sa nepos\xFAva",
