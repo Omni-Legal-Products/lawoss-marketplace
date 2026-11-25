@@ -1,6 +1,6 @@
 {
   "repository": "Omni-Legal-Products/mcp-kalkulacky-sk",
-  "commit": "0845653617d1fd2d29665314427f0965d1c2d212",
+  "commit": "3935f5c5d58be91a370b84282c5e0c63208f50b9",
   "configSha256": "c8f2a9dc897dbf74856c2d0d472143e1d09dec93a214e726a58d2ec5a14f41b6",
   "files": {
     "LICENSE": "9fe478ccbbbbd73394f413ec9cbb23f0655e3419873a81702d6cc0bd981fdbce",
@@ -12,7 +12,7 @@
     "data/sudne-poplatky.json": "e73581a4623816958bdee38326cf60a86bc96ea67b81a17f95e36202e1903fc4",
     "data/trovy.json": "73bd84bbe5945751ced2dd24d48e27cccc536f40e67bc950a1a45afe15edd57e",
     "data/vypoctovy-zaklad.json": "dd4e56b887984b39f592868a5e81066191736b1f5e64fd52011f4244e4c6cd14",
-    "dist/src/server.js": "d361074aad949b34839c907378e2a886a65359060ed4624aef580626aa3c74c1",
+    "dist/src/server.js": "1f26c234761100e97f189128a687f4348546b28b3b1531c8031632db272d9de5",
     "package.json": "5a74908023c328ff80d2a162ddeac722abdc5a069ed17fdb7a08c421cf2ce2b9"
   }
 }
